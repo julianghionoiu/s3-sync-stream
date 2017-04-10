@@ -1,0 +1,87 @@
+//~~~~ Settings for Gradle
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+        mavenCentral()
+    }
+    dependencies {
+        classpath "io.spring.gradle:dependency-management-plugin:1.0.0.RC2"
+        classpath "org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.8.1"
+        classpath 'us.kirchmeier:gradle-capsule-plugin:1.0.2'
+    }
+
+}
+
+apply plugin: 'java'
+apply plugin: 'application'
+
+group 'ro'
+version '1.0-SNAPSHOT'
+
+//noinspection GroovyUnusedAssignment
+targetCompatibility = JavaVersion.VERSION_1_8
+//noinspection GroovyUnusedAssignment
+sourceCompatibility = JavaVersion.VERSION_1_8
+
+repositories {
+    mavenCentral()
+}
+
+// ~~~~~ Dependencies
+
+apply plugin: "io.spring.dependency-management"
+dependencyManagement {
+    imports {
+        mavenBom 'com.amazonaws:aws-java-sdk-bom:1.11.117'
+    }
+}
+
+dependencies {
+    compile 'com.amazonaws:aws-java-sdk-s3'
+    compile 'com.beust:jcommander:1.64'
+
+    compile 'org.slf4j:slf4j-api:1.7.25'
+    compile 'ch.qos.logback:logback-classic:1.1.3'
+    compileOnly 'org.projectlombok:lombok:1.16.16'
+
+    testCompile('junit:junit:4.11'){
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testCompile 'org.hamcrest:hamcrest-core:1.3'
+    testCompile 'org.hamcrest:hamcrest-library:1.3'
+    testCompileOnly 'org.projectlombok:lombok:1.16.16'
+}
+
+// ~~~~~ Packaging
+
+apply plugin: 'us.kirchmeier.capsule'
+
+mainClassName = "tdl.s3.SyncFileApp"
+jar {
+    manifest {
+        attributes "Main-Class": "$mainClassName"
+    }
+}
+
+
+task mavenCapsule(type: MavenCapsule){
+    applicationClass mainClassName
+
+    capsuleManifest {
+        dependencyConfiguration configurations.compile
+    }
+}
+
+// ~~~~~ Gather coverage
+
+apply plugin: "jacoco"
+apply plugin: "com.github.kt3k.coveralls"
+
+jacocoTestReport {
+    reports {
+        xml.enabled = true // coveralls plugin depends on xml format report
+        html.enabled = true
+    }
+}
