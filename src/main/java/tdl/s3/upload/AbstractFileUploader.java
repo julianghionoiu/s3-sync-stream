@@ -68,5 +68,5 @@ public abstract class AbstractFileUploader implements FileUploader {
         }
     }
 
-    protected abstract void uploadInternal(AmazonS3 s3, String bucket, File file, String newName);
+    protected abstract void uploadInternal(AmazonS3 s3, String bucket, File file, String newName) throws InterruptedException, Exception;
 }

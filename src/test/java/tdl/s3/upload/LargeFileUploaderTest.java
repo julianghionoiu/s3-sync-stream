@@ -3,6 +3,8 @@ package tdl.s3.upload;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,23 +13,24 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-
 import java.io.File;
 import java.util.Collections;
 
-import static junit.framework.TestCase.assertNotNull;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 /**
  * @author vdanyliuk
  * @version 11.04.17.
  */
 @RunWith(MockitoJUnitRunner.class)
-public class SimpleFileUploaderTest {
+public class LargeFileUploaderTest {
 
     @InjectMocks
-    private SimpleFileUploader fileUploader;
+    private LargeFileUploader fileUploader;
 
     @Mock
     private AmazonS3 amazonS3;
@@ -62,13 +65,14 @@ public class SimpleFileUploaderTest {
 
     @Test
     public void upload_retryAfterError() throws Exception {
+        when(amazonS3.putObject(any(PutObjectRequest.class))).thenThrow(SdkClientException.class);
         when(amazonS3.putObject(anyString(), anyString(), any(File.class))).thenThrow(SdkClientException.class);
         try {
             fileUploader.upload(new File("test.file"));
         } catch (Exception e) {
-            assertNotNull(e);
+            //do nothing
         }
-        verify(amazonS3, times(3)).putObject(anyString(), anyString(), any(File.class));
+        verify(amazonS3, times(3)).putObject(any(PutObjectRequest.class));
     }
 
     @Test
@@ -80,9 +84,10 @@ public class SimpleFileUploaderTest {
 
     @Test
     public void upload_notExisting() throws Exception {
+        when(amazonS3.putObject(any(PutObjectRequest.class))).thenReturn(new PutObjectResult());
+
         fileUploader.upload(new File("file3"));
 
-        verify(amazonS3, times(1)).putObject(anyString(), anyString(), any(File.class));
+        verify(amazonS3, times(1)).putObject(any(PutObjectRequest.class));
     }
-
 }
