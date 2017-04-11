@@ -3,6 +3,7 @@ package tdl.s3.upload;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.util.Collection;
@@ -12,6 +13,7 @@ import java.util.stream.Stream;
  * @author vdanyliuk
  * @version 11.04.17.
  */
+@Slf4j
 public abstract class AbstractFileUploader implements FileUploader {
 
     public static int RETRY_TIMES_COUNT = 2;
@@ -55,14 +57,17 @@ public abstract class AbstractFileUploader implements FileUploader {
     }
 
     private void upload(File file, String newName, int retry) {
+        log.info("Uploading file " + file);
         try {
             if (!exists(bucket, newName)) {
                 uploadInternal(s3Provider, bucket, file, newName);
             }
         } catch (Exception e) {
             if (retry == 0) {
+                log.error("Error during uploading, can't upload file due to exception: " + e.getMessage());
                 throw new UploadingException("Can't upload file " + file + " due to error " + e.getMessage(), e);
             } else {
+                log.warn("Error during uploading : " + e.getMessage() + " Trying next time...");
                 upload(file, newName, retry - 1);
             }
         }
