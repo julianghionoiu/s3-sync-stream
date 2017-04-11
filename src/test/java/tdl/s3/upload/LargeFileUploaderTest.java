@@ -52,8 +52,8 @@ public class LargeFileUploaderTest {
         when(amazonS3.listNextBatchOfObjects(objectListing1)).thenReturn(objectListing2);
         when(amazonS3.listObjects(anyString())).thenReturn(objectListing1);
 
-        when(objectListing1.isTruncated()).thenReturn(false);
-        when(objectListing2.isTruncated()).thenReturn(true);
+        when(objectListing1.isTruncated()).thenReturn(true);
+        when(objectListing2.isTruncated()).thenReturn(false);
 
         when(objectListing1.getObjectSummaries()).thenReturn(Collections.singletonList(objectSummary1));
         when(objectListing2.getObjectSummaries()).thenReturn(Collections.singletonList(objectSummary2));

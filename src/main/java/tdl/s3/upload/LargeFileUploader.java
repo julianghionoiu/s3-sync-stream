@@ -14,21 +14,21 @@ import java.io.File;
  */
 public class LargeFileUploader extends AbstractFileUploader {
 
-    private TransferManager transferManager;
-
     public LargeFileUploader(AmazonS3 s3Provider, String bucket) {
         super(s3Provider, bucket);
-        transferManager = TransferManagerBuilder
-                .standard()
-                .withS3Client(s3Provider)
-                .build();
+
 
     }
 
     @Override
     protected void uploadInternal(AmazonS3 s3, String bucket, File file, String newName) throws Exception {
+        TransferManager transferManager = TransferManagerBuilder
+                .standard()
+                .withS3Client(s3)
+                .build();
         Upload upload = transferManager.upload(bucket, newName, file);
         upload.waitForCompletion();
+        transferManager.shutdownNow();
     }
 
 

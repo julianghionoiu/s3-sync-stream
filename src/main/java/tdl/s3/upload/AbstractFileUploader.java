@@ -46,7 +46,7 @@ public abstract class AbstractFileUploader implements FileUploader {
     }
 
     private Stream<ObjectListing> getNextListing(ObjectListing objectListing) {
-        if (objectListing.isTruncated()) {
+        if (!objectListing.isTruncated()) {
             return Stream.of(objectListing);
         } else {
             ObjectListing nextListing = s3Provider.listNextBatchOfObjects(objectListing);
