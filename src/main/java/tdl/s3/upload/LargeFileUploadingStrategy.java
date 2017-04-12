@@ -14,17 +14,11 @@ import java.io.File;
  * @version 11.04.17.
  */
 @Slf4j
-public class LargeFileUploader extends AbstractFileUploader {
-
-    public LargeFileUploader(AmazonS3 s3Provider, String bucket) {
-        super(s3Provider, bucket);
-
-
-    }
+public class LargeFileUploadingStrategy implements UploadingStrategy {
 
     @Override
-    protected void uploadInternal(AmazonS3 s3, String bucket, File file, String newName) throws Exception {
-        log.debug("Uploading file " + file + " with LargeFileUploader.");
+    public void upload(AmazonS3 s3, String bucket, File file, String newName) throws Exception {
+        log.debug("Uploading file " + file + " with LargeFileUploadingStrategy.");
         TransferManager transferManager = TransferManagerBuilder
                 .standard()
                 .withS3Client(s3)
@@ -33,6 +27,5 @@ public class LargeFileUploader extends AbstractFileUploader {
         upload.waitForCompletion();
         transferManager.shutdownNow(false);
     }
-
 
 }

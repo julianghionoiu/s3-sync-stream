@@ -14,16 +14,18 @@ import java.util.stream.Stream;
  * @version 11.04.17.
  */
 @Slf4j
-public abstract class AbstractFileUploader implements FileUploader {
+public class FileUploaderImpl implements FileUploader {
 
     public static int RETRY_TIMES_COUNT = 2;
 
     private final AmazonS3 s3Provider;
     private final String bucket;
+    private final UploadingStrategy uploadingStrategy;
 
-    public AbstractFileUploader(final AmazonS3 s3Provider, String bucket) {
+    public FileUploaderImpl(final AmazonS3 s3Provider, String bucket, UploadingStrategy uploadingStrategy) {
         this.s3Provider = s3Provider;
         this.bucket = bucket;
+        this.uploadingStrategy = uploadingStrategy;
     }
 
     @Override
@@ -73,5 +75,7 @@ public abstract class AbstractFileUploader implements FileUploader {
         }
     }
 
-    protected abstract void uploadInternal(AmazonS3 s3, String bucket, File file, String newName) throws InterruptedException, Exception;
+    private void uploadInternal(AmazonS3 s3, String bucket, File file, String newName) throws Exception {
+        uploadingStrategy.upload(s3, bucket, file, newName);
+    }
 }

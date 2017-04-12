@@ -15,16 +15,19 @@ public class FileUploadingService {
     public static final Integer MULTIPART_UPLOAD_SIZE_LIMIT = 5;
     private static final long BYTES_IN_MEGABYTE = 1024 * 1024;
 
-    private final Map<Integer, FileUploader> uploaderByFileSize;
+    private final Map<Integer, ? extends FileUploader> uploaderByFileSize;
 
     public FileUploadingService(Map<Integer, FileUploader> uploaderByFileSize) {
         this.uploaderByFileSize = uploaderByFileSize;
     }
 
     public FileUploadingService(AmazonS3 amazonS3, String bucketName) {
-        this.uploaderByFileSize = new LinkedHashMap<Integer, FileUploader>(){{
-            put(MULTIPART_UPLOAD_SIZE_LIMIT, new SimpleFileUploader(amazonS3, bucketName));
-            put(Integer.MAX_VALUE, new LargeFileUploader(amazonS3, bucketName));
+        FileUploaderImpl smallFilesUploader = new FileUploaderImpl(amazonS3, bucketName, new LargeFileUploadingStrategy());
+        FileUploaderImpl largeFilesUploader = new FileUploaderImpl(amazonS3, bucketName, new SmallFileUploadingStrategy());
+
+        this.uploaderByFileSize = new LinkedHashMap<Integer, FileUploaderImpl>(){{
+            put(MULTIPART_UPLOAD_SIZE_LIMIT, largeFilesUploader);
+            put(Integer.MAX_VALUE, smallFilesUploader);
         }};
     }
 

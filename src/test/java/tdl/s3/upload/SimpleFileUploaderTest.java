@@ -7,7 +7,6 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
@@ -26,8 +25,7 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.class)
 public class SimpleFileUploaderTest {
 
-    @InjectMocks
-    private SimpleFileUploader fileUploader;
+    private FileUploader fileUploader;
 
     @Mock
     private AmazonS3 amazonS3;
@@ -58,6 +56,7 @@ public class SimpleFileUploaderTest {
         when(objectSummary1.getKey()).thenReturn("file1");
         when(objectSummary2.getKey()).thenReturn("file2");
 
+        fileUploader = new FileUploaderImpl(amazonS3, "test_bucket", new SmallFileUploadingStrategy());
     }
 
     @Test

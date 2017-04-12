@@ -8,8 +8,8 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
-import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
@@ -24,10 +24,10 @@ public class FileUploadingServiceTest {
     private FileUploadingService fileUploadingService;
 
     @Mock
-    private SimpleFileUploader simpleFileUploader;
+    private FileUploader smallFilesUploader;
 
     @Mock
-    private LargeFileUploader largeFileUploader;
+    private FileUploader largeFilesUploader;
 
     @Mock
     private File smallFile;
@@ -37,9 +37,10 @@ public class FileUploadingServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        fileUploadingService = new FileUploadingService(new HashMap<Integer, FileUploader>(){{
-            put(1, simpleFileUploader);
-            put(Integer.MAX_VALUE, largeFileUploader);
+        fileUploadingService = new FileUploadingService(new HashMap<Integer, FileUploader>() {{
+            put(1, smallFilesUploader);
+            put(Integer.MAX_VALUE, largeFilesUploader);
+
         }});
 
         when(smallFile.length()).thenReturn(1255L);
@@ -50,16 +51,16 @@ public class FileUploadingServiceTest {
     public void upload_smallFile() throws Exception {
         fileUploadingService.upload(smallFile);
 
-        verify(simpleFileUploader, times(1)).upload(eq(smallFile), anyString());
-        verify(largeFileUploader, never()).upload(any(File.class), anyString());
+        verify(smallFilesUploader, times(1)).upload(eq(smallFile), anyString());
+        verify(largeFilesUploader, never()).upload(any(File.class), anyString());
     }
 
     @Test
     public void upload_largeFile() throws Exception {
         fileUploadingService.upload(largeFile);
 
-        verify(largeFileUploader, times(1)).upload(eq(largeFile), anyString());
-        verify(simpleFileUploader, never()).upload(any(File.class), anyString());
+        verify(largeFilesUploader, times(1)).upload(eq(largeFile), anyString());
+        verify(smallFilesUploader, never()).upload(any(File.class), anyString());
     }
 
 
