@@ -31,7 +31,7 @@ public class LargeFileUploader extends AbstractFileUploader {
                 .build();
         Upload upload = transferManager.upload(bucket, newName, file);
         upload.waitForCompletion();
-        transferManager.shutdownNow();
+        transferManager.shutdownNow(false);
     }
 
 
