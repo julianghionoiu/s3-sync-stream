@@ -29,7 +29,7 @@ public class FolderScannerImpl implements FolderScanner {
                     scanDepth,
                     getVisitor(fileConsumer, recursive, folderPath));
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Can't synchronize folder due to exception: " + e.getMessage(), e);
         }
     }
 
