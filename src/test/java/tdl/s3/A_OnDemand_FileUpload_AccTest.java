@@ -39,43 +39,14 @@ import static org.junit.Assert.assertTrue;
  * This bucket will be cleared before tests run
  *
  */
-public class A_OnDemand_FileUpload_AccTest {
+public class A_OnDemand_FileUpload_AccTest extends AbstractAcceptanceTestCase {
 
-    private AmazonS3 amazonS3;
-
-    private String bucketName;
-
-    private FileUploadingService fileUploadingService;
-
-    @Before
-    public void setUp() throws Exception {
-        Properties properties = loadProperties();
-
-        AWSCredentialsProvider credentialsProvider = new ProfileCredentialsProvider();
-
-        amazonS3 = AmazonS3ClientBuilder.standard()
-                .withCredentials(credentialsProvider)
-                .withRegion(properties.getProperty("s3_region"))
-                .build();
-
-        bucketName = properties.getProperty("s3_bucket");
-        fileUploadingService = new FileUploadingService(amazonS3, bucketName);
-
+    @Override
+    protected void additionalSetUp() {
         //Delete previously uploaded files if present
         amazonS3.deleteObject(bucketName, "uploaded_once.txt");
         amazonS3.deleteObject(bucketName, "new_file_name.txt");
         amazonS3.deleteObject(bucketName, "large_file.bin");
-
-    }
-
-    private Properties loadProperties() throws IOException {
-        String userHome = System.getProperty("user.home");
-        Path propertiesPath = Paths.get(userHome, ".aws", "credentials");
-        Properties properties = new Properties();
-        try (InputStream inStream = Files.newInputStream(propertiesPath)) {
-            properties.load(inStream);
-            return properties;
-        }
     }
 
     @Test
@@ -87,7 +58,7 @@ public class A_OnDemand_FileUpload_AccTest {
         Instant uploadingTime = Instant.now();
         fileUploadingService.upload(new File("src/test/resources/sample_small_file_to_upload.txt"), "uploaded_once.txt");
 
-        ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(bucketName, "uploaded_once.txt");
+        ObjectMetadata objectMetadata = getObjectMetadata("uploaded_once.txt");
         Instant actualLastModifiedDate = objectMetadata.getLastModified().toInstant();
 
         //Check that file is older than last uploading start
@@ -98,7 +69,7 @@ public class A_OnDemand_FileUpload_AccTest {
     public void should_upload_simple_file_to_bucket() throws Exception {
         fileUploadingService.upload(new File("src/test/resources/sample_small_file_to_upload.txt"), "new_file_name.txt");
 
-        ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(bucketName, "new_file_name.txt");
+        ObjectMetadata objectMetadata = getObjectMetadata("new_file_name.txt");
         assertNotNull(objectMetadata);
     }
 
@@ -106,7 +77,7 @@ public class A_OnDemand_FileUpload_AccTest {
     public void should_upload_large_file_to_bucket_using_multipart_upload() throws Exception {
         fileUploadingService.upload(new File("src/test/resources/large_file.bin"));
 
-        ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(bucketName, "large_file.bin");
+        ObjectMetadata objectMetadata = getObjectMetadata("large_file.bin");
         assertNotNull(objectMetadata);
     }
 
