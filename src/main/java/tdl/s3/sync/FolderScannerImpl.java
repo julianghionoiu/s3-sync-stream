@@ -12,10 +12,6 @@ import java.util.function.BiConsumer;
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 
-/**
- * @author vdanyliuk
- * @version 13.04.17.
- */
 @Slf4j
 public class FolderScannerImpl implements FolderScanner {
 

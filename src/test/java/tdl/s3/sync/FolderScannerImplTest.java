@@ -21,10 +21,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-/**
- * @author vdanyliuk
- * @version 13.04.17.
- */
 @RunWith(MockitoJUnitRunner.class)
 public class FolderScannerImplTest {
 

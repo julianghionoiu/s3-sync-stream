@@ -4,10 +4,6 @@ import tdl.s3.upload.FileUploadingService;
 
 import java.nio.file.Path;
 
-/**
- * @author vdanyliuk
- * @version 13.04.17.
- */
 public class FolderSynchronizer {
 
     private FolderScanner folderScanner;

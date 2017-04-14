@@ -18,10 +18,6 @@ import static junit.framework.TestCase.assertNotNull;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
-/**
- * @author vdanyliuk
- * @version 11.04.17.
- */
 @RunWith(MockitoJUnitRunner.class)
 public class SimpleFileUploaderTest {
 

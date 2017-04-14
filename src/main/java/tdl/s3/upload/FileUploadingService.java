@@ -6,10 +6,6 @@ import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * @author vdanyliuk
- * @version 11.04.17.
- */
 public class FileUploadingService {
 
     public static final Integer MULTIPART_UPLOAD_SIZE_LIMIT = 5;

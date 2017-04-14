@@ -14,10 +14,6 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
-/**
- * @author vdanyliuk
- * @version 11.04.17.
- */
 @RunWith(MockitoJUnitRunner.class)
 public class FileUploadingServiceTest {
 

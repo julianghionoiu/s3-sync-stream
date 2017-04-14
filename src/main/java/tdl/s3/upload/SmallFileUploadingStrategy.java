@@ -6,11 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 
 
-
-/**
- * @author vdanyliuk
- * @version 11.04.17.
- */
 @Slf4j
 public class SmallFileUploadingStrategy implements UploadingStrategy {
 

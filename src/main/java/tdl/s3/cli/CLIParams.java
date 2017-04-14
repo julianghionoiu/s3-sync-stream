@@ -4,10 +4,6 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import lombok.Data;
 
-/**
- * @author vdanyliuk
- * @version 13.04.17.
- */
 @Data
 public class CLIParams {
 
