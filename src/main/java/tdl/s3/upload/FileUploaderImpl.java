@@ -1,7 +1,9 @@
 package tdl.s3.upload;
 
+import com.amazonaws.services.kms.model.NotFoundException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,21 +38,11 @@ public class FileUploaderImpl implements FileUploader {
 
     @Override
     public boolean exists(String bucketName, String fileKey) {
-        ObjectListing objectListing = s3Provider.listObjects(bucketName);
-        return Stream.of(objectListing)
-                .flatMap(this::getNextListing)
-                .map(ObjectListing::getObjectSummaries)
-                .flatMap(Collection::stream)
-                .map(S3ObjectSummary::getKey)
-                .anyMatch(fileKey::equals);
-    }
-
-    private Stream<ObjectListing> getNextListing(ObjectListing objectListing) {
-        if (!objectListing.isTruncated()) {
-            return Stream.of(objectListing);
-        } else {
-            ObjectListing nextListing = s3Provider.listNextBatchOfObjects(objectListing);
-            return Stream.concat(Stream.of(objectListing), getNextListing(nextListing));
+        try {
+            s3Provider.getObjectMetadata(bucketName, fileKey);
+            return true;
+        } catch (NotFoundException nfe) {
+            return false;
         }
     }
 
