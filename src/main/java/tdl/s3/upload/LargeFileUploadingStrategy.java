@@ -1,6 +1,5 @@
 package tdl.s3.upload;
 
-import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
@@ -9,10 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 
-/**
- * @author vdanyliuk
- * @version 11.04.17.
- */
 @Slf4j
 public class LargeFileUploadingStrategy implements UploadingStrategy {
 

@@ -6,10 +6,8 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import org.junit.Before;
-import org.junit.FixMethodOrder;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.runner.RunWith;
 import tdl.s3.upload.FileUploadingService;
 
 import java.io.File;
@@ -41,53 +39,26 @@ import static org.junit.Assert.assertTrue;
  */
 public class A_OnDemand_FileUpload_AccTest {
 
-    private AmazonS3 amazonS3;
-
-    private String bucketName;
-
-    private FileUploadingService fileUploadingService;
+    @Rule
+    public FileCheckingRule fileChecking = new FileCheckingRule();
 
     @Before
     public void setUp() throws Exception {
-        Properties properties = loadProperties();
-
-        AWSCredentialsProvider credentialsProvider = new ProfileCredentialsProvider();
-
-        amazonS3 = AmazonS3ClientBuilder.standard()
-                .withCredentials(credentialsProvider)
-                .withRegion(properties.getProperty("s3_region"))
-                .build();
-
-        bucketName = properties.getProperty("s3_bucket");
-        fileUploadingService = new FileUploadingService(amazonS3, bucketName);
-
-        //Delete previously uploaded files if present
-        amazonS3.deleteObject(bucketName, "uploaded_once.txt");
-        amazonS3.deleteObject(bucketName, "new_file_name.txt");
-        amazonS3.deleteObject(bucketName, "large_file.bin");
-
-    }
-
-    private Properties loadProperties() throws IOException {
-        String userHome = System.getProperty("user.home");
-        Path propertiesPath = Paths.get(userHome, ".aws", "credentials");
-        Properties properties = new Properties();
-        try (InputStream inStream = Files.newInputStream(propertiesPath)) {
-            properties.load(inStream);
-            return properties;
-        }
+        fileChecking.deleteObjects("uploaded_once.txt", "new_file_name.txt", "large_file.bin");
     }
 
     @Test
     public void should_not_upload_file_if_already_present() throws Exception {
+        String[] uploadingArgs = (fileChecking.commonArgs() + "upload -f " + "src/test/resources/already_uploaded.txt").split(" ");
+
         //Upload first file just to check in test that it will not be uploaded twice
-        fileUploadingService.upload(new File("src/test/resources/sample_small_file_to_upload.txt"), "uploaded_once.txt");
+        SyncFileApp.main(uploadingArgs);
         // Sleep 2 seconds to distinguish that file uploaded_once.txt on aws was not uploaded by next call
         Thread.sleep(2000);
         Instant uploadingTime = Instant.now();
-        fileUploadingService.upload(new File("src/test/resources/sample_small_file_to_upload.txt"), "uploaded_once.txt");
+        SyncFileApp.main(uploadingArgs);
 
-        ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(bucketName, "uploaded_once.txt");
+        ObjectMetadata objectMetadata = fileChecking.getObjectMetadata("already_uploaded.txt");
         Instant actualLastModifiedDate = objectMetadata.getLastModified().toInstant();
 
         //Check that file is older than last uploading start
@@ -96,17 +67,19 @@ public class A_OnDemand_FileUpload_AccTest {
 
     @Test
     public void should_upload_simple_file_to_bucket() throws Exception {
-        fileUploadingService.upload(new File("src/test/resources/sample_small_file_to_upload.txt"), "new_file_name.txt");
+        String[] uploadingArgs = (fileChecking.commonArgs() + "upload -f " + "src/test/resources/sample_small_file_to_upload.txt").split(" ");
+        SyncFileApp.main(uploadingArgs);
 
-        ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(bucketName, "new_file_name.txt");
+        ObjectMetadata objectMetadata = fileChecking.getObjectMetadata("sample_small_file_to_upload.txt");
         assertNotNull(objectMetadata);
     }
 
     @Test
     public void should_upload_large_file_to_bucket_using_multipart_upload() throws Exception {
-        fileUploadingService.upload(new File("src/test/resources/large_file.bin"));
+        String[] uploadingArgs = (fileChecking.commonArgs() + "upload -f " + "src/test/resources/large_file.bin").split(" ");
+        SyncFileApp.main(uploadingArgs);
 
-        ObjectMetadata objectMetadata = amazonS3.getObjectMetadata(bucketName, "large_file.bin");
+        ObjectMetadata objectMetadata = fileChecking.getObjectMetadata("large_file.bin");
         assertNotNull(objectMetadata);
     }
 

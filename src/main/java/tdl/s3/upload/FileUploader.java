@@ -5,9 +5,6 @@ import java.io.File;
 /**
  * General interface to upload any file to S3 storage
  *
- *
- * @author vdanyliuk
- * @version  11.04.17.
  */
 public interface FileUploader {
 

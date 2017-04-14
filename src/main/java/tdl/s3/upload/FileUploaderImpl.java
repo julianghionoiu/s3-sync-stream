@@ -9,10 +9,6 @@ import java.io.File;
 import java.util.Collection;
 import java.util.stream.Stream;
 
-/**
- * @author vdanyliuk
- * @version 11.04.17.
- */
 @Slf4j
 public class FileUploaderImpl implements FileUploader {
 

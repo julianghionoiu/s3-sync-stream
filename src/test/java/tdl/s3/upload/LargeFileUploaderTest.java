@@ -21,10 +21,6 @@ import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-/**
- * @author vdanyliuk
- * @version 11.04.17.
- */
 @RunWith(MockitoJUnitRunner.class)
 public class LargeFileUploaderTest {
 
