@@ -55,7 +55,7 @@ public class FileUploadingService {
             UnfinishedUploadingFileUploadingStrategy uploadingStrategy = new UnfinishedUploadingFileUploadingStrategy(multipartUpload);
             fileUploader.setStrategy(uploadingStrategy);
             return fileUploader;
-        } else if (Files.exists(file.toPath().getParent().resolve(file.getName() + ".lock"))) {
+        } else if (Files.exists(file.toPath().toAbsolutePath().normalize().getParent().resolve(file.getName() + ".lock"))) {
             UnfinishedUploadingFileUploadingStrategy uploadingStrategy = new UnfinishedUploadingFileUploadingStrategy(null);
             fileUploader.setStrategy(uploadingStrategy);
             return fileUploader;

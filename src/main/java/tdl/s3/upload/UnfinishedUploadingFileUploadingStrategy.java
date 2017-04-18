@@ -62,7 +62,7 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
         if (!uploadingStarted) {
             uploadId = initUploading(s3, bucket, newName);
             uploadedSize = 0;
-            nextPartToUploadIndex = 0;
+            nextPartToUploadIndex = 1;
         } else {
             uploadId = alreadyUploadedParts.getUploadId();
             uploadedSize = getUploadedSize(alreadyUploadedParts);
@@ -103,8 +103,7 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
 
         {
             InputStream partInputStream = getInputStream(nextPartBytes, partSize);
-            String digest = getDigest(nextPartBytes);
-            UploadPartRequest request = getUploadPartRequest(bucket, newName, nextPartToUploadIndex++, partInputStream, partSize, digest);
+            UploadPartRequest request = getUploadPartRequest(bucket, newName, nextPartToUploadIndex++, partInputStream, partSize);
             UploadPartResult result = s3.uploadPart(request);
             tags.add(result.getPartETag());
         }
@@ -114,6 +113,7 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
         UploadPartRequest partRequest = new UploadPartRequest()
                 .withFileOffset(uploadedSize)
                 .withFile(file)
+                .withUploadId(uploadId)
                 .withPartNumber(nextPartToUploadIndex)
                 .withBucketName(bucket)
                 .withKey(newName);
@@ -129,12 +129,10 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
                                                    String newName,
                                                    int partNumber,
                                                    InputStream partInputStream,
-                                                   int partSize,
-                                                   String digest) {
+                                                   int partSize) {
         return new UploadPartRequest()
                 .withBucketName(bucket)
                 .withKey(newName)
-                .withMD5Digest(digest)
                 .withPartNumber(partNumber)
                 .withPartSize(partSize)
                 .withUploadId(uploadId)
@@ -183,7 +181,7 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
         return partListing.getParts().stream()
                 .mapToInt(PartSummary::getPartNumber)
                 .max()
-                .orElse(0);
+                .orElse(1);
     }
 
     private PartListing getAlreadyUploadedParts(AmazonS3 s3, String bucket, String key, MultipartUpload upload) {

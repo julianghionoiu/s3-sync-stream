@@ -5,6 +5,8 @@ import lombok.Getter;
 import org.junit.rules.ExternalResource;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 
 @Getter
@@ -30,6 +32,15 @@ public class TempFileRule extends ExternalResource {
             Files.delete(fileToUpload.toPath());
             Files.delete(lockFile.toPath());
         } catch (Exception ignored) {
+        }
+    }
+
+    public void writeDataToFile(File file) {
+        try (FileOutputStream fileOutputStream = new FileOutputStream(file, true)) {
+            byte[] part = new byte[6 * 1024 * 1024];
+            fileOutputStream.write(part);
+        } catch (IOException e) {
+            throw new RuntimeException("Test interrupted.", e);
         }
     }
 }

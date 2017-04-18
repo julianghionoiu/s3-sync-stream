@@ -61,14 +61,7 @@ public class UnfinishedWritingFileUploadingStrategyTest {
         when(partSummary.getSize()).thenReturn(10L * 1024 * 1024);
     }
 
-    private void writeDataToFile(File file) {
-        try (FileOutputStream fileOutputStream = new FileOutputStream(file, true)) {
-            byte[] part = new byte[6 * 1024 * 1024];
-            fileOutputStream.write(part);
-        } catch (IOException e) {
-            throw new RuntimeException("Test interrupted.", e);
-        }
-    }
+
 
     @Test
     public void upload_newlyCreatedButIncompleteFile() throws Exception {
@@ -85,7 +78,7 @@ public class UnfinishedWritingFileUploadingStrategyTest {
 
         when(partListing.getParts()).thenReturn(Collections.singletonList(partSummary));
         //write additional  data and delete lock file
-        writeDataToFile(tempFileRule.getFileToUpload());
+        tempFileRule.writeDataToFile(tempFileRule.getFileToUpload());
         Files.delete(tempFileRule.getLockFile().toPath());
 
 

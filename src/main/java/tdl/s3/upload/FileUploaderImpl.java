@@ -2,14 +2,10 @@ package tdl.s3.upload;
 
 import com.amazonaws.services.kms.model.NotFoundException;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.stream.Stream;
 
 @Slf4j
 public class FileUploaderImpl implements FileUploader {
@@ -40,8 +36,14 @@ public class FileUploaderImpl implements FileUploader {
         try {
             s3Provider.getObjectMetadata(bucketName, fileKey);
             return true;
-        } catch (NotFoundException nfe) {
+        }catch (NotFoundException nfe) {
             return false;
+        } catch (AmazonS3Exception nfe) {
+            if (nfe.getStatusCode() == 404) {
+                return false;
+            } else {
+                throw nfe;
+            }
         }
     }
 
