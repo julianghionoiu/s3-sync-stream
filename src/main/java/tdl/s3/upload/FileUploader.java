@@ -13,4 +13,6 @@ public interface FileUploader {
     void upload(File file, String newName);
 
     boolean exists(String bucketName, String fileKey);
+
+    void setStrategy(UploadingStrategy uploadingStrategy);
 }

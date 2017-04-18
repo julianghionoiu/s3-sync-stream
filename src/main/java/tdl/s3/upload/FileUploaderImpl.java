@@ -18,12 +18,11 @@ public class FileUploaderImpl implements FileUploader {
 
     private final AmazonS3 s3Provider;
     private final String bucket;
-    private final UploadingStrategy uploadingStrategy;
+    private UploadingStrategy uploadingStrategy;
 
-    public FileUploaderImpl(final AmazonS3 s3Provider, String bucket, UploadingStrategy uploadingStrategy) {
+    public FileUploaderImpl(final AmazonS3 s3Provider, String bucket) {
         this.s3Provider = s3Provider;
         this.bucket = bucket;
-        this.uploadingStrategy = uploadingStrategy;
     }
 
     @Override
@@ -44,6 +43,11 @@ public class FileUploaderImpl implements FileUploader {
         } catch (NotFoundException nfe) {
             return false;
         }
+    }
+
+    @Override
+    public void setStrategy(UploadingStrategy uploadingStrategy) {
+        this.uploadingStrategy = uploadingStrategy;
     }
 
     private void upload(File file, String newName, int retry) {

@@ -12,6 +12,8 @@ import com.beust.jcommander.Parameters;
 import tdl.s3.cli.CLIParams;
 import tdl.s3.sync.FolderScannerImpl;
 import tdl.s3.sync.FolderSynchronizer;
+import tdl.s3.upload.FileUploader;
+import tdl.s3.upload.FileUploaderImpl;
 import tdl.s3.upload.FileUploadingService;
 
 import java.io.File;
@@ -63,7 +65,8 @@ public class SyncFileApp {
                 .withRegion(cliParams.getRegion())
                 .build();
 
-        FileUploadingService fileUploadingService = new FileUploadingService(amazonS3, cliParams.getBucket());
+        FileUploader fileUploader = new FileUploaderImpl(amazonS3, cliParams.getBucket());
+        FileUploadingService fileUploadingService = new FileUploadingService(amazonS3, cliParams.getBucket(), fileUploader);
 
         FolderSynchronizer folderSynchronizer = new FolderSynchronizer(new FolderScannerImpl(), fileUploadingService);
 

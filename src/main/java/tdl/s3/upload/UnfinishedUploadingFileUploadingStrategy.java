@@ -11,12 +11,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 
 public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrategy {
 
     //Minimum part size is 5 MB
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
+    private final MultipartUpload upload;
 
     private MessageDigest md5Digest;
 
@@ -32,7 +33,8 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
 
     private boolean writingFinished;
 
-    public UnfinishedUploadingFileUploadingStrategy() {
+    public UnfinishedUploadingFileUploadingStrategy(MultipartUpload upload) {
+        this.upload = upload;
         try {
             md5Digest = MessageDigest.getInstance("MD5");
             tags = new ArrayList<>();
@@ -43,7 +45,7 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
 
     @Override
     public void upload(AmazonS3 s3, String bucket, File file, String newName) throws Exception {
-        initStrategy(s3, bucket, file, newName);
+        initStrategy(s3, bucket, file, newName, upload);
         try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             uploadRequiredParts(s3, bucket, newName, inputStream);
         } catch (IOException e) {
@@ -52,10 +54,10 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
 
     }
 
-    private void initStrategy(AmazonS3 s3, String bucket, File file, String newName) {
+    private void initStrategy(AmazonS3 s3, String bucket, File file, String newName, MultipartUpload upload) {
         writingFinished = ! Files.exists(getLockFilePath(file));
         this.file = file;
-        PartListing alreadyUploadedParts = getAlreadyUploadedParts(s3, bucket, newName);
+        PartListing alreadyUploadedParts = getAlreadyUploadedParts(s3, bucket, newName, upload);
         boolean uploadingStarted = alreadyUploadedParts != null;
         if (!uploadingStarted) {
             uploadId = initUploading(s3, bucket, newName);
@@ -88,11 +90,11 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
         if (writingFinished) {
             uploadAndCommit(s3, bucket, newName);
         } else {
-            uploadExisting(s3, bucket, newName, inputStream);
+            uploadIncompleteParts(s3, bucket, newName, inputStream);
         }
     }
 
-    private void uploadExisting(AmazonS3 s3, String bucket, String newName, InputStream inputStream) throws IOException {
+    private void uploadIncompleteParts(AmazonS3 s3, String bucket, String newName, InputStream inputStream) throws IOException {
         byte[] nextPartBytes = new byte[MINIMUM_PART_SIZE * 2];
 
         for (int partSize = getNextPart(nextPartBytes, uploadedSize, inputStream);
@@ -149,13 +151,20 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
 
     private int getNextPart(byte[] nextPartBytes, long offset, InputStream inputStream) throws IOException {
         int read = 0;
-        inputStream.skip(offset);
+        skipAlreadyUploadedParts(offset, inputStream);
         while (inputStream.available() > 0) {
             int currentRed = inputStream.read(nextPartBytes, read, MINIMUM_PART_SIZE - read);
             read += currentRed;
             if (read == MINIMUM_PART_SIZE) break;
         }
         return read;
+    }
+
+    private void skipAlreadyUploadedParts(long offset, InputStream inputStream) throws IOException {
+        long skipped = 0;
+        while (skipped < offset) {
+            skipped += inputStream.skip(offset);
+        }
     }
 
     private String initUploading(AmazonS3 s3, String bucket, String newName) {
@@ -177,10 +186,8 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
                 .orElse(0);
     }
 
-    private PartListing getAlreadyUploadedParts(AmazonS3 s3, String bucket, String key) {
-        return getMultipartUploads(s3, bucket).stream()
-                .filter(upload -> Objects.equals(upload.getKey(), key))
-                .findFirst()
+    private PartListing getAlreadyUploadedParts(AmazonS3 s3, String bucket, String key, MultipartUpload upload) {
+        return Optional.ofNullable(upload)
                 .map(MultipartUpload::getUploadId)
                 .map(id -> getPartListing(s3, bucket, key, id))
                 .orElse(null);
@@ -189,11 +196,6 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
     private PartListing getPartListing(AmazonS3 s3, String bucket, String key, String uploadId) {
         ListPartsRequest request = new ListPartsRequest(bucket, key, uploadId);
         return s3.listParts(request);
-    }
-
-    private List<MultipartUpload> getMultipartUploads(AmazonS3 s3, String bucket) {
-        ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(bucket);
-        return s3.listMultipartUploads(uploadsRequest).getMultipartUploads();
     }
 
 }
