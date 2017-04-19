@@ -54,13 +54,13 @@ public class FileUploadingServiceTest {
     @Mock
     private SmallFileUploadingStrategy smallFileUploadingStrategy;
     @Mock
-    private UnfinishedUploadingFileUploadingStrategy unfinishedUploadingFileUploadingStrategy;
+    private MultiPartUploadFileUploadingStrategy multiPartUploadFileUploadingStrategy;
 
     @Before
     public void setUp() throws Exception {
         fileUploadingService = new FileUploadingService(new HashMap<Integer,UploadingStrategy>() {{
             put(1, smallFileUploadingStrategy);
-            put(Integer.MAX_VALUE, unfinishedUploadingFileUploadingStrategy);
+            put(Integer.MAX_VALUE, multiPartUploadFileUploadingStrategy);
 
         }}, s3, "testBucket");
 
@@ -88,7 +88,7 @@ public class FileUploadingServiceTest {
 
         when(s3.getObjectMetadata(anyString(), anyString())).thenThrow(NotFoundException.class);
 
-        whenNew(UnfinishedUploadingFileUploadingStrategy.class).withAnyArguments().thenReturn(unfinishedUploadingFileUploadingStrategy);
+        whenNew(MultiPartUploadFileUploadingStrategy.class).withAnyArguments().thenReturn(multiPartUploadFileUploadingStrategy);
     }
 
     @Test
@@ -108,7 +108,7 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(largeFile);
 
-        verify(unfinishedUploadingFileUploadingStrategy).upload(any(), any(), any(), any());
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any());
     }
 
     @Test
@@ -117,7 +117,7 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(incompleteFile);
 
-        verify(unfinishedUploadingFileUploadingStrategy).upload(any(), any(), any(), any());
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any());
     }
 
 
@@ -128,6 +128,6 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(incompleteFile);
 
-        verify(unfinishedUploadingFileUploadingStrategy).upload(any(), any(), any(), any());
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any());
     }
 }

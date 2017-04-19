@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrategy {
+public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     //Minimum part size is 5 MB
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
@@ -34,7 +34,7 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
 
     private boolean writingFinished;
 
-    public UnfinishedUploadingFileUploadingStrategy(MultipartUpload upload) {
+    public MultiPartUploadFileUploadingStrategy(MultipartUpload upload) {
         this.upload = upload;
         try {
             md5Digest = MessageDigest.getInstance("MD5");
