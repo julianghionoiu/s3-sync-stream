@@ -2,17 +2,13 @@ package tdl.s3;
 
 import ch.qos.logback.core.encoder.ByteArrayUtil;
 import com.amazonaws.services.s3.model.*;
-import com.sun.javafx.collections.MappingChange;
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.junit.*;
 import org.junit.rules.ExternalResource;
-import org.junit.runners.MethodSorters;
 import sun.misc.IOUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.security.MessageDigest;
@@ -23,20 +19,19 @@ import java.util.function.Function;
 
 import static org.junit.Assert.*;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class C_OnDemand_IncompleteFileUpload_AccTest {
 
-    @ClassRule
-    public static FileCheckingRule fileChecking = new FileCheckingRule();
+    @Rule
+    public FileCheckingRule fileChecking = new FileCheckingRule();
 
-    @ClassRule
-    public static TempFileRule tempFileRule = new TempFileRule();
+    @Rule
+    public TempFileRule tempFileRule = new TempFileRule();
 
     /*
     Rule to delete all uploaded objects and multipart uploads
      */
-    @ClassRule
-    public static ExternalResource resource = new ExternalResource() {
+    @Rule
+    public ExternalResource resource = new ExternalResource() {
         @Override
         protected void before() {
             fileChecking.getAmazonS3().listMultipartUploads(new ListMultipartUploadsRequest(fileChecking.getBucketName()))
@@ -55,6 +50,14 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         }
     };
 
+    @Before
+    public void setUp() throws Exception {
+        //Create file to upload and lock file
+        File filePrototype = new File("src/test/resources/unfinished_writing_file.bin");
+        Files.write(tempFileRule.getLockFile().toPath(), new byte[]{0});
+        Files.copy(filePrototype.toPath(), tempFileRule.getFileToUpload().toPath());
+    }
+
     /**
      * NOTES
      * <p>
@@ -69,15 +72,8 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
      * <p>
      * The tricky bit is to detect when the recording has completed and the upload can be finalised.
      */
-
-
     @Test
-    public void a_should_upload_incomplete_file() throws Exception {
-        //Create file to upload and lock file
-        File filePrototype = new File("src/test/resources/unfinished_writing_file.bin");
-        Files.write(tempFileRule.getLockFile().toPath(), new byte[]{0});
-        Files.copy(filePrototype.toPath(), tempFileRule.getFileToUpload().toPath());
-
+    public void should_upload_incomplete_file() throws Exception {
         //Start uploading the file
         String[] uploadingArgs = (fileChecking.commonArgs() + "upload -f " + tempFileRule.getFileToUpload()).split(" ");
         SyncFileApp.main(uploadingArgs);
@@ -102,24 +98,6 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
                 .forEach(partSummary -> comparePart(partSummary, hashes));
     }
 
-    private Map<Integer, String> calcHashes(File fileToUpload) throws IOException, NoSuchAlgorithmException {
-        long fileSize = Files.size(fileToUpload.toPath());
-        MessageDigest digest = MessageDigest.getInstance("MD5");
-        Map<Integer, String> result = new HashMap<>(3, 2);
-        try (FileInputStream fileInputStream = new FileInputStream(fileToUpload)) {
-            long read = 0;
-            for (int i = 1; read < fileSize; i++) {
-                int DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024;
-                int chunkSize = fileSize - read > DEFAULT_CHUNK_SIZE ? DEFAULT_CHUNK_SIZE : (int) (fileSize - read);
-                byte[] chunk = IOUtils.readFully(fileInputStream, chunkSize, true);
-                String hash = Hex.encodeHexString(digest.digest(chunk));
-                result.put(i, hash);
-                read += chunk.length;
-            }
-        }
-        return result;
-    }
-
     private void comparePart(PartSummary partSummary, Map<Integer, String> hashes) {
         int partNumber = partSummary.getPartNumber();
         assertEquals(hashes.get(partNumber), partSummary.getETag());
@@ -129,9 +107,11 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         return upload -> fileChecking.getAmazonS3().listParts(new ListPartsRequest(fileChecking.getBucketName(), fileName, upload.getUploadId()));
     }
 
-
     @Test
-    public void b_should_be_able_to_continue_incomplete_file_and_finalise() throws Exception {
+    public void should_be_able_to_continue_incomplete_file_and_finalise() throws Exception {
+        //Start uploading the file
+        String[] startingUploadingArgs = (fileChecking.commonArgs() + "upload -f " + tempFileRule.getFileToUpload()).split(" ");
+        SyncFileApp.main(startingUploadingArgs);
 
         //write additional data and delete lock file
         File fileToUpload = tempFileRule.getFileToUpload();
@@ -152,7 +132,6 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
 
         //check complete file hash. ETag of complete file consists from complete file MD5 hash and some part after "-" sign(probably file version number)
         assertTrue(objectMetadata.getETag().startsWith(getCompleteFileMD5(fileToUpload)));
-
     }
 
     /*
@@ -174,6 +153,24 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         byte[] result = new byte[size];
         System.arraycopy(acc, 0, result, 0, acc.length);
         System.arraycopy(hash, 0, result, acc.length, hash.length);
+        return result;
+    }
+
+    private Map<Integer, String> calcHashes(File fileToUpload) throws IOException, NoSuchAlgorithmException {
+        long fileSize = Files.size(fileToUpload.toPath());
+        MessageDigest digest = MessageDigest.getInstance("MD5");
+        Map<Integer, String> result = new HashMap<>(3, 2);
+        try (FileInputStream fileInputStream = new FileInputStream(fileToUpload)) {
+            long read = 0;
+            for (int i = 1; read < fileSize; i++) {
+                int DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024;
+                int chunkSize = fileSize - read > DEFAULT_CHUNK_SIZE ? DEFAULT_CHUNK_SIZE : (int) (fileSize - read);
+                byte[] chunk = IOUtils.readFully(fileInputStream, chunkSize, true);
+                String hash = Hex.encodeHexString(digest.digest(chunk));
+                result.put(i, hash);
+                read += chunk.length;
+            }
+        }
         return result;
     }
 }
