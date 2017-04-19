@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -96,24 +95,9 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private void uploadRequiredParts(AmazonS3 s3, String bucket, String newName, InputStream inputStream) throws IOException {
-        uploadIncompleteParts(s3, bucket, newName, inputStream);
+        uploadIncompleteParts(s3, bucket, newName, inputStream, writingFinished);
         if (writingFinished) {
             commit(s3, bucket, newName);
-        }
-    }
-
-    private void uploadIncompleteParts(AmazonS3 s3, String bucket, String newName, InputStream inputStream) throws IOException {
-        byte[] nextPartBytes = new byte[MINIMUM_PART_SIZE];
-
-        for (int partSize = getNextPart(nextPartBytes, uploadedSize, inputStream);
-             partSize > 0;
-             partSize = getNextPart(nextPartBytes, 0, inputStream))
-
-        {
-            InputStream partInputStream = getInputStream(nextPartBytes, partSize);
-            UploadPartRequest request = getUploadPartRequest(bucket, newName, nextPartToUploadIndex++, partInputStream, partSize);
-            UploadPartResult result = s3.uploadPart(request);
-            tags.add(result.getPartETag());
         }
     }
 
@@ -122,18 +106,29 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         s3.completeMultipartUpload(request);
     }
 
-    private UploadPartRequest getUploadPartRequest(String bucket,
-                                                   String newName,
-                                                   int partNumber,
-                                                   InputStream partInputStream,
-                                                   int partSize) {
-        return new UploadPartRequest()
-                .withBucketName(bucket)
-                .withKey(newName)
-                .withPartNumber(partNumber)
-                .withPartSize(partSize)
-                .withUploadId(uploadId)
-                .withInputStream(partInputStream);
+    private void uploadIncompleteParts(AmazonS3 s3, String bucket, String newName, InputStream inputStream, boolean uploadLastPart) throws IOException {
+        byte[] nextPartBytes = new byte[MINIMUM_PART_SIZE];
+
+        for (int partSize = getNextPart(nextPartBytes, uploadedSize, inputStream, uploadLastPart);
+             partSize > 0;
+             partSize = getNextPart(nextPartBytes, 0, inputStream, uploadLastPart))
+        {
+            try (InputStream partInputStream = getInputStream(nextPartBytes, partSize)) {
+                boolean isLastPart = uploadLastPart && partSize < MINIMUM_PART_SIZE;
+                String digest = getDigest(nextPartBytes);
+                UploadPartRequest request = new UploadPartRequest()
+                        .withBucketName(bucket)
+                        .withKey(newName)
+                        .withPartNumber(nextPartToUploadIndex++)
+                        .withMD5Digest(digest)
+                        .withLastPart(isLastPart)
+                        .withPartSize(partSize)
+                        .withUploadId(uploadId)
+                        .withInputStream(partInputStream);
+                UploadPartResult result = s3.uploadPart(request);
+                tags.add(result.getPartETag());
+            }
+        }
     }
 
     private InputStream getInputStream(byte[] nextPartBytes, int partSize) {
@@ -144,12 +139,15 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         return Hex.encodeHexString(md5Digest.digest(nextPartBytes));
     }
 
-    private int getNextPart(byte[] nextPartBytes, long offset, InputStream inputStream) throws IOException {
+    private int getNextPart(byte[] nextPartBytes, long offset, InputStream inputStream, boolean readLastBytes) throws IOException {
         int read = 0;
         skipAlreadyUploadedParts(offset, inputStream);
-        while (inputStream.available() > 0) {
+        int available = inputStream.available();
+        if (available < MINIMUM_PART_SIZE && !readLastBytes) return 0;
+        while (available > 0) {
             int currentRed = inputStream.read(nextPartBytes, read, MINIMUM_PART_SIZE - read);
             read += currentRed;
+            available = inputStream.available();
             if (read == MINIMUM_PART_SIZE) break;
         }
         return read;

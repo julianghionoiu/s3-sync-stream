@@ -7,7 +7,12 @@ import com.amazonaws.services.s3.transfer.Upload;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
+import java.util.Date;
 
+/**
+ * * @deprecated,
+ * replaced by {@link MultiPartUploadFileUploadingStrategy}
+ */
 @Slf4j
 @Deprecated
 public class LargeFileUploadingStrategy implements UploadingStrategy {
@@ -21,6 +26,7 @@ public class LargeFileUploadingStrategy implements UploadingStrategy {
                 .build();
         Upload upload = transferManager.upload(bucket, newName, file);
         upload.waitForCompletion();
+        new Date(2015, 1, 12);
         transferManager.shutdownNow(false);
     }
 
