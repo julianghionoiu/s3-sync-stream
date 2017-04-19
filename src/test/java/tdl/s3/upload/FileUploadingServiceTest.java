@@ -8,28 +8,25 @@ import com.amazonaws.services.s3.model.MultipartUploadListing;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
-import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystem;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Collections;
 import java.util.HashMap;
 
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
+import static org.powermock.api.mockito.PowerMockito.whenNew;
 
-@RunWith(MockitoJUnitRunner.class)
-@PrepareForTest(FileUploadingService.class)
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({FileUploadingService.class})
 public class FileUploadingServiceTest {
 
     private FileUploadingService fileUploadingService;
@@ -53,27 +50,19 @@ public class FileUploadingServiceTest {
     @Mock
     private MultipartUpload upload;
     @Mock
-    private FileUploader fileUploader;
-
-    private ArgumentMatcher<Path> lockFileMatcher = new ArgumentMatcher<Path>() {
-        @Override
-        public boolean matches(Object item) {
-            return ((Path) item).endsWith(".lock");
-        }
-    };
-
-    private ArgumentMatcher<UploadingStrategy> withClass(Class<? extends UploadingStrategy> c) {
-        return new ArgumentMatcher<UploadingStrategy>() {
-            @Override
-            public boolean matches(Object item) {
-                return c.equals(item.getClass());
-            }
-        };
-    }
+    private BasicFileAttributes fileAttributes;
+    @Mock
+    private SmallFileUploadingStrategy smallFileUploadingStrategy;
+    @Mock
+    private UnfinishedUploadingFileUploadingStrategy unfinishedUploadingFileUploadingStrategy;
 
     @Before
     public void setUp() throws Exception {
-        fileUploadingService = new FileUploadingService(s3, "testBucket", fileUploader);
+        fileUploadingService = new FileUploadingService(new HashMap<Integer,UploadingStrategy>() {{
+            put(1, smallFileUploadingStrategy);
+            put(Integer.MAX_VALUE, unfinishedUploadingFileUploadingStrategy);
+
+        }}, s3, "testBucket");
 
         when(smallFile.length()).thenReturn(1255L);
         when(largeFile.length()).thenReturn(6L * 1024 * 1024);
@@ -93,38 +82,42 @@ public class FileUploadingServiceTest {
         when(incompleteFilePath.resolve(anyString())).thenReturn(incompleteFilePath);
         when(incompleteFilePath.getFileSystem()).thenReturn(fileSystem);
         when(fileSystem.provider()).thenReturn(fsProvider);
+        when(fsProvider.readAttributes(any(), any(Class.class), anyVararg())).thenReturn(fileAttributes);
 
         when(s3.initiateMultipartUpload(any())).thenReturn(mock(InitiateMultipartUploadResult.class));
+
+        when(s3.getObjectMetadata(anyString(), anyString())).thenThrow(NotFoundException.class);
+
+        whenNew(UnfinishedUploadingFileUploadingStrategy.class).withAnyArguments().thenReturn(unfinishedUploadingFileUploadingStrategy);
     }
 
     @Test
     public void upload_smallFile() throws Exception {
         doThrow(IOException.class).when(fsProvider).checkAccess(any());
+        when(fileAttributes.size()).thenReturn(1024L);
 
         fileUploadingService.upload(smallFile);
 
-        verify(fileUploader).setStrategy(argThat(withClass(SmallFileUploadingStrategy.class)));
+        verify(smallFileUploadingStrategy).upload(any(), any(), any(), any());
     }
 
     @Test
     public void upload_largeFile() throws Exception {
         doThrow(IOException.class).when(fsProvider).checkAccess(any());
+        when(fileAttributes.size()).thenReturn(10 * 1024 * 1024L);
 
         fileUploadingService.upload(largeFile);
 
-        verify(fileUploader).setStrategy(argThat(withClass(LargeFileUploadingStrategy.class)));
+        verify(unfinishedUploadingFileUploadingStrategy).upload(any(), any(), any(), any());
     }
 
     @Test
     public void upload_incompleteFile_notStarted() throws Exception {
         when(listing.getMultipartUploads()).thenReturn(Collections.emptyList());
-        when(s3.getObjectMetadata(anyString(), anyString())).thenThrow(NotFoundException.class);
 
+        fileUploadingService.upload(incompleteFile);
 
-        fileUploadingService.upload(largeFile);
-
-        verify(fileUploader).setStrategy(argThat(withClass(UnfinishedUploadingFileUploadingStrategy.class)));
-
+        verify(unfinishedUploadingFileUploadingStrategy).upload(any(), any(), any(), any());
     }
 
 
@@ -132,10 +125,9 @@ public class FileUploadingServiceTest {
     public void upload_completeFile_alreadyStarted() throws Exception {
         when(listing.getMultipartUploads()).thenReturn(Collections.singletonList(upload));
         doThrow(IOException.class).when(fsProvider).checkAccess(any());
-        when(s3.getObjectMetadata(anyString(), anyString())).thenThrow(NotFoundException.class);
 
         fileUploadingService.upload(incompleteFile);
 
-        verify(fileUploader).setStrategy(argThat(withClass(UnfinishedUploadingFileUploadingStrategy.class)));
+        verify(unfinishedUploadingFileUploadingStrategy).upload(any(), any(), any(), any());
     }
 }

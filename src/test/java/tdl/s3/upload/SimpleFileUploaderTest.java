@@ -56,8 +56,7 @@ public class SimpleFileUploaderTest {
 
         when(amazonS3.getObjectMetadata(anyString(), anyString())).thenReturn(null);
 
-        fileUploader = new FileUploaderImpl(amazonS3, "test_bucket");
-        fileUploader.setStrategy(new SmallFileUploadingStrategy());
+        fileUploader = new FileUploaderImpl(amazonS3, "test_bucket", new SmallFileUploadingStrategy());
     }
 
     @Test

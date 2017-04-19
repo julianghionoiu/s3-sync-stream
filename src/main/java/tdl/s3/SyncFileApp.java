@@ -7,8 +7,6 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
 import tdl.s3.cli.CLIParams;
 import tdl.s3.sync.FolderScannerImpl;
 import tdl.s3.sync.FolderSynchronizer;
@@ -19,7 +17,6 @@ import tdl.s3.upload.FileUploadingService;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.Scanner;
 
 import static tdl.s3.cli.CLIParams.SYNC_COMMAND;
 import static tdl.s3.cli.CLIParams.UPLOAD_COMMAND;
@@ -65,8 +62,7 @@ public class SyncFileApp {
                 .withRegion(cliParams.getRegion())
                 .build();
 
-        FileUploader fileUploader = new FileUploaderImpl(amazonS3, cliParams.getBucket());
-        FileUploadingService fileUploadingService = new FileUploadingService(amazonS3, cliParams.getBucket(), fileUploader);
+        FileUploadingService fileUploadingService = new FileUploadingService(amazonS3, cliParams.getBucket());
 
         FolderSynchronizer folderSynchronizer = new FolderSynchronizer(new FolderScannerImpl(), fileUploadingService);
 

@@ -22,16 +22,20 @@ public class FileUploadingService {
     private final Map<Integer, ? extends UploadingStrategy> uploaderByFileSize;
     private final AmazonS3 amazonS3;
     private final String bucket;
-    private final FileUploader fileUploader;
 
-    public FileUploadingService(AmazonS3 amazonS3, String bucket, FileUploader fileUploader) {
+    public FileUploadingService(Map<Integer, ? extends UploadingStrategy> uploaderByFileSize, AmazonS3 amazonS3, String bucket) {
+        this.uploaderByFileSize = uploaderByFileSize;
         this.amazonS3 = amazonS3;
         this.bucket = bucket;
-        this.fileUploader = fileUploader;
+    }
+
+    public FileUploadingService(AmazonS3 amazonS3, String bucket) {
+        this.amazonS3 = amazonS3;
+        this.bucket = bucket;
 
         this.uploaderByFileSize = new LinkedHashMap<Integer, UploadingStrategy>(){{
             put(MULTIPART_UPLOAD_SIZE_LIMIT, new SmallFileUploadingStrategy());
-            put(Integer.MAX_VALUE, new LargeFileUploadingStrategy());
+            put(Integer.MAX_VALUE, new UnfinishedUploadingFileUploadingStrategy(null));
         }};
     }
 
@@ -53,12 +57,10 @@ public class FileUploadingService {
 
         if (multipartUpload != null) {
             UnfinishedUploadingFileUploadingStrategy uploadingStrategy = new UnfinishedUploadingFileUploadingStrategy(multipartUpload);
-            fileUploader.setStrategy(uploadingStrategy);
-            return fileUploader;
+            return new FileUploaderImpl(amazonS3, bucket, uploadingStrategy);
         } else if (Files.exists(file.toPath().toAbsolutePath().normalize().getParent().resolve(file.getName() + ".lock"))) {
             UnfinishedUploadingFileUploadingStrategy uploadingStrategy = new UnfinishedUploadingFileUploadingStrategy(null);
-            fileUploader.setStrategy(uploadingStrategy);
-            return fileUploader;
+            return new FileUploaderImpl(amazonS3, bucket, uploadingStrategy);
         } else {
             return getUploaderByFileSize(file);
         }
@@ -73,8 +75,7 @@ public class FileUploadingService {
                 .map(uploaderByFileSize::get)
                 .orElseThrow(() -> new IllegalStateException("No file uploader provided " +
                         "for files with size " + fileSizeInMb + " MB."));
-        fileUploader.setStrategy(strategy);
-        return fileUploader;
+        return new FileUploaderImpl(amazonS3, bucket, strategy);
     }
 
     private List<MultipartUpload> getMultipartUploads(AmazonS3 s3, String bucket) {

@@ -12,8 +12,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 import tdl.s3.TempFileRule;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collections;
 
@@ -66,8 +64,7 @@ public class UnfinishedWritingFileUploadingStrategyTest {
     @Test
     public void upload_newlyCreatedButIncompleteFile() throws Exception {
         UnfinishedUploadingFileUploadingStrategy strategy = new UnfinishedUploadingFileUploadingStrategy(null);
-        FileUploader fileUploader = new FileUploaderImpl(amazonS3, "bucket");
-        fileUploader.setStrategy(strategy);
+        FileUploader fileUploader = new FileUploaderImpl(amazonS3, "bucket", strategy);
 
         fileUploader.upload(tempFileRule.getFileToUpload());
 
@@ -83,13 +80,12 @@ public class UnfinishedWritingFileUploadingStrategyTest {
 
 
         UnfinishedUploadingFileUploadingStrategy newStrategy = new UnfinishedUploadingFileUploadingStrategy(multipartUpload);
-        FileUploader newFileUploader = new FileUploaderImpl(amazonS3, "bucket");
-        newFileUploader.setStrategy(newStrategy);
+        FileUploader newFileUploader = new FileUploaderImpl(amazonS3, "bucket", newStrategy);
         //upload the rest of the file
         newFileUploader.upload(tempFileRule.getFileToUpload());
 
-        //verify that rest part uploaded (3 times means 2 from previous session and 1 current)
-        verify(amazonS3, times(3)).uploadPart(any());
+        //verify that rest part uploaded (4 times means 2 from previous session and 2 current)
+        verify(amazonS3, times(4)).uploadPart(any());
         //verify uploading completed
         verify(amazonS3, times(1)).completeMultipartUpload(any());
     }

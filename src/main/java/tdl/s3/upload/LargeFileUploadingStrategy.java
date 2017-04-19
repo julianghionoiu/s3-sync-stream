@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 
 @Slf4j
+@Deprecated
 public class LargeFileUploadingStrategy implements UploadingStrategy {
 
     @Override
