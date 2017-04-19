@@ -133,6 +133,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private byte[] truncate(byte[] nextPartBytes, int partSize) {
+        if (partSize == nextPartBytes.length) return nextPartBytes;
         byte[] result = new byte[partSize];
         System.arraycopy(nextPartBytes, 0, result, 0, partSize);
         return result;
