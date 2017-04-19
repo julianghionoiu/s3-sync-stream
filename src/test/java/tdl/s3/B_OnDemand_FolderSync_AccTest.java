@@ -2,6 +2,7 @@ package tdl.s3;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 

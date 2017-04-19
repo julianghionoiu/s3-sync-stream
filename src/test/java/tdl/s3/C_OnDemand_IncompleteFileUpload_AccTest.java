@@ -31,24 +31,7 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
     Rule to delete all uploaded objects and multipart uploads
      */
     @Rule
-    public ExternalResource resource = new ExternalResource() {
-        @Override
-        protected void before() {
-            fileChecking.getAmazonS3().listMultipartUploads(new ListMultipartUploadsRequest(fileChecking.getBucketName()))
-                    .getMultipartUploads()
-                    .forEach(upload -> {
-                        AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(fileChecking.getBucketName(), upload.getKey(), upload.getUploadId());
-                        fileChecking.getAmazonS3().abortMultipartUpload(request);
-                    });
-
-            fileChecking.getAmazonS3().listObjects(fileChecking.getBucketName())
-                    .getObjectSummaries()
-                    .forEach(s3ObjectSummary -> {
-                        DeleteObjectRequest request = new DeleteObjectRequest(fileChecking.getBucketName(), s3ObjectSummary.getKey());
-                        fileChecking.getAmazonS3().deleteObject(request);
-                    });
-        }
-    };
+    public ExternalResource resource = new DeleteRemoteObjectsRule(fileChecking);
 
     @Before
     public void setUp() throws Exception {

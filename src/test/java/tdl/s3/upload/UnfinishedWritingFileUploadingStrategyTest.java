@@ -63,7 +63,7 @@ public class UnfinishedWritingFileUploadingStrategyTest {
 
     @Test
     public void upload_newlyCreatedButIncompleteFile() throws Exception {
-        MultiPartUploadFileUploadingStrategy strategy = new MultiPartUploadFileUploadingStrategy(null);
+        MultiPartUploadFileUploadingStrategy strategy = new MultiPartUploadFileUploadingStrategy(null, 1);
         FileUploader fileUploader = new FileUploaderImpl(amazonS3, "bucket", strategy);
 
         fileUploader.upload(tempFileRule.getFileToUpload());
@@ -79,7 +79,7 @@ public class UnfinishedWritingFileUploadingStrategyTest {
         Files.delete(tempFileRule.getLockFile().toPath());
 
 
-        MultiPartUploadFileUploadingStrategy newStrategy = new MultiPartUploadFileUploadingStrategy(multipartUpload);
+        MultiPartUploadFileUploadingStrategy newStrategy = new MultiPartUploadFileUploadingStrategy(multipartUpload, 1);
         FileUploader newFileUploader = new FileUploaderImpl(amazonS3, "bucket", newStrategy);
         //upload the rest of the file
         newFileUploader.upload(tempFileRule.getFileToUpload());

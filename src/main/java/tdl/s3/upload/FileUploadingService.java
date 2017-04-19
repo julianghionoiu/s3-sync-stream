@@ -35,7 +35,7 @@ public class FileUploadingService {
 
         this.uploaderByFileSize = new LinkedHashMap<Integer, UploadingStrategy>(){{
             put(MULTIPART_UPLOAD_SIZE_LIMIT, new SmallFileUploadingStrategy());
-            put(Integer.MAX_VALUE, new MultiPartUploadFileUploadingStrategy(null));
+            put(Integer.MAX_VALUE, new MultiPartUploadFileUploadingStrategy(null, 4));
         }};
     }
 
@@ -56,10 +56,10 @@ public class FileUploadingService {
                 .orElse(null);
 
         if (multipartUpload != null) {
-            MultiPartUploadFileUploadingStrategy uploadingStrategy = new MultiPartUploadFileUploadingStrategy(multipartUpload);
+            MultiPartUploadFileUploadingStrategy uploadingStrategy = new MultiPartUploadFileUploadingStrategy(multipartUpload, 4);
             return new FileUploaderImpl(amazonS3, bucket, uploadingStrategy);
         } else if (Files.exists(file.toPath().toAbsolutePath().normalize().getParent().resolve(file.getName() + ".lock"))) {
-            MultiPartUploadFileUploadingStrategy uploadingStrategy = new MultiPartUploadFileUploadingStrategy(null);
+            MultiPartUploadFileUploadingStrategy uploadingStrategy = new MultiPartUploadFileUploadingStrategy(null, 4);
             return new FileUploaderImpl(amazonS3, bucket, uploadingStrategy);
         } else {
             return getUploaderByFileSize(file);

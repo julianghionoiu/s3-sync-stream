@@ -2,17 +2,14 @@ package tdl.s3.upload;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
-import org.apache.commons.codec.binary.Hex;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -20,6 +17,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     //Minimum part size is 5 MB
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
+    private static final long MAX_UPLOADING_TIME = 60;
     private final MultipartUpload upload;
 
     private MessageDigest md5Digest;
@@ -34,7 +32,17 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private boolean writingFinished;
 
-    public MultiPartUploadFileUploadingStrategy(MultipartUpload upload) {
+    private ExecutorService executorService;
+
+    /**
+     * Creates new Multipart upload strategy
+     *
+     * @param upload       {@link MultipartUpload} object that represents already started uploading or null if it should be clean upload
+     * @param threadsCount count of threads that should be used for uploading
+     */
+    public MultiPartUploadFileUploadingStrategy(MultipartUpload upload, int threadsCount) {
+        if (threadsCount < 1) throw new IllegalArgumentException("Thread count should be >= 1");
+        executorService = Executors.newFixedThreadPool(threadsCount);
         this.upload = upload;
         try {
             md5Digest = MessageDigest.getInstance("MD5");
@@ -55,7 +63,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private void initStrategy(AmazonS3 s3, String bucket, File file, String newName, MultipartUpload upload) {
-        writingFinished = ! Files.exists(getLockFilePath(file));
+        writingFinished = !Files.exists(getLockFilePath(file));
         PartListing alreadyUploadedParts = getAlreadyUploadedParts(s3, bucket, newName, upload);
         boolean uploadingStarted = alreadyUploadedParts != null;
         if (!uploadingStarted) {
@@ -96,9 +104,13 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private void uploadRequiredParts(AmazonS3 s3, String bucket, String newName, InputStream inputStream) throws IOException {
-        uploadIncompleteParts(s3, bucket, newName, inputStream, writingFinished);
-        if (writingFinished) {
-            commit(s3, bucket, newName);
+        try {
+            uploadIncompleteParts(s3, bucket, newName, inputStream, writingFinished);
+            if (writingFinished) {
+                commit(s3, bucket, newName);
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException("File uploading was terminated.");
         }
     }
 
@@ -107,16 +119,23 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         s3.completeMultipartUpload(request);
     }
 
-    private void uploadIncompleteParts(AmazonS3 s3, String bucket, String newName, InputStream inputStream, boolean uploadLastPart) throws IOException {
-        byte[] nextPartBytes = new byte[MINIMUM_PART_SIZE];
+    private void uploadIncompleteParts(AmazonS3 s3, String bucket, String newName, InputStream inputStream, boolean uploadLastPart) throws IOException, InterruptedException {
+        uploadPartsConcurrent(s3, bucket, newName, inputStream, uploadLastPart).stream()
+                .map(this::getUploadingResult)
+                .forEach(tags::add);
+    }
 
-        for (int partSize = getNextPart(nextPartBytes, uploadedSize, inputStream, uploadLastPart);
-             partSize > 0;
-             partSize = getNextPart(nextPartBytes, 0, inputStream, uploadLastPart))
-        {
-            try (InputStream partInputStream = getInputStream(nextPartBytes, partSize)) {
+    private List<Future<PartETag>> uploadPartsConcurrent(AmazonS3 s3, String bucket, String newName, InputStream inputStream, boolean uploadLastPart) throws IOException, InterruptedException {
+        List<Future<PartETag>> uploadingResults = new ArrayList<>();
+
+
+        for (byte[] nextPart = getNextPart(uploadedSize, inputStream, uploadLastPart);
+             nextPart.length > 0;
+             nextPart = getNextPart(0, inputStream, uploadLastPart)) {
+            try (InputStream partInputStream = getInputStream(nextPart)) {
+                int partSize = nextPart.length;
                 boolean isLastPart = uploadLastPart && partSize < MINIMUM_PART_SIZE;
-                String digest = getDigest(truncate(nextPartBytes, partSize));
+                String digest = getDigest(nextPart);
                 UploadPartRequest request = new UploadPartRequest()
                         .withBucketName(bucket)
                         .withKey(newName)
@@ -126,9 +145,31 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
                         .withPartSize(partSize)
                         .withUploadId(uploadId)
                         .withInputStream(partInputStream);
-                UploadPartResult result = s3.uploadPart(request);
-                tags.add(result.getPartETag());
+
+                Future<PartETag> uploadingResult = executorService.submit(() -> {
+                    try {
+                        UploadPartResult result = s3.uploadPart(request);
+                        return result.getPartETag();
+                    }catch (Exception e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    }
+                });
+                uploadingResults.add(uploadingResult);
             }
+        }
+
+        executorService.shutdown();
+        executorService.awaitTermination(MAX_UPLOADING_TIME, TimeUnit.MINUTES);
+
+        return uploadingResults;
+    }
+
+    private PartETag getUploadingResult(Future<PartETag> future) {
+        try {
+            return future.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Some part uploads was unsuccessful. " + e.getMessage(), e);
         }
     }
 
@@ -139,26 +180,27 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         return result;
     }
 
-    private InputStream getInputStream(byte[] nextPartBytes, int partSize) {
-        return new ByteArrayInputStream(nextPartBytes, 0, partSize);
+    private InputStream getInputStream(byte[] nextPartBytes) {
+        return new ByteArrayInputStream(nextPartBytes, 0, nextPartBytes.length);
     }
 
     private String getDigest(byte[] nextPartBytes) {
         return Base64.getEncoder().encodeToString(md5Digest.digest(nextPartBytes));
     }
 
-    private int getNextPart(byte[] nextPartBytes, long offset, InputStream inputStream, boolean readLastBytes) throws IOException {
+    private byte[] getNextPart(long offset, InputStream inputStream, boolean readLastBytes) throws IOException {
+        byte[] buffer = new byte[MINIMUM_PART_SIZE];
         int read = 0;
         skipAlreadyUploadedParts(offset, inputStream);
         int available = inputStream.available();
-        if (available < MINIMUM_PART_SIZE && !readLastBytes) return 0;
+        if (available < MINIMUM_PART_SIZE && !readLastBytes) return new byte[0];
         while (available > 0) {
-            int currentRed = inputStream.read(nextPartBytes, read, MINIMUM_PART_SIZE - read);
+            int currentRed = inputStream.read(buffer, read, MINIMUM_PART_SIZE - read);
             read += currentRed;
             available = inputStream.available();
             if (read == MINIMUM_PART_SIZE) break;
         }
-        return read;
+        return truncate(buffer, read);
     }
 
     private void skipAlreadyUploadedParts(long offset, InputStream inputStream) throws IOException {
