@@ -116,7 +116,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         {
             try (InputStream partInputStream = getInputStream(nextPartBytes, partSize)) {
                 boolean isLastPart = uploadLastPart && partSize < MINIMUM_PART_SIZE;
-                String digest = getDigest(nextPartBytes);
+                String digest = getDigest(truncate(nextPartBytes, partSize));
                 UploadPartRequest request = new UploadPartRequest()
                         .withBucketName(bucket)
                         .withKey(newName)
@@ -130,6 +130,12 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
                 tags.add(result.getPartETag());
             }
         }
+    }
+
+    private byte[] truncate(byte[] nextPartBytes, int partSize) {
+        byte[] result = new byte[partSize];
+        System.arraycopy(nextPartBytes, 0, result, 0, partSize);
+        return result;
     }
 
     private InputStream getInputStream(byte[] nextPartBytes, int partSize) {
