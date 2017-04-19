@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -136,7 +137,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private String getDigest(byte[] nextPartBytes) {
-        return Hex.encodeHexString(md5Digest.digest(nextPartBytes));
+        return Base64.getEncoder().encodeToString(md5Digest.digest(nextPartBytes));
     }
 
     private int getNextPart(byte[] nextPartBytes, long offset, InputStream inputStream, boolean readLastBytes) throws IOException {
