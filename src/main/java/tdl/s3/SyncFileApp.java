@@ -7,22 +7,26 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
 import tdl.s3.cli.CLIParams;
 import tdl.s3.sync.FolderScannerImpl;
 import tdl.s3.sync.FolderSynchronizer;
 import tdl.s3.upload.FileUploadingService;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Scanner;
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static tdl.s3.cli.CLIParams.SYNC_COMMAND;
 import static tdl.s3.cli.CLIParams.UPLOAD_COMMAND;
 
 public class SyncFileApp {
+
+    private static final List<String> FILTERED_EXTENSIONS = Collections.singletonList(".lock");
 
     private FileUploadingService fileUploadingService;
 
@@ -65,7 +69,12 @@ public class SyncFileApp {
 
         FileUploadingService fileUploadingService = new FileUploadingService(amazonS3, cliParams.getBucket());
 
-        FolderSynchronizer folderSynchronizer = new FolderSynchronizer(new FolderScannerImpl(), fileUploadingService);
+        List<Predicate<Path>> filters = FILTERED_EXTENSIONS.stream()
+                .map(ext -> (Predicate<Path>)(path -> ! path.toString().endsWith(ext)))
+                .collect(Collectors.toList());
+
+        FolderScannerImpl folderScanner = new FolderScannerImpl(filters);
+        FolderSynchronizer folderSynchronizer = new FolderSynchronizer(folderScanner, fileUploadingService);
 
         return new SyncFileApp(fileUploadingService, folderSynchronizer);
     }

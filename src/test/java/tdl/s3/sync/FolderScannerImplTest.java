@@ -10,6 +10,8 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -35,7 +37,7 @@ public class FolderScannerImplTest {
     @Before
     public void setUp() throws Exception {
 
-        folderScanner = new FolderScannerImpl();
+        folderScanner = new FolderScannerImpl(Collections.singletonList(path -> !path.toString().endsWith(".lock")));
 
         //create empty directory if not exists
         emptyDirPath = Paths.get("empty_dir");
@@ -74,6 +76,15 @@ public class FolderScannerImplTest {
         verify(fileConsumer, times(3)).accept(any(), anyString());
 
         verify(fileConsumer, times(1)).accept(any(), startsWith("subdir"));
+    }
+
+    @Test
+    public void traverseFolder_notEmptyFolder_recursive_withoutFilter() throws Exception {
+        folderScanner = new FolderScannerImpl(Collections.emptyList());
+
+        folderScanner.traverseFolder(notEmptyDirPath, fileConsumer, true);
+
+        verify(fileConsumer, times(4)).accept(any(), anyString());
     }
 
 }

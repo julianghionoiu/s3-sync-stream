@@ -2,12 +2,12 @@ package tdl.s3;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-
 
 public class B_OnDemand_FolderSync_AccTest {
 
@@ -18,7 +18,6 @@ public class B_OnDemand_FolderSync_AccTest {
     public void additionalSetUp() {
         //Delete previously uploaded files if present
         fileChecking.deleteObjects("test_file_1.txt", "test_file_2.txt", "subdir/sub_test_file_1.txt");
-
     }
 
     @Test

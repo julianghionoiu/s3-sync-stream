@@ -1,6 +1,7 @@
 package tdl.s3.upload;
 
 import com.amazonaws.SdkClientException;
+import com.amazonaws.services.kms.model.NotFoundException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -56,12 +57,14 @@ public class LargeFileUploaderTest {
         when(objectSummary1.getKey()).thenReturn("file1");
         when(objectSummary2.getKey()).thenReturn("file2");
 
-        fileUploader = new FileUploaderImpl(amazonS3, "test_bucket", new LargeFileUploadingStrategy());
+        when(amazonS3.getObjectMetadata(anyString(), anyString())).thenReturn(null);
 
+        fileUploader = new FileUploaderImpl(amazonS3, "test_bucket", new LargeFileUploadingStrategy());
     }
 
     @Test
     public void upload_retryAfterError() throws Exception {
+        when(amazonS3.getObjectMetadata(anyString(), anyString())).thenThrow(NotFoundException.class);
         when(amazonS3.putObject(any(PutObjectRequest.class))).thenThrow(SdkClientException.class);
         when(amazonS3.putObject(anyString(), anyString(), any(File.class))).thenThrow(SdkClientException.class);
         try {
@@ -81,6 +84,7 @@ public class LargeFileUploaderTest {
 
     @Test
     public void upload_notExisting() throws Exception {
+        when(amazonS3.getObjectMetadata(anyString(), anyString())).thenThrow(NotFoundException.class);
         when(amazonS3.putObject(any(PutObjectRequest.class))).thenReturn(new PutObjectResult());
 
         fileUploader.upload(new File("file3"));

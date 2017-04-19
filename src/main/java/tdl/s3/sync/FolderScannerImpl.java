@@ -7,13 +7,21 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
+import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 
 @Slf4j
 public class FolderScannerImpl implements FolderScanner {
+
+    private final Predicate<Path> filter;
+
+    public FolderScannerImpl(List<Predicate<Path>> filters) {
+        this.filter = filters.stream().reduce(v -> true, Predicate::and);
+    }
 
     @Override
     public void traverseFolder(Path folderPath, BiConsumer<File, String> fileConsumer, boolean recursive) {
@@ -38,7 +46,7 @@ public class FolderScannerImpl implements FolderScanner {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                if (Files.isRegularFile(file)) {
+                if (Files.isRegularFile(file) && filter.test(file)) {
                     fileConsumer.accept(file.toFile(), currentDir.relativize(file).toString());
                 }
                 return CONTINUE;

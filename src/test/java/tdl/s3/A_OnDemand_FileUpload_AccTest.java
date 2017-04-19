@@ -1,25 +1,10 @@
 package tdl.s3;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.junit.*;
-import org.junit.runner.RunWith;
-import tdl.s3.upload.FileUploadingService;
+import org.junit.rules.ExternalResource;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
-import java.util.Properties;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -46,6 +31,9 @@ public class A_OnDemand_FileUpload_AccTest {
     public void setUp() throws Exception {
         fileChecking.deleteObjects("uploaded_once.txt", "new_file_name.txt", "large_file.bin");
     }
+
+    @Rule
+    public ExternalResource resource = new DeleteRemoteObjectsRule(fileChecking);
 
     @Test
     public void should_not_upload_file_if_already_present() throws Exception {

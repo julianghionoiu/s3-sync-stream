@@ -4,7 +4,9 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import lombok.Getter;
 import org.junit.rules.ExternalResource;
@@ -51,6 +53,12 @@ public class FileCheckingRule extends ExternalResource {
             //return null if not found
             return null;
         }
+    }
+
+    public boolean isMultipartUploadExists(String key) {
+        return amazonS3.listMultipartUploads(new ListMultipartUploadsRequest(bucketName))
+                .getMultipartUploads().stream()
+                .anyMatch(upl -> upl.getKey().equals(key));
     }
 
     public String commonArgs() {
