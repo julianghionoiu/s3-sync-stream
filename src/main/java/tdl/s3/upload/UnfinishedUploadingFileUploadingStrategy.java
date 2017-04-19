@@ -10,8 +10,11 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrategy {
 
@@ -25,8 +28,6 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
 
     private List<PartETag> tags;
 
-    private File file;
-
     private long uploadedSize;
 
     private int nextPartToUploadIndex;
@@ -37,7 +38,6 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
         this.upload = upload;
         try {
             md5Digest = MessageDigest.getInstance("MD5");
-            tags = new ArrayList<>();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Can't send multipart upload. Can't create MD5 digest. " + e.getMessage(), e);
         }
@@ -56,7 +56,6 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
 
     private void initStrategy(AmazonS3 s3, String bucket, File file, String newName, MultipartUpload upload) {
         writingFinished = ! Files.exists(getLockFilePath(file));
-        this.file = file;
         PartListing alreadyUploadedParts = getAlreadyUploadedParts(s3, bucket, newName, upload);
         boolean uploadingStarted = alreadyUploadedParts != null;
         if (!uploadingStarted) {
@@ -66,8 +65,9 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
         } else {
             uploadId = alreadyUploadedParts.getUploadId();
             uploadedSize = getUploadedSize(alreadyUploadedParts);
-            nextPartToUploadIndex = getLastPartIndex(alreadyUploadedParts);
+            nextPartToUploadIndex = getLastPartIndex(alreadyUploadedParts) + 1;
         }
+        tags = getETags(alreadyUploadedParts);
         try {
             if (Files.size(file.toPath()) < uploadedSize) {
                 throw new IllegalStateException("Already uploaded size of file " + file + " is greater than actual file size. " +
@@ -76,6 +76,15 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
         } catch (IOException e) {
             throw new RuntimeException("Can't read size of file to upload, " + file + ". " + e.getMessage(), e);
         }
+    }
+
+    private List<PartETag> getETags(PartListing alreadyUploadedParts) {
+        return Optional.ofNullable(alreadyUploadedParts)
+                .map(PartListing::getParts)
+                .map(Collection::stream)
+                .orElseGet(Stream::empty)
+                .map(partSummary -> new PartETag(partSummary.getPartNumber(), partSummary.getETag()))
+                .collect(Collectors.toList());
     }
 
     private Path getLockFilePath(File file) {
@@ -87,15 +96,14 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
     }
 
     private void uploadRequiredParts(AmazonS3 s3, String bucket, String newName, InputStream inputStream) throws IOException {
+        uploadIncompleteParts(s3, bucket, newName, inputStream);
         if (writingFinished) {
-            uploadAndCommit(s3, bucket, newName);
-        } else {
-            uploadIncompleteParts(s3, bucket, newName, inputStream);
+            commit(s3, bucket, newName);
         }
     }
 
     private void uploadIncompleteParts(AmazonS3 s3, String bucket, String newName, InputStream inputStream) throws IOException {
-        byte[] nextPartBytes = new byte[MINIMUM_PART_SIZE * 2];
+        byte[] nextPartBytes = new byte[MINIMUM_PART_SIZE];
 
         for (int partSize = getNextPart(nextPartBytes, uploadedSize, inputStream);
              partSize > 0;
@@ -109,18 +117,7 @@ public class UnfinishedUploadingFileUploadingStrategy implements UploadingStrate
         }
     }
 
-    private void uploadAndCommit(AmazonS3 s3, String bucket, String newName) {
-        UploadPartRequest partRequest = new UploadPartRequest()
-                .withFileOffset(uploadedSize)
-                .withFile(file)
-                .withUploadId(uploadId)
-                .withPartNumber(nextPartToUploadIndex)
-                .withBucketName(bucket)
-                .withKey(newName);
-
-        UploadPartResult result = s3.uploadPart(partRequest);
-        tags.add(result.getPartETag());
-
+    private void commit(AmazonS3 s3, String bucket, String newName) {
         CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(bucket, newName, uploadId, tags);
         s3.completeMultipartUpload(request);
     }
