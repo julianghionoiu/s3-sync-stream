@@ -5,6 +5,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
+import org.hamcrest.Matcher;
+import org.hamcrest.beans.HasPropertyWithValue;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,6 +23,8 @@ import java.nio.file.spi.FileSystemProvider;
 import java.util.Collections;
 import java.util.HashMap;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.powermock.api.mockito.PowerMockito.whenNew;
@@ -44,11 +48,15 @@ public class FileUploadingServiceTest {
     @Mock
     private MultipartUploadListing listing;
     @Mock
+    private MultipartUploadListing secondListing;
+    @Mock
     private FileSystem fileSystem;
     @Mock
     private FileSystemProvider fsProvider;
     @Mock
     private MultipartUpload upload;
+    @Mock
+    private MultipartUpload secondUpload;
     @Mock
     private BasicFileAttributes fileAttributes;
     @Mock
@@ -124,6 +132,22 @@ public class FileUploadingServiceTest {
     @Test
     public void upload_completeFile_alreadyStarted() throws Exception {
         when(listing.getMultipartUploads()).thenReturn(Collections.singletonList(upload));
+        doThrow(IOException.class).when(fsProvider).checkAccess(any());
+
+        fileUploadingService.upload(incompleteFile);
+
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any());
+    }
+
+    @Test
+    public void upload_lot_alreadyStartedUploads() throws Exception {
+        when(listing.getMultipartUploads()).thenReturn(Collections.singletonList(upload));
+        when(secondListing.getMultipartUploads()).thenReturn(Collections.singletonList(secondUpload));
+        when(upload.getKey()).thenReturn("anotherFile.bin");
+        when(secondUpload.getKey()).thenReturn("incomplete.bin");
+        when(listing.isTruncated()).thenReturn(true);
+        when(listing.getNextUploadIdMarker()).thenReturn("NEXT_ID");
+        when(s3.listMultipartUploads(argThat(hasProperty("uploadIdMarker", equalTo("NEXT_ID"))))).thenReturn(secondListing);
         doThrow(IOException.class).when(fsProvider).checkAccess(any());
 
         fileUploadingService.upload(incompleteFile);
