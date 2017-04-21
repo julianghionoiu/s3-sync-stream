@@ -10,8 +10,6 @@ import sun.misc.IOUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -20,7 +18,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static org.junit.Assert.*;
-@Ignore
+
 public class C_OnDemand_IncompleteFileUpload_AccTest {
 
     @Rule
@@ -39,7 +37,7 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
     public void setUp() throws Exception {
         //Create file to upload and lock file
         File filePrototype = new File("src/test/resources/unfinished_writing_file.bin");
-        Files.write(tempFileRule.getLockFile().toPath(), getPID().getBytes());
+        Files.write(tempFileRule.getLockFile().toPath(), new byte[]{0});
         Files.copy(filePrototype.toPath(), tempFileRule.getFileToUpload().toPath());
     }
 
@@ -157,16 +155,5 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
             }
         }
         return result;
-    }
-
-    private String getPID() {
-        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
-        String runtimeName = runtimeMXBean.getName();
-        int endIndex = runtimeName.indexOf('@');
-        if (endIndex < 1) {
-            return "0";
-        } else {
-            return runtimeName.substring(0, endIndex);
-        }
     }
 }

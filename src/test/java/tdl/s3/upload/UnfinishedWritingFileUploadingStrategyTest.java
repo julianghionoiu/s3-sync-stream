@@ -12,15 +12,14 @@ import org.mockito.runners.MockitoJUnitRunner;
 import tdl.s3.TempFileRule;
 
 import java.io.File;
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 import java.nio.file.Files;
 import java.util.Collections;
 
-import static org.junit.Assert.assertFalse;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class UnfinishedWritingFileUploadingStrategyTest {
@@ -44,6 +43,7 @@ public class UnfinishedWritingFileUploadingStrategyTest {
     @Before
     public void setUp() throws Exception {
         File filePrototype = new File("src/test/resources/unfinished_writing_file.bin");
+        Files.write(tempFileRule.getLockFile().toPath(), new byte[]{0});
         Files.copy(filePrototype.toPath(), tempFileRule.getFileToUpload().toPath());
 
         when(amazonS3.getObjectMetadata(anyString(), anyString())).thenThrow(NotFoundException.class);
@@ -59,22 +59,10 @@ public class UnfinishedWritingFileUploadingStrategyTest {
         when(partSummary.getSize()).thenReturn(10L * 1024 * 1024);
     }
 
-    private String getPID() {
-        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
-        String runtimeName = runtimeMXBean.getName();
-        int endIndex = runtimeName.indexOf('@');
-        if (endIndex < 1) {
-            return "0";
-        } else {
-            return runtimeName.substring(0, endIndex);
-        }
-    }
 
 
     @Test
     public void upload_newlyCreatedButIncompleteFile() throws Exception {
-        Files.write(tempFileRule.getLockFile().toPath(), getPID().getBytes());
-
         MultiPartUploadFileUploadingStrategy strategy = new MultiPartUploadFileUploadingStrategy(null, 1);
         FileUploader fileUploader = new FileUploaderImpl(amazonS3, "bucket", strategy);
 
@@ -100,43 +88,5 @@ public class UnfinishedWritingFileUploadingStrategyTest {
         verify(amazonS3, times(4)).uploadPart(any());
         //verify uploading completed
         verify(amazonS3, times(1)).completeMultipartUpload(any());
-    }
-
-    @Test
-    public void upload_lockFileExists_writingProcessAlive() throws Exception {
-        //write PID of current process
-        Files.write(tempFileRule.getLockFile().toPath(), getPID().getBytes());
-
-        MultiPartUploadFileUploadingStrategy strategy = new MultiPartUploadFileUploadingStrategy(null, 1);
-        FileUploader fileUploader = new FileUploaderImpl(amazonS3, "bucket", strategy);
-
-        fileUploader.upload(tempFileRule.getFileToUpload());
-
-        //verify that uploading started
-        verify(amazonS3, times(1)).initiateMultipartUpload(any());
-        //verify that existing parts uploaded (10 MB - 2 parts)
-        verify(amazonS3, times(2)).uploadPart(any());
-        //verify that upload not committed
-        verify(amazonS3, never()).completeMultipartUpload(any());
-    }
-
-    @Test
-    public void upload_lockFileExists_writingProcessDied() throws Exception {
-        //Write not existing PID
-        Files.write(tempFileRule.getLockFile().toPath(), "1000000000".getBytes());
-
-        MultiPartUploadFileUploadingStrategy strategy = new MultiPartUploadFileUploadingStrategy(null, 1);
-        FileUploader fileUploader = new FileUploaderImpl(amazonS3, "bucket", strategy);
-
-        fileUploader.upload(tempFileRule.getFileToUpload());
-
-        //verify that uploading started
-        verify(amazonS3, times(1)).initiateMultipartUpload(any());
-        //verify that existing parts uploaded (10 MB - 2 parts)
-        verify(amazonS3, times(2)).uploadPart(any());
-        //verify that upload committed
-        verify(amazonS3, times(1)).completeMultipartUpload(any());
-        //verify that lock file deleted
-        assertFalse(Files.exists(tempFileRule.getLockFile().toPath()));
     }
 }

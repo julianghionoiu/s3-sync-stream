@@ -2,7 +2,6 @@ package tdl.s3.upload;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
-import tdl.s3.util.SystemUtil;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -64,7 +63,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private void initStrategy(AmazonS3 s3, String bucket, File file, String newName, MultipartUpload upload) {
-        writingFinished = isWritingFinished(file);
+        writingFinished = !Files.exists(getLockFilePath(file));
         PartListing alreadyUploadedParts = getAlreadyUploadedParts(s3, bucket, newName, upload);
         boolean uploadingStarted = alreadyUploadedParts != null;
         if (!uploadingStarted) {
@@ -84,33 +83,6 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
             }
         } catch (IOException e) {
             throw new RuntimeException("Can't read size of file to upload, " + file + ". " + e.getMessage(), e);
-        }
-    }
-
-    private boolean isWritingFinished(File file) {
-        try {
-            Path lockFilePath = getLockFilePath(file);
-            if (Files.exists(lockFilePath)) {
-                if (! writingProcessAlive(lockFilePath)) {
-                    Files.delete(lockFilePath);
-                    return true;
-                }
-                return false;
-            } else {
-                return true;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Can't read lock file");
-        }
-    }
-
-    private boolean writingProcessAlive(Path lockFilePath) throws IOException {
-        try (InputStream inputStream = Files.newInputStream(lockFilePath)){
-            Scanner scanner = new Scanner(inputStream);
-            int pid = scanner.nextInt();
-            return SystemUtil.isProcessAlive(pid);
-        } catch (IllegalStateException | NoSuchElementException ignored) {
-            return false;
         }
     }
 
