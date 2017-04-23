@@ -11,13 +11,13 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 
-public class RemoteTestBucketRule extends ExternalResource {
+public class RemoteTestBucket extends ExternalResource {
     private final AmazonS3 amazonS3;
     private final String bucketName;
 
     //~~~~ Construct
 
-    public RemoteTestBucketRule() {
+    public RemoteTestBucket() {
         Path privatePropertiesFile = Paths.get(".private", "aws-test-secrets");
         AWSSecretsProvider secretsProvider = new AWSSecretsProvider(privatePropertiesFile);
 

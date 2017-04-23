@@ -3,7 +3,7 @@ package tdl.s3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.junit.Rule;
 import org.junit.Test;
-import tdl.s3.rules.RemoteTestBucketRule;
+import tdl.s3.rules.RemoteTestBucket;
 
 import java.time.Instant;
 
@@ -14,7 +14,7 @@ import static org.junit.Assert.assertTrue;
 public class A_OnDemand_FileUpload_AccTest {
 
     @Rule
-    public RemoteTestBucketRule remoteTestBucket = new RemoteTestBucketRule();
+    public RemoteTestBucket remoteTestBucket = new RemoteTestBucket();
 
     @Test
     public void should_not_upload_file_if_already_present() throws Exception {

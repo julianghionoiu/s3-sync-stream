@@ -2,7 +2,7 @@ package tdl.s3;
 
 import org.junit.Rule;
 import org.junit.Test;
-import tdl.s3.rules.RemoteTestBucketRule;
+import tdl.s3.rules.RemoteTestBucket;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -10,7 +10,7 @@ import static org.junit.Assert.assertThat;
 public class B_OnDemand_FolderSync_AccTest {
 
     @Rule
-    public RemoteTestBucketRule remoteTestBucket = new RemoteTestBucketRule();
+    public RemoteTestBucket remoteTestBucket = new RemoteTestBucket();
 
     @Test
     public void should_upload_all_new_files_from_folder() throws Exception {
