@@ -9,7 +9,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import tdl.s3.TempFileRule;
+import tdl.s3.rules.TempFileRule;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -46,6 +46,7 @@ public class UnfinishedWritingFileUploadingStrategyTest {
         Files.write(tempFileRule.getLockFile().toPath(), new byte[]{0});
         Files.copy(filePrototype.toPath(), tempFileRule.getFileToUpload().toPath());
 
+        //noinspection unchecked
         when(amazonS3.getObjectMetadata(anyString(), anyString())).thenThrow(NotFoundException.class);
         when(multipartUpload.getKey()).thenReturn("unfinished_writing_file_to_upload.bin");
         when(multipartUpload.getUploadId()).thenReturn("id");

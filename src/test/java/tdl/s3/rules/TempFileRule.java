@@ -1,4 +1,4 @@
-package tdl.s3;
+package tdl.s3.rules;
 
 
 import lombok.Getter;

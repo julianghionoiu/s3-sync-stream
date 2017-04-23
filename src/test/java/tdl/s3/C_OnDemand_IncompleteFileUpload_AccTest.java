@@ -1,11 +1,16 @@
 package tdl.s3;
 
 import ch.qos.logback.core.encoder.ByteArrayUtil;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.MultipartUpload;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PartSummary;
 import org.apache.commons.codec.binary.Hex;
-import org.junit.*;
-import org.junit.rules.ExternalResource;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import sun.misc.IOUtils;
+import tdl.s3.rules.RemoteTestBucketRule;
+import tdl.s3.rules.TempFileRule;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,23 +20,19 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Optional;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
 public class C_OnDemand_IncompleteFileUpload_AccTest {
 
     @Rule
-    public FileCheckingRule fileChecking = new FileCheckingRule();
-
-    @Rule
     public TempFileRule tempFileRule = new TempFileRule();
 
-    /*
-    Rule to delete all uploaded objects and multipart uploads
-     */
     @Rule
-    public ExternalResource resource = new DeleteRemoteObjectsRule(fileChecking);
+    public RemoteTestBucketRule remoteTestBucket = new RemoteTestBucketRule();
+
 
     @Before
     public void setUp() throws Exception {
@@ -58,7 +59,7 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
     @Test
     public void should_upload_incomplete_file() throws Exception {
         //Start uploading the file
-        String[] uploadingArgs = (fileChecking.commonArgs() + "upload -f " + tempFileRule.getFileToUpload()).split(" ");
+        String[] uploadingArgs = ("upload -f " + tempFileRule.getFileToUpload()).split(" ");
         SyncFileApp.main(uploadingArgs);
 
         //create parts hashes
@@ -66,19 +67,16 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
 
         //Check that the file still not exists on the server
         String fileName = tempFileRule.getFileToUpload().getName();
-        ObjectMetadata objectMetadata = fileChecking.getObjectMetadata(fileName);
+        ObjectMetadata objectMetadata = remoteTestBucket.getObjectMetadata(fileName);
         assertNull(objectMetadata);
-        //Check that multipart upload started
-        boolean started = fileChecking.isMultipartUploadExists(fileName);
-        assertTrue(started);
-        //check hash of uploaded parts
-        fileChecking.getAmazonS3()
-                .listMultipartUploads(new ListMultipartUploadsRequest(fileChecking.getBucketName()))
-                .getMultipartUploads().stream()
-                .filter(upload -> upload.getKey().equals(fileName))
-                .map(getMultipartUploadPartListing(fileName))
-                .flatMap(listing -> listing.getParts().stream())
-                .forEach(partSummary -> comparePart(partSummary, hashes));
+
+        //Check multipart upload exists
+        MultipartUpload multipartUpload = remoteTestBucket.getMultipartUploadFor(fileName)
+                .orElseThrow(() -> new AssertionError("Found no multipart upload for: "+fileName));
+        //and the parts have the expected ETag
+
+
+        remoteTestBucket.getPartsFor(multipartUpload).forEach(partSummary -> comparePart(partSummary, hashes));
     }
 
     private void comparePart(PartSummary partSummary, Map<Integer, String> hashes) {
@@ -86,14 +84,11 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         assertEquals(hashes.get(partNumber), partSummary.getETag());
     }
 
-    private Function<MultipartUpload, PartListing> getMultipartUploadPartListing(String fileName) {
-        return upload -> fileChecking.getAmazonS3().listParts(new ListPartsRequest(fileChecking.getBucketName(), fileName, upload.getUploadId()));
-    }
 
     @Test
     public void should_be_able_to_continue_incomplete_file_and_finalise() throws Exception {
         //Start uploading the file
-        String[] startingUploadingArgs = (fileChecking.commonArgs() + "upload -f " + tempFileRule.getFileToUpload()).split(" ");
+        String[] startingUploadingArgs = ("upload -f " + tempFileRule.getFileToUpload()).split(" ");
         SyncFileApp.main(startingUploadingArgs);
 
         //write additional data and delete lock file
@@ -102,19 +97,19 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         Files.delete(tempFileRule.getLockFile().toPath());
 
         //Start uploading the rest of the file
-        String[] uploadingArgs = (fileChecking.commonArgs() + "upload -f " + fileToUpload).split(" ");
+        String[] uploadingArgs = ("upload -f " + fileToUpload).split(" ");
         SyncFileApp.main(uploadingArgs);
 
         //Check that the file exists on the server
         String fileName = fileToUpload.getName();
-        ObjectMetadata objectMetadata = fileChecking.getObjectMetadata(fileName);
-        assertNotNull(objectMetadata);
+        assertThat(remoteTestBucket.doesObjectExists(fileName), is(true));
+
         //Check that multipart upload completed and not exists anymore
-        boolean exists = fileChecking.isMultipartUploadExists(fileName);
-        assertFalse(exists);
+        assertThat(remoteTestBucket.getMultipartUploadFor(fileName), is(Optional.empty()));
 
         //check complete file hash. ETag of complete file consists from complete file MD5 hash and some part after "-" sign(probably file version number)
-        assertTrue(objectMetadata.getETag().startsWith(getCompleteFileMD5(fileToUpload)));
+        assertTrue(remoteTestBucket.getObjectMetadata(fileName)
+                .getETag().startsWith(getCompleteFileMD5(fileToUpload)));
     }
 
     /*

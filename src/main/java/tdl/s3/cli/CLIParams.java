@@ -10,18 +10,6 @@ public class CLIParams {
     public static final String UPLOAD_COMMAND = "upload";
     public static final String SYNC_COMMAND = "sync";
 
-    @Parameter(names = {"--access-key", "-a"}, required = true)
-    private String accessKey;
-
-    @Parameter(names = {"--secret-key", "-s"}, required = true)
-    private String secretKey;
-
-    @Parameter(names = {"--region", "-r"}, required = true)
-    private String region;
-
-    @Parameter(names = {"--bucket", "-b"}, required = true)
-    private String bucket;
-
     private Object command;
 
     @Data
