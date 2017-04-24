@@ -1,13 +1,10 @@
 package tdl.s3;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.beust.jcommander.JCommander;
 import tdl.s3.cli.CLIParams;
+import tdl.s3.credentials.AWSSecretsProvider;
 import tdl.s3.sync.FolderScannerImpl;
 import tdl.s3.sync.FolderSynchronizer;
 import tdl.s3.upload.FileUploadingService;
@@ -32,7 +29,7 @@ public class SyncFileApp {
 
     private FolderSynchronizer folderSynchronizer;
 
-    public SyncFileApp(FileUploadingService fileUploadingService, FolderSynchronizer folderSynchronizer) {
+    private SyncFileApp(FileUploadingService fileUploadingService, FolderSynchronizer folderSynchronizer) {
         this.fileUploadingService = fileUploadingService;
         this.folderSynchronizer = folderSynchronizer;
     }
@@ -53,21 +50,22 @@ public class SyncFileApp {
         String command = jCommander.getParsedCommand();
         cliParams.setCommand(commands.get(command));
 
-        SyncFileApp main = prepare(cliParams);
+        SyncFileApp main = prepare();
 
         main.run(command, cliParams);
     }
 
-    private static SyncFileApp prepare(CLIParams cliParams) {
-        AWSCredentials credentials = new BasicAWSCredentials(cliParams.getAccessKey(), cliParams.getSecretKey());
-        AWSCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(credentials);
+    private static SyncFileApp prepare() {
+        Path privatePropertiesFile = Paths.get(".private", "aws-test-secrets");
+        AWSSecretsProvider secretsProvider = new AWSSecretsProvider(privatePropertiesFile);
+
 
         AmazonS3 amazonS3 = AmazonS3ClientBuilder.standard()
-                .withCredentials(credentialsProvider)
-                .withRegion(cliParams.getRegion())
+                .withCredentials(secretsProvider)
+                .withRegion(secretsProvider.getS3Region())
                 .build();
 
-        FileUploadingService fileUploadingService = new FileUploadingService(amazonS3, cliParams.getBucket());
+        FileUploadingService fileUploadingService = new FileUploadingService(amazonS3, secretsProvider.getS3Bucket());
 
         List<Predicate<Path>> filters = FILTERED_EXTENSIONS.stream()
                 .map(ext -> (Predicate<Path>)(path -> ! path.toString().endsWith(ext)))
@@ -80,7 +78,7 @@ public class SyncFileApp {
     }
 
     private void run(String command, CLIParams cliParams) {
-        prepare(cliParams);
+        prepare();
         switch (command) {
             case UPLOAD_COMMAND: {
                 CLIParams.UploadCommand uploadCommand = (CLIParams.UploadCommand) cliParams.getCommand();
