@@ -8,8 +8,8 @@ https://github.com/julianghionoiu/dev-screen-record
 
 #### To build and run
 ```
-./gradlew mavenCapsule
-java -jar ./build/libs/s3-sync-1.0-SNAPSHOT-capsule.jar
+./gradlew shadowJar
+java -jar ./build/libs/s3-sync-1.0-SNAPSHOT-all.jar upload -f $PATH_TO_REC/recording.mp4
 ```
 
 #### Security model

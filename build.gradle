@@ -9,7 +9,7 @@ buildscript {
     dependencies {
         classpath "io.spring.gradle:dependency-management-plugin:1.0.0.RC2"
         classpath "org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.8.1"
-        classpath 'us.kirchmeier:gradle-capsule-plugin:1.0.2'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.4'
     }
 
 }
@@ -60,7 +60,7 @@ dependencies {
 
 // ~~~~~ Packaging
 
-apply plugin: 'us.kirchmeier.capsule'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 mainClassName = "tdl.s3.SyncFileApp"
 jar {
@@ -69,14 +69,6 @@ jar {
     }
 }
 
-
-task mavenCapsule(type: MavenCapsule){
-    applicationClass mainClassName
-
-    capsuleManifest {
-        dependencyConfiguration configurations.compile
-    }
-}
 
 // ~~~~~ Gather coverage
 
