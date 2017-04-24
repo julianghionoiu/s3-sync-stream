@@ -129,8 +129,11 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private void uploadFailedParts(AmazonS3 s3, String bucket, String newName, File file) {
         failedMiddleParts.stream()
-                .map(partNumber -> readPart(partNumber, file))
-                .map(partData -> getUploadPartRequest(bucket, newName, partData, false))
+                .map(partNumber -> {
+                    byte[] partData = readPart(partNumber, file);
+                    uploadedSize += partData.length;
+                    return getUploadPartRequest(bucket, newName, partData, false, partNumber);
+                })
                 .map(request -> getUploadingCallable(s3, request))
                 .map(executorService::submit)
                 .map(this::getUploadingResult)
@@ -146,6 +149,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private void commit(AmazonS3 s3, String bucket, String newName) {
+        tags.sort(Comparator.comparing(PartETag::getPartNumber));
         CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(bucket, newName, uploadId, tags);
         s3.completeMultipartUpload(request);
     }
@@ -164,7 +168,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
              nextPart = getNextPart(0, inputStream, uploadLastPart)) {
             int partSize = nextPart.length;
             boolean isLastPart = uploadLastPart && partSize < MINIMUM_PART_SIZE;
-            UploadPartRequest request = getUploadPartRequest(bucket, newName, nextPart, isLastPart);
+            UploadPartRequest request = getUploadPartRequest(bucket, newName, nextPart, isLastPart, nextPartToUploadIndex++);
 
             Future<PartETag> uploadingResult = executorService.submit(getUploadingCallable(s3, request));
             uploadingResults.add(uploadingResult);
@@ -188,12 +192,12 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         };
     }
 
-    private UploadPartRequest getUploadPartRequest(String bucket, String newName, byte[] nextPart, boolean isLastPart) {
+    private UploadPartRequest getUploadPartRequest(String bucket, String newName, byte[] nextPart, boolean isLastPart, int partNumber) {
         try (ByteArrayInputStream partInputStream = getInputStream(nextPart)) {
             return new UploadPartRequest()
                     .withBucketName(bucket)
                     .withKey(newName)
-                    .withPartNumber(nextPartToUploadIndex++)
+                    .withPartNumber(partNumber)
                     .withMD5Digest(getDigest(nextPart))
                     .withLastPart(isLastPart)
                     .withPartSize(nextPart.length)
