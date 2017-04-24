@@ -65,7 +65,8 @@ public class SyncFileApp {
                 .withRegion(secretsProvider.getS3Region())
                 .build();
 
-        FileUploadingService fileUploadingService = new FileUploadingService(amazonS3, secretsProvider.getS3Bucket());
+        FileUploadingService fileUploadingService = new FileUploadingService(amazonS3,
+                secretsProvider.getS3Bucket(), secretsProvider.getS3Prefix());
 
         List<Predicate<Path>> filters = FILTERED_EXTENSIONS.stream()
                 .map(ext -> (Predicate<Path>)(path -> ! path.toString().endsWith(ext)))

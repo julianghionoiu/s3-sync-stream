@@ -22,16 +22,21 @@ public class FileUploadingService {
     private final Map<Integer, ? extends UploadingStrategy> uploaderByFileSize;
     private final AmazonS3 amazonS3;
     private final String bucket;
+    private String prefix;
 
-    public FileUploadingService(Map<Integer, ? extends UploadingStrategy> uploaderByFileSize, AmazonS3 amazonS3, String bucket) {
+    public FileUploadingService(Map<Integer, ? extends UploadingStrategy> uploaderByFileSize,
+                                AmazonS3 amazonS3, String bucket, String prefix) {
         this.uploaderByFileSize = uploaderByFileSize;
         this.amazonS3 = amazonS3;
         this.bucket = bucket;
+        this.prefix = prefix;
+
     }
 
-    public FileUploadingService(AmazonS3 amazonS3, String bucket) {
+    public FileUploadingService(AmazonS3 amazonS3, String bucket, String prefix) {
         this.amazonS3 = amazonS3;
         this.bucket = bucket;
+        this.prefix = prefix;
 
         this.uploaderByFileSize = new LinkedHashMap<Integer, UploadingStrategy>(){{
             put(MULTIPART_UPLOAD_SIZE_LIMIT, new SmallFileUploadingStrategy());
@@ -49,18 +54,18 @@ public class FileUploadingService {
     }
 
     private FileUploader bringFileUploader(File file, String name, String bucket) {
-        List<MultipartUpload> alreadyStartedUploads = getMultipartUploads(amazonS3, bucket);
+        List<MultipartUpload> alreadyStartedUploads = getMultipartUploads(amazonS3, bucket, prefix);
         MultipartUpload multipartUpload = alreadyStartedUploads.stream()
-                .filter(upload -> upload.getKey().equals(name))
+                .filter(upload -> upload.getKey().equals(prefix + name))
                 .findAny()
                 .orElse(null);
 
         if (multipartUpload != null) {
             MultiPartUploadFileUploadingStrategy uploadingStrategy = new MultiPartUploadFileUploadingStrategy(multipartUpload, 4);
-            return new FileUploaderImpl(amazonS3, bucket, uploadingStrategy);
+            return new FileUploaderImpl(amazonS3, bucket, prefix, uploadingStrategy);
         } else if (Files.exists(file.toPath().toAbsolutePath().normalize().getParent().resolve(file.getName() + ".lock"))) {
             MultiPartUploadFileUploadingStrategy uploadingStrategy = new MultiPartUploadFileUploadingStrategy(null, 4);
-            return new FileUploaderImpl(amazonS3, bucket, uploadingStrategy);
+            return new FileUploaderImpl(amazonS3, bucket, prefix, uploadingStrategy);
         } else {
             return getUploaderByFileSize(file);
         }
@@ -75,27 +80,30 @@ public class FileUploadingService {
                 .map(uploaderByFileSize::get)
                 .orElseThrow(() -> new IllegalStateException("No file uploader provided " +
                         "for files with size " + fileSizeInMb + " MB."));
-        return new FileUploaderImpl(amazonS3, bucket, strategy);
+        return new FileUploaderImpl(amazonS3, bucket, prefix, strategy);
     }
 
-    private List<MultipartUpload> getMultipartUploads(AmazonS3 s3, String bucket) {
+    private List<MultipartUpload> getMultipartUploads(AmazonS3 s3, String bucket, String prefix) {
         ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(bucket);
+        uploadsRequest.setPrefix(prefix);
         MultipartUploadListing multipartUploadListing = s3.listMultipartUploads(uploadsRequest);
 
         return Stream.of(multipartUploadListing)
-                .flatMap(listing -> getNextListing(s3, listing, bucket))
+                .flatMap(listing -> getNextListing(s3, listing, bucket, prefix))
                 .map(MultipartUploadListing::getMultipartUploads)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }
 
-    private Stream<MultipartUploadListing> getNextListing(AmazonS3 s3, MultipartUploadListing listing, String bucket) {
+    private Stream<MultipartUploadListing> getNextListing(AmazonS3 s3, MultipartUploadListing listing,
+                                                          String bucket, String prefix) {
         if (listing.isTruncated()) {
             ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(bucket);
+            uploadsRequest.setPrefix(prefix);
             uploadsRequest.setUploadIdMarker(listing.getNextUploadIdMarker());
             uploadsRequest.setKeyMarker(listing.getNextKeyMarker());
             Stream<MultipartUploadListing> head = Stream.of(listing);
-            Stream<MultipartUploadListing> tail = getNextListing(s3, s3.listMultipartUploads(uploadsRequest), bucket);
+            Stream<MultipartUploadListing> tail = getNextListing(s3, s3.listMultipartUploads(uploadsRequest), bucket, prefix);
             return Stream.concat(head, tail);
         } else {
             return Stream.of(listing);

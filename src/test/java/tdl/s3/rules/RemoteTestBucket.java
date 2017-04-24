@@ -14,6 +14,7 @@ import java.util.Optional;
 public class RemoteTestBucket extends ExternalResource {
     private final AmazonS3 amazonS3;
     private final String bucketName;
+    private final String uploadPrefix;
 
     //~~~~ Construct
 
@@ -27,6 +28,7 @@ public class RemoteTestBucket extends ExternalResource {
                 .build();
 
         bucketName = secretsProvider.getS3Bucket();
+        uploadPrefix = secretsProvider.getS3Prefix();
     }
 
     //~~~~ Lifecycle management
@@ -38,7 +40,7 @@ public class RemoteTestBucket extends ExternalResource {
     }
 
     private void removeAllObjects() {
-        amazonS3.listObjects(bucketName)
+        amazonS3.listObjects(bucketName, uploadPrefix)
                 .getObjectSummaries()
                 .forEach(s3ObjectSummary -> {
                     DeleteObjectRequest request = new DeleteObjectRequest(bucketName, s3ObjectSummary.getKey());
@@ -47,7 +49,9 @@ public class RemoteTestBucket extends ExternalResource {
     }
 
     private void abortAllMultipartUploads() {
-        amazonS3.listMultipartUploads(new ListMultipartUploadsRequest(bucketName))
+        ListMultipartUploadsRequest multipartUploadsRequest = new ListMultipartUploadsRequest(bucketName);
+        multipartUploadsRequest.setPrefix(uploadPrefix);
+        amazonS3.listMultipartUploads(multipartUploadsRequest)
                 .getMultipartUploads()
                 .forEach(upload -> {
                     AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(bucketName, upload.getKey(), upload.getUploadId());
@@ -58,22 +62,26 @@ public class RemoteTestBucket extends ExternalResource {
     //~~~~ Bucket actions
 
     public boolean doesObjectExists(String key) {
-        return amazonS3.doesObjectExist(bucketName, key);
+        return amazonS3.doesObjectExist(bucketName, uploadPrefix + key);
     }
 
     public ObjectMetadata getObjectMetadata(String key) {
-        return amazonS3.getObjectMetadata(bucketName, key);
+        return amazonS3.getObjectMetadata(bucketName, uploadPrefix + key);
     }
 
     public Optional<MultipartUpload> getMultipartUploadFor(String key) {
-        return amazonS3.listMultipartUploads(new ListMultipartUploadsRequest(bucketName))
+        ListMultipartUploadsRequest multipartUploadsRequest = new ListMultipartUploadsRequest(bucketName);
+        multipartUploadsRequest.setPrefix(uploadPrefix);
+        return amazonS3.listMultipartUploads(multipartUploadsRequest)
                 .getMultipartUploads().stream()
-                .filter(upl -> upl.getKey().equals(key))
+                .filter(upl -> upl.getKey().equals(uploadPrefix + key))
                 .findAny();
     }
 
     public List<PartSummary> getPartsFor(MultipartUpload multipartUpload) {
-        return amazonS3.listParts(new ListPartsRequest(bucketName, multipartUpload.getKey(), multipartUpload.getUploadId())).getParts();
+        ListPartsRequest listPartsRequest = new ListPartsRequest(bucketName,
+                multipartUpload.getKey(), multipartUpload.getUploadId());
+        return amazonS3.listParts(listPartsRequest).getParts();
     }
 
 }
