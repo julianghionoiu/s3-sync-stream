@@ -18,6 +18,8 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     //Minimum part size is 5 MB
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
     private static final long MAX_UPLOADING_TIME = 60;
+    private static final int DEFAULT_THREAD_COUNT = 4;
+
     private final MultipartUpload upload;
 
     private MessageDigest md5Digest;
@@ -33,6 +35,15 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     private boolean writingFinished;
 
     private ExecutorService executorService;
+
+    /**
+     * Creates new Multipart upload strategy
+     *
+     * @param upload       {@link MultipartUpload} object that represents already started uploading or null if it should be clean upload
+     */
+    public MultiPartUploadFileUploadingStrategy(MultipartUpload upload) {
+        this(upload, DEFAULT_THREAD_COUNT);
+    }
 
     /**
      * Creates new Multipart upload strategy
