@@ -1,12 +1,18 @@
 package tdl.s3;
 
-import com.amazonaws.services.s3.model.MultipartUpload;
-import com.amazonaws.services.s3.model.PartSummary;
+import com.amazonaws.services.s3.model.*;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import tdl.s3.rules.RemoteTestBucket;
 import tdl.s3.rules.TemporarySyncFolder;
 
+import java.io.ByteArrayInputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 
@@ -78,4 +84,56 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         assertTrue(remoteTestBucket.getObjectMetadata(fileName)
                 .getETag().startsWith(targetSyncFolder.getCompleteFileMD5(fileName)));
     }
+
+    @Test
+    public void should_be_able_to_upload_failed_parts() throws Exception {
+        String fileName = "unfinished_writing_file.bin";
+        targetSyncFolder.addFileFromResources(fileName);
+        targetSyncFolder.lock(fileName);
+
+        String bucket = remoteTestBucket.getBucketName();
+        InitiateMultipartUploadResult result = remoteTestBucket.getAmazonS3().initiateMultipartUpload(new InitiateMultipartUploadRequest(bucket, fileName));
+        //write third part of data
+        targetSyncFolder.writeBytesToFile(fileName, PART_SIZE_IN_BYTES);
+
+        //upload first and third part
+        byte[] fileContent = Files.readAllBytes(Paths.get(targetSyncFolder.getFolderPath() + "/" + fileName));
+        byte[] firstPart = new byte[PART_SIZE_IN_BYTES];
+        byte[] thirdPart = new byte[PART_SIZE_IN_BYTES];
+        System.arraycopy(fileContent, 0, firstPart, 0, PART_SIZE_IN_BYTES);
+        System.arraycopy(fileContent, PART_SIZE_IN_BYTES * 2, thirdPart, 0, PART_SIZE_IN_BYTES);
+        uploadPart(fileName, bucket, result, firstPart);
+        uploadPart(fileName, bucket, result, thirdPart);
+
+        //write additional data and delete lock file
+        targetSyncFolder.writeBytesToFile(fileName, ONE_MEGABYTE);
+        targetSyncFolder.unlock(fileName);
+
+        //synchronize folder
+        String[] syncArgs = ("sync -d " + targetSyncFolder.getFolderPath()+ " -R").split(" ");
+        SyncFileApp.main(syncArgs);
+
+        //Check that the file exists on the server
+        assertThat(remoteTestBucket.doesObjectExists(fileName), is(true));
+
+        //Check that multipart upload completed and not exists anymore
+        assertThat(remoteTestBucket.getMultipartUploadFor(fileName), is(Optional.empty()));
+
+        //check complete file hash. ETag of complete file consists from complete file MD5 hash and parts count after "-" sign
+        assertTrue(remoteTestBucket.getObjectMetadata(fileName)
+                .getETag().startsWith(targetSyncFolder.getCompleteFileMD5(fileName)));
+    }
+
+    private void uploadPart(String fileName, String bucket, InitiateMultipartUploadResult result, byte[] firstPart) throws NoSuchAlgorithmException {
+        UploadPartRequest request = new UploadPartRequest()
+                .withBucketName(bucket)
+                .withKey(fileName)
+                .withPartNumber(1)
+                .withMD5Digest(Base64.getEncoder().encodeToString(MessageDigest.getInstance("MD5").digest(firstPart)))
+                .withPartSize(PART_SIZE_IN_BYTES)
+                .withUploadId(result.getUploadId())
+                .withInputStream(new ByteArrayInputStream(firstPart));
+        remoteTestBucket.getAmazonS3().uploadPart(request);
+    }
+
 }

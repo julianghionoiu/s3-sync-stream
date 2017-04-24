@@ -10,7 +10,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
@@ -30,6 +32,8 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private long uploadedSize;
 
+    private Set<Integer> failedMiddleParts;
+
     private int nextPartToUploadIndex;
 
     private boolean writingFinished;
@@ -39,7 +43,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     /**
      * Creates new Multipart upload strategy
      *
-     * @param upload       {@link MultipartUpload} object that represents already started uploading or null if it should be clean upload
+     * @param upload {@link MultipartUpload} object that represents already started uploading or null if it should be clean upload
      */
     public MultiPartUploadFileUploadingStrategy(MultipartUpload upload) {
         this(upload, DEFAULT_THREAD_COUNT);
@@ -65,12 +69,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     @Override
     public void upload(AmazonS3 s3, String bucket, File file, String newName) throws Exception {
         initStrategy(s3, bucket, file, newName, upload);
-        try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            uploadRequiredParts(s3, bucket, newName, inputStream);
-        } catch (IOException e) {
-            throw new RuntimeException("Error while reading file " + file + ". " + e.getMessage(), e);
-        }
-
+        uploadRequiredParts(s3, bucket, newName, file);
     }
 
     private void initStrategy(AmazonS3 s3, String bucket, File file, String newName, MultipartUpload upload) {
@@ -80,10 +79,12 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         if (!uploadingStarted) {
             uploadId = initUploading(s3, bucket, newName);
             uploadedSize = 0;
+            failedMiddleParts = Collections.emptySet();
             nextPartToUploadIndex = 1;
         } else {
             uploadId = alreadyUploadedParts.getUploadId();
             uploadedSize = getUploadedSize(alreadyUploadedParts);
+            failedMiddleParts = getFailedMiddlePartNumbers(alreadyUploadedParts);
             nextPartToUploadIndex = getLastPartIndex(alreadyUploadedParts) + 1;
         }
         tags = getETags(alreadyUploadedParts);
@@ -114,14 +115,33 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
                 .resolve(file.getName() + ".lock");
     }
 
-    private void uploadRequiredParts(AmazonS3 s3, String bucket, String newName, InputStream inputStream) throws IOException {
-        try {
+    private void uploadRequiredParts(AmazonS3 s3, String bucket, String newName, File file) throws IOException {
+        try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
+            uploadFailedParts(s3, bucket, newName, file);
             uploadIncompleteParts(s3, bucket, newName, inputStream, writingFinished);
             if (writingFinished) {
                 commit(s3, bucket, newName);
             }
         } catch (InterruptedException e) {
             throw new RuntimeException("File uploading was terminated.");
+        }
+    }
+
+    private void uploadFailedParts(AmazonS3 s3, String bucket, String newName, File file) {
+        failedMiddleParts.stream()
+                .map(partNumber -> readPart(partNumber, file))
+                .map(partData -> getUploadPartRequest(bucket, newName, partData, false))
+                .map(request -> getUploadingCallable(s3, request))
+                .map(executorService::submit)
+                .map(this::getUploadingResult)
+                .forEach(tags::add);
+    }
+
+    private byte[] readPart(Integer partNumber, File file) {
+        try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
+            return getNextPart(MINIMUM_PART_SIZE * (partNumber - 1), inputStream, false);
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe.getMessage(), ioe);
         }
     }
 
@@ -139,41 +159,49 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     private List<Future<PartETag>> uploadPartsConcurrent(AmazonS3 s3, String bucket, String newName, InputStream inputStream, boolean uploadLastPart) throws IOException, InterruptedException {
         List<Future<PartETag>> uploadingResults = new ArrayList<>();
 
-
         for (byte[] nextPart = getNextPart(uploadedSize, inputStream, uploadLastPart);
              nextPart.length > 0;
              nextPart = getNextPart(0, inputStream, uploadLastPart)) {
-            try (InputStream partInputStream = getInputStream(nextPart)) {
-                int partSize = nextPart.length;
-                boolean isLastPart = uploadLastPart && partSize < MINIMUM_PART_SIZE;
-                String digest = getDigest(nextPart);
-                UploadPartRequest request = new UploadPartRequest()
-                        .withBucketName(bucket)
-                        .withKey(newName)
-                        .withPartNumber(nextPartToUploadIndex++)
-                        .withMD5Digest(digest)
-                        .withLastPart(isLastPart)
-                        .withPartSize(partSize)
-                        .withUploadId(uploadId)
-                        .withInputStream(partInputStream);
+            int partSize = nextPart.length;
+            boolean isLastPart = uploadLastPart && partSize < MINIMUM_PART_SIZE;
+            UploadPartRequest request = getUploadPartRequest(bucket, newName, nextPart, isLastPart);
 
-                Future<PartETag> uploadingResult = executorService.submit(() -> {
-                    try {
-                        UploadPartResult result = s3.uploadPart(request);
-                        return result.getPartETag();
-                    }catch (Exception e) {
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
-                    }
-                });
-                uploadingResults.add(uploadingResult);
-            }
+            Future<PartETag> uploadingResult = executorService.submit(getUploadingCallable(s3, request));
+            uploadingResults.add(uploadingResult);
         }
 
         executorService.shutdown();
         executorService.awaitTermination(MAX_UPLOADING_TIME, TimeUnit.MINUTES);
 
         return uploadingResults;
+    }
+
+    private Callable<PartETag> getUploadingCallable(AmazonS3 s3, UploadPartRequest request) {
+        return () -> {
+            try {
+                UploadPartResult result = s3.uploadPart(request);
+                return result.getPartETag();
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        };
+    }
+
+    private UploadPartRequest getUploadPartRequest(String bucket, String newName, byte[] nextPart, boolean isLastPart) {
+        try (ByteArrayInputStream partInputStream = getInputStream(nextPart)) {
+            return new UploadPartRequest()
+                    .withBucketName(bucket)
+                    .withKey(newName)
+                    .withPartNumber(nextPartToUploadIndex++)
+                    .withMD5Digest(getDigest(nextPart))
+                    .withLastPart(isLastPart)
+                    .withPartSize(nextPart.length)
+                    .withUploadId(uploadId)
+                    .withInputStream(partInputStream);
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe.getMessage(), ioe);
+        }
     }
 
     private PartETag getUploadingResult(Future<PartETag> future) {
@@ -191,7 +219,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         return result;
     }
 
-    private InputStream getInputStream(byte[] nextPartBytes) {
+    private ByteArrayInputStream getInputStream(byte[] nextPartBytes) {
         return new ByteArrayInputStream(nextPartBytes, 0, nextPartBytes.length);
     }
 
@@ -225,6 +253,22 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(bucket, newName);
         InitiateMultipartUploadResult result = s3.initiateMultipartUpload(request);
         return result.getUploadId();
+    }
+
+    private Set<Integer> getFailedMiddlePartNumbers(PartListing partListing) {
+        AtomicInteger lastPartNumber = new AtomicInteger(0);
+        Set<Integer> uploadedParts = partListing.getParts().stream()
+                .map(PartSummary::getPartNumber)
+                .peek(n -> {
+                    if (lastPartNumber.get() < n)
+                        lastPartNumber.set(n);
+                })
+                .collect(Collectors.toSet());
+
+        return IntStream.range(1, lastPartNumber.get())
+                .filter(n -> !uploadedParts.contains(n))
+                .boxed()
+                .collect(Collectors.toSet());
     }
 
     private long getUploadedSize(PartListing partListing) {
