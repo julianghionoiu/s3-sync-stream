@@ -14,12 +14,13 @@ public class FileUploaderImpl implements FileUploader {
 
     private final AmazonS3 s3Provider;
     private final String bucket;
-
+    private final String prefix;
     private final UploadingStrategy uploadingStrategy;
 
-    public FileUploaderImpl(final AmazonS3 s3Provider, String bucket, UploadingStrategy uploadingStrategy) {
+    public FileUploaderImpl(final AmazonS3 s3Provider, String bucket, String prefix, UploadingStrategy uploadingStrategy) {
         this.s3Provider = s3Provider;
         this.bucket = bucket;
+        this.prefix = prefix;
         this.uploadingStrategy = uploadingStrategy;
     }
 
@@ -36,7 +37,7 @@ public class FileUploaderImpl implements FileUploader {
     @Override
     public boolean exists(String bucketName, String fileKey) {
         try {
-            s3Provider.getObjectMetadata(bucketName, fileKey);
+            s3Provider.getObjectMetadata(bucketName, prefix + fileKey);
             return true;
         }catch (NotFoundException nfe) {
             return false;
@@ -53,7 +54,7 @@ public class FileUploaderImpl implements FileUploader {
         log.info("Uploading file " + file);
         try {
             if (!exists(bucket, newName)) {
-                uploadInternal(s3Provider, bucket, file, newName);
+                uploadInternal(s3Provider, bucket, prefix, file, newName);
             }
         } catch (Exception e) {
             if (retry == 0) {
@@ -66,7 +67,7 @@ public class FileUploaderImpl implements FileUploader {
         }
     }
 
-    private void uploadInternal(AmazonS3 s3, String bucket, File file, String newName) throws Exception {
-        uploadingStrategy.upload(s3, bucket, file, newName);
+    private void uploadInternal(AmazonS3 s3, String bucket, String prefix, File file, String newName) throws Exception {
+        uploadingStrategy.upload(s3, bucket, prefix, file, newName);
     }
 }

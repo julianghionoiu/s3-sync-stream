@@ -5,8 +5,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
-import org.hamcrest.Matcher;
-import org.hamcrest.beans.HasPropertyWithValue;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -70,7 +68,7 @@ public class FileUploadingServiceTest {
             put(1, smallFileUploadingStrategy);
             put(Integer.MAX_VALUE, multiPartUploadFileUploadingStrategy);
 
-        }}, s3, "testBucket");
+        }}, s3, "testBucket", "testPrefix");
 
         when(smallFile.length()).thenReturn(1255L);
         when(largeFile.length()).thenReturn(6L * 1024 * 1024);
@@ -106,7 +104,7 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(smallFile);
 
-        verify(smallFileUploadingStrategy).upload(any(), any(), any(), any());
+        verify(smallFileUploadingStrategy).upload(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -116,7 +114,7 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(largeFile);
 
-        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any());
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -125,7 +123,7 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(incompleteFile);
 
-        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any());
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any(), any());
     }
 
 
@@ -136,7 +134,7 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(incompleteFile);
 
-        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any());
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -152,6 +150,6 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(incompleteFile);
 
-        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any());
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any(), any());
     }
 }

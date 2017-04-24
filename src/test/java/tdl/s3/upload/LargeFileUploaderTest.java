@@ -59,7 +59,7 @@ public class LargeFileUploaderTest {
 
         when(amazonS3.getObjectMetadata(anyString(), anyString())).thenReturn(null);
 
-        fileUploader = new FileUploaderImpl(amazonS3, "test_bucket", new LargeFileUploadingStrategy());
+        fileUploader = new FileUploaderImpl(amazonS3, "test_bucket", "test_prefix/", new LargeFileUploadingStrategy());
     }
 
     @Test
