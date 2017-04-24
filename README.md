@@ -1,5 +1,5 @@
 [![Java Version](http://img.shields.io/badge/Java-1.8-blue.svg)](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
-[![Codeship Status for julianghionoiu/s3-sync](https://img.shields.io/codeship/b617e390-006f-0135-fe1b-4ee982914aba.svg)](https://codeship.com/projects/212588)
+[![Codeship Status for julianghionoiu/s3-sync](https://img.shields.io/codeship/b617e390-006f-0135-fe1b-4ee982914aba/master.svg)](https://codeship.com/projects/212588)
 [![Coverage Status](https://coveralls.io/repos/github/julianghionoiu/s3-sync/badge.svg?branch=master)](https://coveralls.io/github/julianghionoiu/s3-sync?branch=master)
 
 The purpose of this library is to continuously upload (multi-part) files that are being generated in a folder.
