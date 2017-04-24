@@ -21,7 +21,6 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Collections;
-import java.util.HashMap;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
@@ -60,17 +59,11 @@ public class FileUploadingServiceTest {
     @Mock
     private BasicFileAttributes fileAttributes;
     @Mock
-    private SmallFileUploadingStrategy smallFileUploadingStrategy;
-    @Mock
     private MultiPartUploadFileUploadingStrategy multiPartUploadFileUploadingStrategy;
 
     @Before
     public void setUp() throws Exception {
-        fileUploadingService = new FileUploadingService(new HashMap<Integer,UploadingStrategy>() {{
-            put(1, smallFileUploadingStrategy);
-            put(Integer.MAX_VALUE, multiPartUploadFileUploadingStrategy);
-
-        }}, s3, "testBucket");
+        fileUploadingService = new FileUploadingService(s3, "testBucket");
 
         when(smallFile.length()).thenReturn(1255L);
         when(largeFile.length()).thenReturn(6L * 1024 * 1024);
@@ -81,6 +74,7 @@ public class FileUploadingServiceTest {
         when(upload.getKey()).thenReturn("incomplete.bin");
 
         when(incompleteFile.toPath()).thenReturn(incompleteFilePath);
+        when(incompleteFile.getPath()).thenReturn("incompleteFilePath.bin");
         when(smallFile.toPath()).thenReturn(incompleteFilePath);
         when(largeFile.toPath()).thenReturn(incompleteFilePath);
         when(incompleteFilePath.getParent()).thenReturn(incompleteFilePath);
@@ -106,7 +100,7 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(smallFile);
 
-        verify(smallFileUploadingStrategy).upload(any(), any(), any(), any());
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any());
     }
 
     @Test
