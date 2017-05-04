@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 
 public class FileUploadingService {
 
-    public static final Integer MULTIPART_UPLOAD_SIZE_LIMIT = 5;
+    private static final Integer MULTIPART_UPLOAD_SIZE_LIMIT = 5;
     private static final long BYTES_IN_MEGABYTE = 1024 * 1024;
 
     private final Map<Integer, ? extends UploadingStrategy> uploaderByFileSize;
@@ -24,8 +24,8 @@ public class FileUploadingService {
     private final String bucket;
     private String prefix;
 
-    public FileUploadingService(Map<Integer, ? extends UploadingStrategy> uploaderByFileSize,
-                                AmazonS3 amazonS3, String bucket, String prefix) {
+    FileUploadingService(Map<Integer, ? extends UploadingStrategy> uploaderByFileSize,
+                         AmazonS3 amazonS3, String bucket, String prefix) {
         this.uploaderByFileSize = uploaderByFileSize;
         this.amazonS3 = amazonS3;
         this.bucket = bucket;
@@ -41,7 +41,7 @@ public class FileUploadingService {
 
         this.uploaderByFileSize = new LinkedHashMap<Integer, UploadingStrategy>(){{
             put(MULTIPART_UPLOAD_SIZE_LIMIT, new SmallFileUploadingStrategy());
-            put(Integer.MAX_VALUE, new MultiPartUploadFileUploadingStrategy(null, 4));
+            put(Integer.MAX_VALUE, new MultiPartUploadFileUploadingStrategy(null));
         }};
     }
 
@@ -57,15 +57,15 @@ public class FileUploadingService {
     private FileUploader bringFileUploader(File file, String name, String bucket) {
         List<MultipartUpload> alreadyStartedUploads = getMultipartUploads(amazonS3, bucket, prefix);
         MultipartUpload multipartUpload = alreadyStartedUploads.stream()
-                .filter(upload -> upload.getKey().equals(name))
+                .filter(upload -> upload.getKey().equals(prefix + name))
                 .findAny()
                 .orElse(null);
 
         if (multipartUpload != null) {
-            MultiPartUploadFileUploadingStrategy uploadingStrategy = new MultiPartUploadFileUploadingStrategy(multipartUpload, 4);
+            MultiPartUploadFileUploadingStrategy uploadingStrategy = new MultiPartUploadFileUploadingStrategy(multipartUpload);
             return new FileUploaderImpl(amazonS3, bucket, prefix, uploadingStrategy);
         } else if (Files.exists(file.toPath().toAbsolutePath().normalize().getParent().resolve(file.getName() + ".lock"))) {
-            MultiPartUploadFileUploadingStrategy uploadingStrategy = new MultiPartUploadFileUploadingStrategy(null, 4);
+            MultiPartUploadFileUploadingStrategy uploadingStrategy = new MultiPartUploadFileUploadingStrategy(null);
             return new FileUploaderImpl(amazonS3, bucket, prefix, uploadingStrategy);
         } else {
             return getUploaderByFileSize(file);
