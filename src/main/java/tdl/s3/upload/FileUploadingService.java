@@ -36,7 +36,8 @@ public class FileUploadingService {
     public FileUploadingService(AmazonS3 amazonS3, String bucket, String prefix) {
         this.amazonS3 = amazonS3;
         this.bucket = bucket;
-        this.prefix = prefix;
+	this.prefix = prefix;
+
 
         this.uploaderByFileSize = new LinkedHashMap<Integer, UploadingStrategy>(){{
             put(MULTIPART_UPLOAD_SIZE_LIMIT, new SmallFileUploadingStrategy());
@@ -56,7 +57,7 @@ public class FileUploadingService {
     private FileUploader bringFileUploader(File file, String name, String bucket) {
         List<MultipartUpload> alreadyStartedUploads = getMultipartUploads(amazonS3, bucket, prefix);
         MultipartUpload multipartUpload = alreadyStartedUploads.stream()
-                .filter(upload -> upload.getKey().equals(prefix + name))
+                .filter(upload -> upload.getKey().equals(name))
                 .findAny()
                 .orElse(null);
 

@@ -5,6 +5,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
+import org.hamcrest.Matcher;
+import org.hamcrest.beans.HasPropertyWithValue;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -79,6 +81,7 @@ public class FileUploadingServiceTest {
         when(upload.getKey()).thenReturn("incomplete.bin");
 
         when(incompleteFile.toPath()).thenReturn(incompleteFilePath);
+        when(incompleteFile.getPath()).thenReturn("incompleteFilePath.bin");
         when(smallFile.toPath()).thenReturn(incompleteFilePath);
         when(largeFile.toPath()).thenReturn(incompleteFilePath);
         when(incompleteFilePath.getParent()).thenReturn(incompleteFilePath);

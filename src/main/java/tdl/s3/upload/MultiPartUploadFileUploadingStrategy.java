@@ -10,7 +10,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
@@ -18,6 +20,8 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     //Minimum part size is 5 MB
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
     private static final long MAX_UPLOADING_TIME = 60;
+    private static final int DEFAULT_THREAD_COUNT = 4;
+
     private final MultipartUpload upload;
 
     private MessageDigest md5Digest;
@@ -27,6 +31,8 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     private List<PartETag> tags;
 
     private long uploadedSize;
+
+    private Set<Integer> failedMiddleParts;
 
     private int nextPartToUploadIndex;
 
@@ -55,6 +61,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     public void upload(AmazonS3 s3, String bucket, String prefix, File file, String newName) throws Exception {
         initStrategy(s3, bucket, prefix, file, newName, upload);
         try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
+            //uploadFailedParts(s3, bucket, prefix, newName, file);
             uploadRequiredParts(s3, bucket, prefix, newName, inputStream);
         } catch (IOException e) {
             throw new RuntimeException("Error while reading file " + file + ". " + e.getMessage(), e);
@@ -113,8 +120,29 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
             throw new RuntimeException("File uploading was terminated.");
         }
     }
+    private void uploadFailedParts(AmazonS3 s3, String bucket, String newName, File file) {
+        failedMiddleParts.stream()
+                .map(partNumber -> {
+                    byte[] partData = readPart(partNumber, file);
+                    uploadedSize += partData.length;
+                    return getUploadPartRequest(bucket, newName, partData, false, partNumber);
+                })
+                .map(request -> getUploadingCallable(s3, request))
+                .map(executorService::submit)
+                .map(this::getUploadingResult)
+                .forEach(tags::add);
+    }
+
+    private byte[] readPart(Integer partNumber, File file) {
+        try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
+            return getNextPart(MINIMUM_PART_SIZE * (partNumber - 1), inputStream, false);
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe.getMessage(), ioe);
+        }
+    }
 
     private void commit(AmazonS3 s3, String bucket, String prefix, String newName) {
+        //tags.sort(Comparator.comparing(PartETag::getPartNumber));
         CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(bucket, prefix + newName, uploadId, tags);
         s3.completeMultipartUpload(request);
     }
@@ -127,7 +155,6 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private List<Future<PartETag>> uploadPartsConcurrent(AmazonS3 s3, String bucket, String prefix, String newName, InputStream inputStream, boolean uploadLastPart) throws IOException, InterruptedException {
         List<Future<PartETag>> uploadingResults = new ArrayList<>();
-
 
         for (byte[] nextPart = getNextPart(uploadedSize, inputStream, uploadLastPart);
              nextPart.length > 0;
@@ -165,6 +192,34 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         return uploadingResults;
     }
 
+    private Callable<PartETag> getUploadingCallable(AmazonS3 s3, UploadPartRequest request) {
+        return () -> {
+            try {
+                UploadPartResult result = s3.uploadPart(request);
+                return result.getPartETag();
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        };
+    }
+
+    private UploadPartRequest getUploadPartRequest(String bucket, String newName, byte[] nextPart, boolean isLastPart, int partNumber) {
+        try (ByteArrayInputStream partInputStream = getInputStream(nextPart)) {
+            return new UploadPartRequest()
+                    .withBucketName(bucket)
+                    .withKey(newName)
+                    .withPartNumber(partNumber)
+                    .withMD5Digest(getDigest(nextPart))
+                    .withLastPart(isLastPart)
+                    .withPartSize(nextPart.length)
+                    .withUploadId(uploadId)
+                    .withInputStream(partInputStream);
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe.getMessage(), ioe);
+        }
+    }
+
     private PartETag getUploadingResult(Future<PartETag> future) {
         try {
             return future.get();
@@ -180,7 +235,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         return result;
     }
 
-    private InputStream getInputStream(byte[] nextPartBytes) {
+    private ByteArrayInputStream getInputStream(byte[] nextPartBytes) {
         return new ByteArrayInputStream(nextPartBytes, 0, nextPartBytes.length);
     }
 
@@ -214,6 +269,22 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(bucket, prefix + newName);
         InitiateMultipartUploadResult result = s3.initiateMultipartUpload(request);
         return result.getUploadId();
+    }
+
+    private Set<Integer> getFailedMiddlePartNumbers(PartListing partListing) {
+        AtomicInteger lastPartNumber = new AtomicInteger(0);
+        Set<Integer> uploadedParts = partListing.getParts().stream()
+                .map(PartSummary::getPartNumber)
+                .peek(n -> {
+                    if (lastPartNumber.get() < n)
+                        lastPartNumber.set(n);
+                })
+                .collect(Collectors.toSet());
+
+        return IntStream.range(1, lastPartNumber.get())
+                .filter(n -> !uploadedParts.contains(n))
+                .boxed()
+                .collect(Collectors.toSet());
     }
 
     private long getUploadedSize(PartListing partListing) {
