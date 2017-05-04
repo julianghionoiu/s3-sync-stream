@@ -3,6 +3,7 @@ package tdl.s3.rules;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
+import lombok.Getter;
 import org.junit.rules.ExternalResource;
 import tdl.s3.credentials.AWSSecretsProvider;
 
@@ -11,6 +12,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 
+@Getter
 public class RemoteTestBucket extends ExternalResource {
     private final AmazonS3 amazonS3;
     private final String bucketName;
