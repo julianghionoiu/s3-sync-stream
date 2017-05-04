@@ -64,7 +64,7 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         targetSyncFolder.lock(fileName);
 
         //synchronize folder
-        String[] syncArgs = ("sync -d " + targetSyncFolder.getFolderPath()+ " -R").split(" ");
+        String[] syncArgs = ("sync -d " + targetSyncFolder.getFolderPath() + " -R").split(" ");
         SyncFileApp.main(syncArgs);
 
         //write additional data and delete lock file

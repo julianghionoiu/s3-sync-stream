@@ -3,3 +3,4 @@
 .gradle
 .private
 build
+.nb-gradle

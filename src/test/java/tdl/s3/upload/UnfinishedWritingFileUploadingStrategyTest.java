@@ -60,7 +60,7 @@ public class UnfinishedWritingFileUploadingStrategyTest {
     @Test
     public void upload_newlyCreatedButIncompleteFile() throws Exception {
         MultiPartUploadFileUploadingStrategy strategy = new MultiPartUploadFileUploadingStrategy(null, 1);
-        FileUploader fileUploader = new FileUploaderImpl(amazonS3, "bucket", strategy);
+        FileUploader fileUploader = new FileUploaderImpl(amazonS3, "bucket", "test_prefix/", strategy);
 
         String fileName = "unfinished_writing_file.bin";
         targetSyncFolder.addFileFromResources(fileName);
@@ -79,7 +79,7 @@ public class UnfinishedWritingFileUploadingStrategyTest {
 
 
         MultiPartUploadFileUploadingStrategy newStrategy = new MultiPartUploadFileUploadingStrategy(multipartUpload, 1);
-        FileUploader newFileUploader = new FileUploaderImpl(amazonS3, "bucket", newStrategy);
+        FileUploader newFileUploader = new FileUploaderImpl(amazonS3, "bucket", "test_prefix/", newStrategy);
         //upload the rest of the file
         newFileUploader.upload(targetSyncFolder.getFilePath(fileName).toFile());
 

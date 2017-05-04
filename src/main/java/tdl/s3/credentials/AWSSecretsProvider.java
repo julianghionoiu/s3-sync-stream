@@ -43,6 +43,10 @@ public class AWSSecretsProvider implements AWSCredentialsProvider {
         return privateProperties.getProperty("s3_bucket");
     }
 
+    public String getS3Prefix() {
+        return privateProperties.getProperty("s3_prefix");
+    }
+
     @Override
     public void refresh() {
         privateProperties = loadPrivateProperties(privatePropertiesPath);
