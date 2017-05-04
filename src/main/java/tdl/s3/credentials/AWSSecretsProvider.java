@@ -20,47 +20,36 @@ import java.util.Properties;
  *  - s3_bucket
  */
 public class AWSSecretsProvider implements AWSCredentialsProvider {
-    private Path privatePropertiesPath;
-    private Properties privateProperties;
+    
+    private Properties properties;
 
-    public AWSSecretsProvider(Path privatePropertiesPath) {
-        privateProperties = loadPrivateProperties(privatePropertiesPath);
-        this.privatePropertiesPath = privatePropertiesPath;
+    public AWSSecretsProvider(Properties properties) {
+        this.properties = properties;
     }
 
     @Override
     public AWSCredentials getCredentials() {
         return new BasicAWSCredentials(
-                privateProperties.getProperty("aws_access_key_id"),
-                privateProperties.getProperty("aws_secret_access_key"));
+            properties.getProperty("aws_access_key_id"),
+            properties.getProperty("aws_secret_access_key")
+        );
     }
 
     public String getS3Region() {
-        return privateProperties.getProperty("s3_region");
+        return properties.getProperty("s3_region");
     }
 
     public String getS3Bucket() {
-        return privateProperties.getProperty("s3_bucket");
+        return properties.getProperty("s3_bucket");
     }
 
     public String getS3Prefix() {
-        return privateProperties.getProperty("s3_prefix");
+        return properties.getProperty("s3_prefix");
     }
 
     @Override
     public void refresh() {
-        privateProperties = loadPrivateProperties(privatePropertiesPath);
-    }
-
-    //~~~ Util
-
-    private static Properties loadPrivateProperties(Path privatePropertiesPath) {
-        Properties properties = new Properties();
-        try (InputStream inStream = Files.newInputStream(privatePropertiesPath)) {
-            properties.load(inStream);
-            return properties;
-        } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
+        //TODO set the app to reload the properties from file.
+        //Maybe pass the app into the constructor.
     }
 }

@@ -8,9 +8,13 @@ import lombok.Data;
 public class CLIParams {
 
     public static final String UPLOAD_COMMAND = "upload";
+    
     public static final String SYNC_COMMAND = "sync";
 
     private Object command;
+    
+    @Parameter(names = {"--config", "-c"}, required = true)
+    private String configurationPath;
 
     @Data
     @Parameters(commandDescription = "Upload single file", commandNames = UPLOAD_COMMAND)
