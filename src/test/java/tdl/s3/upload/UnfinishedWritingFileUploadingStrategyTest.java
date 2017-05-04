@@ -36,6 +36,8 @@ public class UnfinishedWritingFileUploadingStrategyTest {
     @Mock
     private UploadPartResult uploadPartResult;
     @Mock
+    private PartETag partETag;
+    @Mock
     private MultipartUpload multipartUpload;
 
     @Before
@@ -47,6 +49,7 @@ public class UnfinishedWritingFileUploadingStrategyTest {
         when(amazonS3.listParts(any())).thenReturn(partListing);
         when(amazonS3.initiateMultipartUpload(any())).thenReturn(initiatingResult);
         when(amazonS3.uploadPart(any())).thenReturn(uploadPartResult);
+        when(uploadPartResult.getPartETag()).thenReturn(partETag);
 
         when(partListing.getParts()).thenReturn(Collections.emptyList());
 

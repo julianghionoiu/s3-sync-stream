@@ -5,8 +5,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
-import org.hamcrest.Matcher;
-import org.hamcrest.beans.HasPropertyWithValue;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,7 +19,6 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Collections;
-import java.util.HashMap;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
@@ -60,17 +57,19 @@ public class FileUploadingServiceTest {
     @Mock
     private BasicFileAttributes fileAttributes;
     @Mock
-    private SmallFileUploadingStrategy smallFileUploadingStrategy;
-    @Mock
     private MultiPartUploadFileUploadingStrategy multiPartUploadFileUploadingStrategy;
 
     @Before
     public void setUp() throws Exception {
+<<<<<<< HEAD
         fileUploadingService = new FileUploadingService(new HashMap<Integer,UploadingStrategy>() {{
             put(1, smallFileUploadingStrategy);
             put(Integer.MAX_VALUE, multiPartUploadFileUploadingStrategy);
 
         }}, s3, "testBucket", "testPrefix");
+=======
+        fileUploadingService = new FileUploadingService(s3, "testBucket");
+>>>>>>> master
 
         when(smallFile.length()).thenReturn(1255L);
         when(largeFile.length()).thenReturn(6L * 1024 * 1024);
@@ -107,7 +106,11 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(smallFile);
 
+<<<<<<< HEAD
         verify(smallFileUploadingStrategy).upload(any(), any(), any(), any(), any());
+=======
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any());
+>>>>>>> master
     }
 
     @Test
