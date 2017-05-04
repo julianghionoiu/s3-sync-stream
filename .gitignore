@@ -3,3 +3,5 @@
 .gradle
 .private
 build
+empty_dir
+/.nb-gradle/

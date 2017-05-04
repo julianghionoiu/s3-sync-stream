@@ -39,6 +39,7 @@ dependencyManagement {
 }
 
 dependencies {
+    
     compile 'com.amazonaws:aws-java-sdk-s3'
     compile 'com.beust:jcommander:1.64'
 
@@ -69,6 +70,13 @@ jar {
     }
 }
 
+// ~~~~~ Checkstyle
+
+apply plugin: 'checkstyle'
+
+dependencies {
+    checkstyle 'com.puppycrawl.tools:checkstyle:7.7'
+}
 
 // ~~~~~ Gather coverage
 
