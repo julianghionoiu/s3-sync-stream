@@ -1,8 +1,6 @@
 package tdl.s3.upload;
 
-import com.amazonaws.services.kms.model.NotFoundException;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -26,35 +24,25 @@ public class FileUploaderImpl implements FileUploader {
 
     @Override
     public void upload(File file) {
-        upload(file, file.getName());
+        RemoteFile remoteFile = new RemoteFile(bucket, prefix, file.getName(), s3Provider);
+        upload(file, remoteFile);
     }
 
     @Override
-    public void upload(File file, String newName) {
-        upload(file, newName, RETRY_TIMES_COUNT);
+    public void upload(File file, RemoteFile remoteFile) {
+        upload(file, remoteFile, RETRY_TIMES_COUNT);
     }
 
     @Override
-    public boolean exists(String bucketName, String fileKey) {
-        try {
-            s3Provider.getObjectMetadata(bucketName, prefix + fileKey);
-            return true;
-        }catch (NotFoundException nfe) {
-            return false;
-        } catch (AmazonS3Exception nfe) {
-            if (nfe.getStatusCode() == 404) {
-                return false;
-            } else {
-                throw nfe;
-            }
-        }
+    public boolean exists(RemoteFile remoteFile) {
+        return remoteFile.exists();
     }
 
-    private void upload(File file, String newName, int retry) {
+    private void upload(File file, RemoteFile remoteFile, int retry) {
         log.info("Uploading file " + file);
         try {
-            if (!exists(bucket, newName)) {
-                uploadInternal(s3Provider, bucket, prefix, file, newName);
+            if (!exists(remoteFile)) {
+                uploadInternal(file, remoteFile);
             }
         } catch (Exception e) {
             if (retry == 0) {
@@ -62,12 +50,13 @@ public class FileUploaderImpl implements FileUploader {
                 throw new UploadingException("Can't upload file " + file + " due to error " + e.getMessage(), e);
             } else {
                 log.warn("Error during uploading : " + e.getMessage() + " Trying next time...");
-                upload(file, newName, retry - 1);
+                upload(file, remoteFile, retry - 1);
             }
         }
     }
-
-    private void uploadInternal(AmazonS3 s3, String bucket, String prefix, File file, String newName) throws Exception {
-        uploadingStrategy.upload(s3, bucket, prefix, file, newName);
+    
+    private void uploadInternal(File file, RemoteFile remoteFile) throws Exception {
+        uploadingStrategy.upload(s3Provider, file, remoteFile);
     }
+
 }

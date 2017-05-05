@@ -10,9 +10,9 @@ import java.io.File;
 public class SmallFileUploadingStrategy implements UploadingStrategy {
 
     @Override
-    public void upload(AmazonS3 s3, String bucket, String prefix, File file, String newName) {
+    public void upload(AmazonS3 s3, File file, RemoteFile remoteFile) throws Exception {
         log.debug("Uploading file " + file + " with SmallFileUploadingStrategy.");
-        s3.putObject(bucket, prefix + newName, file);
+        s3.putObject(remoteFile.getBucket(), remoteFile.getFullPath(), file);
     }
 
 }

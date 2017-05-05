@@ -10,7 +10,7 @@ public interface FileUploader {
 
     void upload(File file);
 
-    void upload(File file, String newName);
+    void upload(File file, RemoteFile remoteFile);
 
-    boolean exists(String bucketName, String fileKey);
+    boolean exists(RemoteFile remoteFile);
 }
