@@ -10,11 +10,11 @@ import com.amazonaws.services.s3.model.AmazonS3Exception;
 public class RemoteFile {
 
     private final String bucket;
-    
+
     private final String prefix;
-    
+
     private final String path;
-    
+
     private AmazonS3 client;
 
     public RemoteFile(String bucket, String path) {
@@ -40,21 +40,29 @@ public class RemoteFile {
     public void setClient(AmazonS3 client) {
         this.client = client;
     }
-    
+
     private AmazonS3 createDefaultClient() {
         //TODO: Create based on instance profile or environment.
         return null;
     }
     
+    public String getPrefix() {
+        return prefix;
+    }
+
+    public String getBucket() {
+        return bucket;
+    }
+
     public String getFullPath() {
         return prefix + path;
     }
-    
-    public boolean isExists() {
+
+    public boolean exists() {
         try {
             client.getObjectMetadata(bucket, getFullPath());
             return true;
-        }catch (NotFoundException ex) {
+        } catch (NotFoundException ex) {
             return false;
         } catch (AmazonS3Exception ex) {
             if (ex.getStatusCode() == 404) {

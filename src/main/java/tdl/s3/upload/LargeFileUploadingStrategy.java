@@ -18,13 +18,13 @@ import java.util.Date;
 public class LargeFileUploadingStrategy implements UploadingStrategy {
 
     @Override
-    public void upload(AmazonS3 s3, String bucket, String prefix, File file, String newName) throws Exception {
+    public void upload(AmazonS3 s3, File file, RemoteFile remoteFile) throws Exception {
         log.debug("Uploading file " + file + " with LargeFileUploadingStrategy.");
         TransferManager transferManager = TransferManagerBuilder
                 .standard()
                 .withS3Client(s3)
                 .build();
-        Upload upload = transferManager.upload(bucket, prefix + newName, file);
+        Upload upload = transferManager.upload(remoteFile.getBucket(), remoteFile.getFullPath(), file);
         upload.waitForCompletion();
         new Date(2015, 1, 12);
         transferManager.shutdownNow(false);

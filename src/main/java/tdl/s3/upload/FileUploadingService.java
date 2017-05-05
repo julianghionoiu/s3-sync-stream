@@ -30,34 +30,41 @@ public class FileUploadingService {
         this.amazonS3 = amazonS3;
         this.bucket = bucket;
         this.prefix = prefix;
-
     }
 
     public FileUploadingService(AmazonS3 amazonS3, String bucket, String prefix) {
         this.amazonS3 = amazonS3;
         this.bucket = bucket;
 	this.prefix = prefix;
-
-
-        this.uploaderByFileSize = new LinkedHashMap<Integer, UploadingStrategy>(){{
+        this.uploaderByFileSize = createDefaultUploaderBySize();
+    }
+    
+    private Map<Integer, ? extends UploadingStrategy> createDefaultUploaderBySize() {
+        return new LinkedHashMap<Integer, UploadingStrategy>(){{
             put(MULTIPART_UPLOAD_SIZE_LIMIT, new SmallFileUploadingStrategy());
             put(Integer.MAX_VALUE, new MultiPartUploadFileUploadingStrategy(null));
         }};
     }
 
     public void upload(File file) {
-        upload(file, file.getName());
+        RemoteFile remoteFile = new RemoteFile(bucket, prefix, file.getName(), amazonS3);
+        upload(file, remoteFile);
+    }
+    
+    public void upload(File file, String remoteName) {
+        RemoteFile remoteFile = new RemoteFile(bucket, prefix, remoteName, amazonS3);
+        upload(file, remoteFile);
     }
 
-    public void upload(File file, String name) {
-        FileUploader fileUploader = bringFileUploader(file, name, bucket);
-        fileUploader.upload(file, name);
+    public void upload(File file, RemoteFile remoteFile) {
+        FileUploader fileUploader = bringFileUploader(file, remoteFile);
+        fileUploader.upload(file, remoteFile);
     }
 
-    private FileUploader bringFileUploader(File file, String name, String bucket) {
-        List<MultipartUpload> alreadyStartedUploads = getMultipartUploads(amazonS3, bucket, prefix);
+    private FileUploader bringFileUploader(File file, RemoteFile remoteFile) {
+        List<MultipartUpload> alreadyStartedUploads = getMultipartUploads(amazonS3, remoteFile.getBucket(), remoteFile.getPrefix());
         MultipartUpload multipartUpload = alreadyStartedUploads.stream()
-                .filter(upload -> upload.getKey().equals(prefix + name))
+                .filter(upload -> upload.getKey().equals(remoteFile.getFullPath()))
                 .findAny()
                 .orElse(null);
 
@@ -84,7 +91,7 @@ public class FileUploadingService {
         return new FileUploaderImpl(amazonS3, bucket, prefix, strategy);
     }
 
-    private List<MultipartUpload> getMultipartUploads(AmazonS3 s3, String bucket, String prefix) {
+    private static List<MultipartUpload> getMultipartUploads(AmazonS3 s3, String bucket, String prefix) {
         ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(bucket);
         uploadsRequest.setPrefix(prefix);
         MultipartUploadListing multipartUploadListing = s3.listMultipartUploads(uploadsRequest);
@@ -96,7 +103,7 @@ public class FileUploadingService {
                 .collect(Collectors.toList());
     }
 
-    private Stream<MultipartUploadListing> getNextListing(AmazonS3 s3, MultipartUploadListing listing,
+    private static Stream<MultipartUploadListing> getNextListing(AmazonS3 s3, MultipartUploadListing listing,
                                                           String bucket, String prefix) {
         if (listing.isTruncated()) {
             ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(bucket);

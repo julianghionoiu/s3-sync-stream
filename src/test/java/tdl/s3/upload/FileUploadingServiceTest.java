@@ -107,7 +107,7 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(smallFile);
 
-        verify(smallFileUploadingStrategy).upload(any(), any(), any(), any(), any());
+        verify(smallFileUploadingStrategy).upload(any(), any(), any());
     }
 
     @Test
@@ -117,7 +117,7 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(largeFile);
 
-        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any(), any());
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any());
     }
 
     @Test
@@ -126,7 +126,7 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(incompleteFile);
 
-        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any(), any());
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any());
     }
 
 
@@ -137,7 +137,7 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(incompleteFile);
 
-        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any(), any());
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any());
     }
 
     @Test
@@ -153,6 +153,6 @@ public class FileUploadingServiceTest {
 
         fileUploadingService.upload(incompleteFile);
 
-        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any(), any(), any());
+        verify(multiPartUploadFileUploadingStrategy).upload(any(), any(), any());
     }
 }
