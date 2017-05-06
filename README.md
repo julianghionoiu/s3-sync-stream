@@ -58,27 +58,25 @@ remoteSync = new RemoteSync(source, destination);
 remoteSync.run();
 ```
 
-#### Defining the source
+#### Example source definitions
 
 The source will be a set of filters that can be applied to a folder to obtain a list of files to be synced
 
-Examples:
-
-*Default values* will exclude .lock files and hidden files (. files)
+**Default values** will exclude .lock files and hidden files (. files)
 ```java
 source = localFolder(Path pathToFolder)
   .includeAll()
   .create();
 ```
 
-*Single file* can be selected using a matcher
+**Single file** can be selected using a matcher
 ```java
 source = localFolder(Path pathToFolder)
   .include(matches("file.txt"))
   .create();
 ```
 
-*Multiple files* can be included if they match one of the matchers
+**Multiple files** can be included if they match one of the matchers
 The list of included files can be further filtered via exclude matchers
 ```java
 source = localFolder(Path pathToFolder)
@@ -88,7 +86,7 @@ source = localFolder(Path pathToFolder)
   .create();
 ```
 
-By default the library will not traverse directories, if you need this behaviour than you can set the `traverseDirectories` flag to true
+By default the library will not **traverse directories**, if you need this behaviour than you can set the `traverseDirectories` flag to true
 ```java
 source = localFolder(Path pathToFolder)
   .traverseDirectories(true)
@@ -96,7 +94,7 @@ source = localFolder(Path pathToFolder)
   .create();
 ```
 
-If no include matcher is specified then an `IllegalArgumentException` will be raised upon creation:
+If no include matcher is specified then an **IllegalArgumentException ** will be raised upon creation:
 ```java
 source = localFolder(Path pathToFolder)
   .create();
