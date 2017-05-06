@@ -60,14 +60,11 @@ public class FileUploadingServiceTest {
     @Mock
     private BasicFileAttributes fileAttributes;
     @Mock
-    private SmallFileUploadingStrategy smallFileUploadingStrategy;
-    @Mock
     private MultiPartUploadFileUploadingStrategy multiPartUploadFileUploadingStrategy;
 
     @Before
     public void setUp() throws Exception {
         fileUploadingService = new FileUploadingService(new HashMap<Integer,UploadingStrategy>() {{
-            put(1, smallFileUploadingStrategy);
             put(Integer.MAX_VALUE, multiPartUploadFileUploadingStrategy);
 
         }}, s3, "testBucket", "testPrefix");
@@ -98,16 +95,6 @@ public class FileUploadingServiceTest {
         when(s3.getObjectMetadata(anyString(), anyString())).thenThrow(NotFoundException.class);
 
         whenNew(MultiPartUploadFileUploadingStrategy.class).withAnyArguments().thenReturn(multiPartUploadFileUploadingStrategy);
-    }
-
-    @Test
-    public void upload_smallFile() throws Exception {
-        doThrow(IOException.class).when(fsProvider).checkAccess(any());
-        when(fileAttributes.size()).thenReturn(1024L);
-
-        fileUploadingService.upload(smallFile);
-
-        verify(smallFileUploadingStrategy).upload(any(), any(), any());
     }
 
     @Test

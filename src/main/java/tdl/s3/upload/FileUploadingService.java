@@ -7,6 +7,7 @@ import com.amazonaws.services.s3.model.MultipartUploadListing;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,7 +42,6 @@ public class FileUploadingService {
     
     private Map<Integer, ? extends UploadingStrategy> createDefaultUploaderBySize() {
         return new LinkedHashMap<Integer, UploadingStrategy>(){{
-            put(MULTIPART_UPLOAD_SIZE_LIMIT, new SmallFileUploadingStrategy());
             put(Integer.MAX_VALUE, new MultiPartUploadFileUploadingStrategy(null));
         }};
     }
@@ -68,27 +68,23 @@ public class FileUploadingService {
                 .findAny()
                 .orElse(null);
 
+        UploadingStrategy strategy;
+        
         if (multipartUpload != null) {
-            MultiPartUploadFileUploadingStrategy uploadingStrategy = new MultiPartUploadFileUploadingStrategy(multipartUpload);
-            return new FileUploaderImpl(amazonS3, bucket, prefix, uploadingStrategy);
-        } else if (Files.exists(file.toPath().toAbsolutePath().normalize().getParent().resolve(file.getName() + ".lock"))) {
-            MultiPartUploadFileUploadingStrategy uploadingStrategy = new MultiPartUploadFileUploadingStrategy(null);
-            return new FileUploaderImpl(amazonS3, bucket, prefix, uploadingStrategy);
+            strategy = new MultiPartUploadFileUploadingStrategy(multipartUpload);
+        } else if (lockFileExists(file)) { //Might want to remove this.
+            strategy = new MultiPartUploadFileUploadingStrategy(null);
         } else {
-            return getUploaderByFileSize(file);
+            strategy = new MultiPartUploadFileUploadingStrategy(null);
         }
-    }
-
-    private FileUploader getUploaderByFileSize(File file) {
-        int fileSizeInMb = (int) (file.length() / BYTES_IN_MEGABYTE);
-        UploadingStrategy strategy = uploaderByFileSize.keySet().stream()
-                .sorted()
-                .filter(limit -> limit > fileSizeInMb)
-                .findFirst()
-                .map(uploaderByFileSize::get)
-                .orElseThrow(() -> new IllegalStateException("No file uploader provided " +
-                        "for files with size " + fileSizeInMb + " MB."));
         return new FileUploaderImpl(amazonS3, bucket, prefix, strategy);
+    }
+    
+    //TODO: Might want to refactor this to FileHelper class.
+    private static boolean lockFileExists(File file)
+    {
+        Path directory = file.toPath().toAbsolutePath().normalize().getParent();
+        return Files.exists(directory.resolve(file.getName() + ".lock"));
     }
 
     private static List<MultipartUpload> getMultipartUploads(AmazonS3 s3, String bucket, String prefix) {
