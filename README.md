@@ -76,7 +76,7 @@ source = localFolder(Path pathToFolder)
   .create();
 ```
 
-**Multiple files** can be included if they match one of the matchers
+**Multiple files** can be included if they match one of the matchers.
 The list of included files can be further filtered via exclude matchers
 ```java
 source = localFolder(Path pathToFolder)
@@ -94,7 +94,7 @@ source = localFolder(Path pathToFolder)
   .create();
 ```
 
-If no include matcher is specified then an **IllegalArgumentException ** will be raised upon creation:
+If no include matcher is specified then an **IllegalArgumentException** will be raised upon creation:
 ```java
 source = localFolder(Path pathToFolder)
   .create();
