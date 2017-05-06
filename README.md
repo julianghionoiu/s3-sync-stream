@@ -42,9 +42,10 @@ java -jar ./build/libs/s3-sync-1.0-SNAPSHOT-all.jar upload -f $PATH_TO_REC/recor
 Configure the local folder as a `source` and define AWS S3 as the `destination`
 ```java
 source = localFolder(Path pathToFolder)
+  .traverseDirectories(true)
   .include(endsWith(".mp4")
   .exclude(startsWith(".")
-  .exclude(isDirectory)
+  .exclude(matches("tmp.log"))
   .create();
 
 destination = awsS3(bucket, prefix)
