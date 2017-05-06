@@ -62,7 +62,7 @@ remoteSync.run();
 
 The source will be a set of filters that can be applied to a folder to obtain a list of files to be synced
 
-**Default values** will exclude .lock files and hidden files (. files)
+**Default values** will not include .lock files and hidden files (. files)
 ```java
 source = localFolder(Path pathToFolder)
   .includeAll()
