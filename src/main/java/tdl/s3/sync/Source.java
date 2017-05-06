@@ -1,11 +1,11 @@
 package tdl.s3.sync;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
 import tdl.s3.helpers.FileFilter;
 
-public class SyncSource {
+public class Source {
 
     private Path path;
     
@@ -17,7 +17,11 @@ public class SyncSource {
 
     public static class Builder {
         
-        private SyncSource source = new SyncSource();
+        private Source source = new Source();
+
+        public Builder(Path path) {
+            source.path = path;
+        }
         
         public Builder traverseDirectories(boolean traverse) {
             return this;
@@ -33,12 +37,27 @@ public class SyncSource {
             return this;
         }
         
-        public SyncSource create() {
-            return null;
+        public Source create() {
+            return source;
         }
     }
     
     public static Builder getBuilder(Path path) {
-        return null;
+        return new Builder(path);
+    }
+
+    public Path getPath() {
+        return path;
+    }
+    
+    //Assume sync if path is directory
+    public boolean isSync() {
+        return false; //TODO
+    }
+    
+    //Assume sync if path is file
+    public boolean isUpload() {
+        File file = path.toFile();
+        return file.isFile();
     }
 }
