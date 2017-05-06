@@ -1,9 +1,10 @@
 package tdl.s3.helpers;
 
-import java.io.File;
+import org.junit.Test;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 public class FileHelperTest {

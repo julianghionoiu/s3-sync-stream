@@ -6,45 +6,20 @@ import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import tdl.s3.helpers.FileHelper;
 
 public class FileUploadingService {
-
-    private static final Integer MULTIPART_UPLOAD_SIZE_LIMIT = 5;
-    private static final long BYTES_IN_MEGABYTE = 1024 * 1024;
-
-    private final Map<Integer, ? extends UploadingStrategy> uploaderByFileSize;
     private final AmazonS3 amazonS3;
     private final String bucket;
     private String prefix;
 
-    FileUploadingService(Map<Integer, ? extends UploadingStrategy> uploaderByFileSize,
-                         AmazonS3 amazonS3, String bucket, String prefix) {
-        this.uploaderByFileSize = uploaderByFileSize;
-        this.amazonS3 = amazonS3;
-        this.bucket = bucket;
-        this.prefix = prefix;
-    }
-
     public FileUploadingService(AmazonS3 amazonS3, String bucket, String prefix) {
         this.amazonS3 = amazonS3;
         this.bucket = bucket;
-	this.prefix = prefix;
-        this.uploaderByFileSize = createDefaultUploaderBySize();
-    }
-    
-    private Map<Integer, ? extends UploadingStrategy> createDefaultUploaderBySize() {
-        return new LinkedHashMap<Integer, UploadingStrategy>(){{
-            put(Integer.MAX_VALUE, new MultiPartUploadFileUploadingStrategy(null));
-        }};
+	    this.prefix = prefix;
     }
 
     public void upload(File file) {
@@ -57,27 +32,18 @@ public class FileUploadingService {
         upload(file, remoteFile);
     }
 
-    public void upload(File file, RemoteFile remoteFile) {
-        FileUploader fileUploader = bringFileUploader(file, remoteFile);
+    private void upload(File file, RemoteFile remoteFile) {
+        FileUploader fileUploader = bringFileUploader(remoteFile);
         fileUploader.upload(file, remoteFile);
     }
 
-    private FileUploader bringFileUploader(File file, RemoteFile remoteFile) {
+    private FileUploader bringFileUploader(RemoteFile remoteFile) {
         List<MultipartUpload> alreadyStartedUploads = getMultipartUploads(amazonS3, remoteFile.getBucket(), remoteFile.getPrefix());
         MultipartUpload multipartUpload = alreadyStartedUploads.stream()
                 .filter(upload -> upload.getKey().equals(remoteFile.getFullPath()))
                 .findAny()
                 .orElse(null);
-
-        UploadingStrategy strategy;
-        
-        if (multipartUpload != null) {
-            strategy = new MultiPartUploadFileUploadingStrategy(multipartUpload);
-        } else if (FileHelper.lockFileExists(file)) { //Might want to remove this.
-            strategy = new MultiPartUploadFileUploadingStrategy(null);
-        } else {//default
-            strategy = new MultiPartUploadFileUploadingStrategy(null);
-        }
+        UploadingStrategy strategy = new MultiPartUploadFileUploadingStrategy(multipartUpload);
         return new FileUploaderImpl(amazonS3, bucket, prefix, strategy);
     }
 
