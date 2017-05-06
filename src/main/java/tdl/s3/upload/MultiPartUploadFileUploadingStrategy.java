@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import tdl.s3.helpers.FileHelper;
 
 public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
@@ -73,7 +74,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private void initStrategy(AmazonS3 s3, File file, RemoteFile remoteFile, MultipartUpload upload) {
-        writingFinished = !Files.exists(getLockFilePath(file));
+        writingFinished = !FileHelper.lockFileExists(file);
         PartListing alreadyUploadedParts = getAlreadyUploadedParts(s3, remoteFile, upload);
         
         boolean uploadingStarted = alreadyUploadedParts != null;
@@ -106,14 +107,6 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
                 .orElseGet(Stream::empty)
                 .map(partSummary -> new PartETag(partSummary.getPartNumber(), partSummary.getETag()))
                 .collect(Collectors.toList());
-    }
-
-    private Path getLockFilePath(File file) {
-        return file.toPath()
-                .toAbsolutePath()
-                .normalize()
-                .getParent()
-                .resolve(file.getName() + ".lock");
     }
 
     private void uploadRequiredParts(AmazonS3 s3, File file, RemoteFile remoteFile) throws IOException {

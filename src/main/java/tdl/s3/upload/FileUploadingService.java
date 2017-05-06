@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import tdl.s3.helpers.FileHelper;
 
 public class FileUploadingService {
 
@@ -72,19 +73,12 @@ public class FileUploadingService {
         
         if (multipartUpload != null) {
             strategy = new MultiPartUploadFileUploadingStrategy(multipartUpload);
-        } else if (lockFileExists(file)) { //Might want to remove this.
+        } else if (FileHelper.lockFileExists(file)) { //Might want to remove this.
             strategy = new MultiPartUploadFileUploadingStrategy(null);
-        } else {
+        } else {//default
             strategy = new MultiPartUploadFileUploadingStrategy(null);
         }
         return new FileUploaderImpl(amazonS3, bucket, prefix, strategy);
-    }
-    
-    //TODO: Might want to refactor this to FileHelper class.
-    private static boolean lockFileExists(File file)
-    {
-        Path directory = file.toPath().toAbsolutePath().normalize().getParent();
-        return Files.exists(directory.resolve(file.getName() + ".lock"));
     }
 
     private static List<MultipartUpload> getMultipartUploads(AmazonS3 s3, String bucket, String prefix) {
