@@ -41,15 +41,15 @@ java -jar ./build/libs/s3-sync-1.0-SNAPSHOT-all.jar upload -f $PATH_TO_REC/recor
 
 Configure the local folder as a `source` and define AWS S3 as the `destination`
 ```java
-source = localFolder(Path pathToFolder)
+Source source = Source.getBuilder(/* Path */ pathToFolder)
   .traverseDirectories(true)
   .include(endsWith(".mp4")
   .exclude(startsWith(".")
   .exclude(matches("tmp.log"))
   .create();
 
-destination = awsS3(bucket, prefix)
-  .withCredentials(fromPrivateFile(X))
+Destination destination = Destination.getBuilder()
+  .loadFromPath(/* Path */ pathToFile)
   .create();
 ```
 
@@ -65,31 +65,41 @@ The source will be a set of filters that can be applied to a folder to obtain a 
 
 **Default values** will not include .lock files and hidden files (. files)
 ```java
-source = localFolder(Path pathToFolder)
+Source source = Source.getBuilder(/* Path */ pathToFolder)
   .includeAll()
   .create();
 ```
 
 **Single file** can be selected using a matcher
 ```java
-source = localFolder(Path pathToFolder)
-  .include(matches("file.txt"))
+Filter filter = Filter.getBuilder().matches("file.txt");
+
+Source source = Source.getBuilder(/* Path */ pathToFolder)
+  .include(filter)
   .create();
 ```
 
 **Multiple files** can be included if they match one of the matchers.
 The list of included files can be further filtered via exclude matchers
 ```java
-source = localFolder(Path pathToFolder)
-  .include(endsWith(".mp4"))
-  .include(endsWith(".log"))
-  .exclude(matches("tmp.log"))
+Filter includeFilter = Filter.getBuilder()
+                        .endsWith(".mp4")
+                        .endsWith(".log")
+                        .create();
+
+Filter excludeFilter = Filter.getBuilder()
+                        .matches("tmp.log")
+                        .create();
+
+Source source = Source.getBuilder(/* Path */ pathToFolder)
+  .include(includeFilter)
+  .exclude(excludeFilter)
   .create();
 ```
 
 By default the library will not **traverse directories**, if you need this behaviour than you can set the `traverseDirectories` flag to true
 ```java
-source = localFolder(Path pathToFolder)
+Source source = Source.getBuilder(/* Path */ pathToFolder)
   .traverseDirectories(true)
   .includeAll()
   .create();
@@ -97,7 +107,7 @@ source = localFolder(Path pathToFolder)
 
 If no include matcher is specified then an **IllegalArgumentException** will be raised upon creation:
 ```java
-source = localFolder(Path pathToFolder)
+Source source = Source.getBuilder(/* Path */ pathToFolder)
   .create();
 ```
 

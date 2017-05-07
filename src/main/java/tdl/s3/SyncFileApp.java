@@ -20,18 +20,20 @@ import java.util.stream.Collectors;
 
 import static tdl.s3.cli.CLIParams.SYNC_COMMAND;
 import static tdl.s3.cli.CLIParams.UPLOAD_COMMAND;
+import tdl.s3.sync.Destination;
+import tdl.s3.sync.Source;
 
 public class SyncFileApp {
+    
+    private final String command;
+    
+    private final CLIParams params;
+    
+    private final Destination destination = Destination.createDefaultDestination();
 
-    private static final List<String> FILTERED_EXTENSIONS = Collections.singletonList(".lock");
-
-    private FileUploadingService fileUploadingService;
-
-    private FolderSynchronizer folderSynchronizer;
-
-    private SyncFileApp(FileUploadingService fileUploadingService, FolderSynchronizer folderSynchronizer) {
-        this.fileUploadingService = fileUploadingService;
-        this.folderSynchronizer = folderSynchronizer;
+    private SyncFileApp(String command, CLIParams params) {
+        this.command = command;
+        this.params = params;
     }
 
     public static void main(String[] args) {
@@ -50,57 +52,42 @@ public class SyncFileApp {
         String command = jCommander.getParsedCommand();
         cliParams.setCommand(commands.get(command));
 
-        SyncFileApp main = prepare();
+        SyncFileApp main = new SyncFileApp(command, cliParams);
 
-        main.run(command, cliParams);
+        main.run();
     }
 
-    private static SyncFileApp prepare() {
-        Path privatePropertiesFile = Paths.get(".private", "aws-test-secrets");
-        AWSSecretsProvider secretsProvider = new AWSSecretsProvider(privatePropertiesFile);
-
-
-        AmazonS3 amazonS3 = AmazonS3ClientBuilder.standard()
-                .withCredentials(secretsProvider)
-                .withRegion(secretsProvider.getS3Region())
-                .build();
-
-        FileUploadingService fileUploadingService = new FileUploadingService(amazonS3,
-                secretsProvider.getS3Bucket(), secretsProvider.getS3Prefix());
-
-        List<Predicate<Path>> filters = FILTERED_EXTENSIONS.stream()
-                .map(ext -> (Predicate<Path>)(path -> ! path.toString().endsWith(ext)))
-                .collect(Collectors.toList());
-
-        FolderScannerImpl folderScanner = new FolderScannerImpl(filters);
-        FolderSynchronizer folderSynchronizer = new FolderSynchronizer(folderScanner, fileUploadingService);
-
-        return new SyncFileApp(fileUploadingService, folderSynchronizer);
-    }
-
-    private void run(String command, CLIParams cliParams) {
-        prepare();
+    private void run() {
+        RemoteSync remoteSync = null;
         switch (command) {
-            case UPLOAD_COMMAND: {
-                CLIParams.UploadCommand uploadCommand = (CLIParams.UploadCommand) cliParams.getCommand();
-                upload(uploadCommand.getFilePath());
+            case UPLOAD_COMMAND:
+                remoteSync = upload();
                 break;
-            }
-            case SYNC_COMMAND: {
-                CLIParams.SyncCommand syncCommand = (CLIParams.SyncCommand) cliParams.getCommand();
-                sync(syncCommand.getDirPath(), syncCommand.isRecursive());
+            case SYNC_COMMAND:
+                remoteSync = sync();
                 break;
-            }
+            default:
+                throw new UnsupportedOperationException("Unknown command : " + command);
         }
+        remoteSync.run();
     }
 
-    private void upload(String filePath) {
-        File file = new File(filePath);
-        fileUploadingService.upload(file);
+    private RemoteSync upload() {
+        CLIParams.UploadCommand uploadCommand = (CLIParams.UploadCommand) params.getCommand();
+        Path path = Paths.get(uploadCommand.getFilePath());
+        Source source = Source.getBuilder(path).create();
+        RemoteSync sync = new RemoteSync(source, destination);
+        return sync;
     }
 
-    private void sync(String dirPath, boolean recursive) {
-        folderSynchronizer.synchronize(Paths.get(dirPath), recursive);
+    private RemoteSync sync() {
+        CLIParams.SyncCommand syncCommand = (CLIParams.SyncCommand) params.getCommand();
+        Path path = Paths.get(syncCommand.getDirPath());
+        Source source = Source.getBuilder(path)
+                .setRecursive(syncCommand.isRecursive())
+                .create();
+        RemoteSync sync = new RemoteSync(source, destination);
+        return sync;
     }
 
 }

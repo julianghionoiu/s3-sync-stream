@@ -9,6 +9,7 @@ import tdl.s3.rules.TemporarySyncFolder;
 
 import java.io.ByteArrayInputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -18,16 +19,26 @@ import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
+import org.junit.Before;
 import static tdl.s3.rules.TemporarySyncFolder.ONE_MEGABYTE;
 import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
+import tdl.s3.sync.Destination;
+import tdl.s3.sync.Source;
 
 public class C_OnDemand_IncompleteFileUpload_AccTest {
+    
+    private Destination destination;
 
     @Rule
     public RemoteTestBucket remoteTestBucket = new RemoteTestBucket();
 
     @Rule
     public TemporarySyncFolder targetSyncFolder = new TemporarySyncFolder();
+    
+    @Before
+    public void setUp() {
+        destination = Destination.createDefaultDestination();
+    }
 
     @Test
     public void should_upload_incomplete_file() throws Exception {
@@ -36,8 +47,11 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         targetSyncFolder.lock(fileName);
 
         //synchronize folder
-        String[] syncArgs = ("sync -d " + targetSyncFolder.getFolderPath()+ " -R").split(" ");
-        SyncFileApp.main(syncArgs);
+        Path directoryPath = targetSyncFolder.getFolderPath();
+        Source directorySource = Source.getBuilder(directoryPath).setRecursive(true).create();
+        
+        RemoteSync directorySync = new RemoteSync(directorySource, destination);
+        directorySync.run();
 
         //Check that the file still not exists on the server
         assertThat(remoteTestBucket.doesObjectExists(fileName), is(false));
@@ -64,15 +78,19 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         targetSyncFolder.lock(fileName);
 
         //synchronize folder
-        String[] syncArgs = ("sync -d " + targetSyncFolder.getFolderPath() + " -R").split(" ");
-        SyncFileApp.main(syncArgs);
+        Path directoryPath = targetSyncFolder.getFolderPath();
+        Source directorySource = Source.getBuilder(directoryPath).setRecursive(true).create();
+        
+        RemoteSync directoryFirstSync = new RemoteSync(directorySource, destination);
+        directoryFirstSync.run();
 
         //write additional data and delete lock file
         targetSyncFolder.writeBytesToFile(fileName, PART_SIZE_IN_BYTES + ONE_MEGABYTE);
         targetSyncFolder.unlock(fileName);
 
         //synchronize folder
-        SyncFileApp.main(syncArgs);
+        RemoteSync directorySecondSync = new RemoteSync(directorySource, destination);
+        directorySecondSync.run();
 
         //Check that the file exists on the server
         assertThat(remoteTestBucket.doesObjectExists(fileName), is(true));
@@ -110,8 +128,11 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         targetSyncFolder.unlock(fileName);
 
         //synchronize folder
-        String[] syncArgs = ("sync -d " + targetSyncFolder.getFolderPath()+ " -R").split(" ");
-        SyncFileApp.main(syncArgs);
+        Path directoryPath = targetSyncFolder.getFolderPath();
+        Source directorySource = Source.getBuilder(directoryPath).setRecursive(true).create();
+        
+        RemoteSync directorySync = new RemoteSync(directorySource, destination);
+        directorySync.run();
 
         //Check that the file exists on the server
         assertThat(remoteTestBucket.doesObjectExists(fileName), is(true));

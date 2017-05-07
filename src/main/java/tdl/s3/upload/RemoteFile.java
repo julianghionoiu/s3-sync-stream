@@ -17,19 +17,6 @@ public class RemoteFile {
 
     private AmazonS3 client;
 
-    public RemoteFile(String bucket, String path) {
-        this.bucket = bucket;
-        this.path = path;
-        this.prefix = "";
-    }
-
-    public RemoteFile(String bucket, String prefix, String path) {
-        this.bucket = bucket;
-        this.prefix = prefix;
-        this.path = path;
-        this.client = createDefaultClient();
-    }
-
     public RemoteFile(String bucket, String prefix, String path, AmazonS3 client) {
         this.bucket = bucket;
         this.prefix = prefix;
@@ -41,11 +28,6 @@ public class RemoteFile {
         this.client = client;
     }
 
-    private AmazonS3 createDefaultClient() {
-        //TODO: Create based on instance profile or environment.
-        return null;
-    }
-    
     public String getPrefix() {
         return prefix;
     }
