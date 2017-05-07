@@ -3,16 +3,11 @@ package tdl.s3.sync;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import tdl.s3.helpers.FileFilter;
 
 public class Source {
 
     private Path path;
-    
-    private FileFilter include;
-    
-    private FileFilter exclude;
-    
+
     private boolean isRecursive;
 
     public static class Builder {
@@ -26,17 +21,7 @@ public class Source {
         public Builder traverseDirectories(boolean traverse) {
             return this;
         }
-        
-        public Builder setInclude(FileFilter filter) {
-            source.include = filter;
-            return this;
-        }
-        
-        public Builder setExclude(FileFilter filter) {
-            source.exclude = filter;
-            return this;
-        }
-        
+
         public Builder setRecursive(boolean isRecursive) {
             source.isRecursive = isRecursive;
             return this;

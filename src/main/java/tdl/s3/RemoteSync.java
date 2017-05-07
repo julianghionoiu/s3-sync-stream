@@ -39,9 +39,11 @@ public class RemoteSync {
         if (source.isUpload()) {
             File file = source.getPath().toFile();
             fileUploadingService.upload(file);
-        } else {
+        } else if (source.isSync()) { // just in case sync is not just checking if it's directory
             buildFolderSynchronizer();
             folderSynchronizer.synchronize(source.getPath(), source.isRecursive());
+        } else {
+            throw new UnsupportedOperationException("No action to this path");
         }
     }
     
