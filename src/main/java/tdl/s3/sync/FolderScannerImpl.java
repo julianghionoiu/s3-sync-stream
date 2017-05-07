@@ -25,7 +25,9 @@ public class FolderScannerImpl implements FolderScanner {
 
     @Override
     public void traverseFolder(Path folderPath, BiConsumer<File, String> fileConsumer, boolean recursive) {
-        if (! Files.isDirectory(folderPath)) throw new IllegalArgumentException("Path should represent directory.");
+        if (!Files.isDirectory(folderPath)) {
+            throw new IllegalArgumentException("Path should represent directory.");
+        }
         int scanDepth = recursive ? Integer.MAX_VALUE : 1;
         try {
             Files.walkFileTree(folderPath,
