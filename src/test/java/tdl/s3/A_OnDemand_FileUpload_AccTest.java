@@ -29,21 +29,15 @@ public class A_OnDemand_FileUpload_AccTest {
         destination = Destination.createDefaultDestination();
     }
 
-    //TODO: Pull this out so that it can be used by other test method
-    private Source createSyncSourceFromPath(Path path) {
-        return Source.getBuilder(path).create();
-    }
-
     @Test
     public void should_not_upload_file_if_already_present() throws Exception {
         Path path = Paths.get("src/test/resources/already_uploaded.txt");
         Source source = Source.getBuilder(path).create();
 
-        destination = Destination.createDefaultDestination();
-
         //Upload first file just to check in test that it will not be uploaded twice
         RemoteSync sync = new RemoteSync(source, destination);
         sync.run();
+        
         // Sleep 2 seconds to distinguish that file uploaded_once.txt on aws was not uploaded by next call
         Thread.sleep(2000);
         Instant uploadingTime = Instant.now();
@@ -59,9 +53,7 @@ public class A_OnDemand_FileUpload_AccTest {
     @Test
     public void should_upload_simple_file_to_bucket() throws Exception {
         Path path = Paths.get("src/test/resources/sample_small_file_to_upload.txt");
-        Source source = createSyncSourceFromPath(path);
-
-        destination = Destination.createDefaultDestination();
+        Source source = Source.getBuilder(path).create();
 
         RemoteSync sync = new RemoteSync(source, destination);
         sync.run();
@@ -73,8 +65,6 @@ public class A_OnDemand_FileUpload_AccTest {
     public void should_upload_large_file_to_bucket_using_multipart_upload() throws Exception {
         Path path = Paths.get("src/test/resources/large_file.bin");
         Source source = Source.getBuilder(path).create();
-
-        destination = Destination.createDefaultDestination();
 
         RemoteSync sync = new RemoteSync(source, destination);
         sync.run();

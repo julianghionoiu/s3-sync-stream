@@ -13,7 +13,7 @@ public class Source {
     
     private FileFilter exclude;
     
-    private boolean traverse;
+    private boolean isRecursive;
 
     public static class Builder {
         
@@ -37,6 +37,11 @@ public class Source {
             return this;
         }
         
+        public Builder setRecursive(boolean isRecursive) {
+            source.isRecursive = isRecursive;
+            return this;
+        }
+        
         public Source create() {
             return source;
         }
@@ -50,9 +55,14 @@ public class Source {
         return path;
     }
     
+    public boolean isRecursive() {
+        return isRecursive;
+    }
+    
     //Assume sync if path is directory
     public boolean isSync() {
-        return false; //TODO
+        File file = path.toFile();
+        return file.isDirectory();
     }
     
     //Assume sync if path is file

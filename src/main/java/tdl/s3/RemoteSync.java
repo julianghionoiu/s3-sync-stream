@@ -4,6 +4,7 @@ package tdl.s3;
 import com.amazonaws.services.s3.AmazonS3;
 import java.io.File;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
@@ -39,7 +40,8 @@ public class RemoteSync {
             File file = source.getPath().toFile();
             fileUploadingService.upload(file);
         } else {
-            throw new UnsupportedOperationException("Not implemented yet");
+            buildFolderSynchronizer();
+            folderSynchronizer.synchronize(source.getPath(), source.isRecursive());
         }
     }
     
