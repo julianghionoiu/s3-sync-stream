@@ -10,23 +10,29 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import tdl.s3.sync.SyncProgressListener;
 
 public class FileUploadingService {
+
     private final AmazonS3 amazonS3;
+
     private final String bucket;
-    private String prefix;
+
+    private final String prefix;
+
+    private List<SyncProgressListener> listeners;
 
     public FileUploadingService(AmazonS3 amazonS3, String bucket, String prefix) {
         this.amazonS3 = amazonS3;
         this.bucket = bucket;
-	    this.prefix = prefix;
+        this.prefix = prefix;
     }
 
     public void upload(File file) {
         RemoteFile remoteFile = new RemoteFile(bucket, prefix, file.getName(), amazonS3);
         upload(file, remoteFile);
     }
-    
+
     public void upload(File file, String remoteName) {
         RemoteFile remoteFile = new RemoteFile(bucket, prefix, remoteName, amazonS3);
         upload(file, remoteFile);
@@ -60,7 +66,7 @@ public class FileUploadingService {
     }
 
     private static Stream<MultipartUploadListing> getNextListing(AmazonS3 s3, MultipartUploadListing listing,
-                                                          String bucket, String prefix) {
+            String bucket, String prefix) {
         if (listing.isTruncated()) {
             ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(bucket);
             uploadsRequest.setPrefix(prefix);
