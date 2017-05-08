@@ -37,7 +37,8 @@ public class FolderScannerImplTest {
     @Before
     public void setUp() throws Exception {
 
-        folderScanner = new FolderScannerImpl(Collections.singletonList(path -> !path.toString().endsWith(".lock")));
+        Filters filters = new Filters();
+        folderScanner = new FolderScannerImpl(filters);
 
         //create empty directory if not exists
         emptyDirPath = Paths.get("empty_dir");
@@ -77,14 +78,4 @@ public class FolderScannerImplTest {
 
         verify(fileConsumer, times(1)).accept(any(), startsWith("subdir"));
     }
-
-    @Test
-    public void traverseFolder_notEmptyFolder_recursive_withoutFilter() throws Exception {
-        folderScanner = new FolderScannerImpl(Collections.emptyList());
-
-        folderScanner.traverseFolder(notEmptyDirPath, fileConsumer, true);
-
-        verify(fileConsumer, times(4)).accept(any(), anyString());
-    }
-
 }

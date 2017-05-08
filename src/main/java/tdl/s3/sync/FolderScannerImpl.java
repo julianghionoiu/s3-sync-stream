@@ -17,10 +17,10 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 @Slf4j
 public class FolderScannerImpl implements FolderScanner {
 
-    private final Predicate<Path> filter;
+    private final Filters filters;
 
-    public FolderScannerImpl(List<Predicate<Path>> filters) {
-        this.filter = filters.stream().reduce(v -> true, Predicate::and);
+    public FolderScannerImpl(Filters filters) {
+        this.filters = filters;
     }
 
     @Override
@@ -48,7 +48,7 @@ public class FolderScannerImpl implements FolderScanner {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                if (Files.isRegularFile(file) && filter.test(file)) {
+                if (Files.isRegularFile(file) && filters.accept(file)) {
                     fileConsumer.accept(file.toFile(), currentDir.relativize(file).toString());
                 }
                 return CONTINUE;
