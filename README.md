@@ -33,7 +33,11 @@ The available values are
 #### To build and run
 ```bash
 ./gradlew shadowJar
-java -jar ./build/libs/s3-sync-1.0-SNAPSHOT-all.jar upload -f $PATH_TO_REC/recording.mp4
+java -jar ./build/libs/s3-sync-1.0-SNAPSHOT-all.jar \
+    -c config.properties \
+    -d $PATH_TO_REC/ \
+    -R \
+    --filter "^[0-9a-zA-Z\\_]+\\.txt$"
 ```
 
 ### To use as a library
