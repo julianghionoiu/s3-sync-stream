@@ -7,6 +7,11 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class FiltersTest {
+    
+    @Test(expected = RuntimeException.class)
+    public void builderShouldThrowException() {
+        Filters filters = Filters.getBuilder().create();
+    }
 
     @Test
     public void acceptShouldUseDefaultLockFilter() {
