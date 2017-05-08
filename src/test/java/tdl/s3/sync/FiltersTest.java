@@ -87,9 +87,9 @@ public class FiltersTest {
         Path invalidPath2 = Paths.get("src/test/resources/0files.txt");
         Filters filters = new Filters();
         
-        assertFalse(filters.accept(validPath));
+        assertTrue(filters.accept(validPath));
         assertFalse(filters.accept(invalidPath1));
-        assertFalse(filters.accept(invalidPath2));
+        assertTrue(filters.accept(invalidPath2));
         
         filters.include(Filters.matches("^[0-9]{2}[a-z]{4}.txt$"));
         assertTrue(filters.accept(validPath));

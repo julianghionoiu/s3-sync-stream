@@ -23,8 +23,12 @@ public class Filters {
     }
     
     public boolean accept(Path path) {
-        boolean accept = includes.stream()
+        boolean accept = true;
+        if (includes.size() > 0) {
+            accept = includes.stream()
                 .anyMatch(e -> e.accept(path));
+        }
+        
         boolean reject = excludes.stream()
                 .anyMatch(e -> e.accept(path));
 
