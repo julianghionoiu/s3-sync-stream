@@ -10,7 +10,7 @@ public class Source {
 
     private boolean isRecursive;
     
-    private Filters filters = new Filters();
+    private Filters filters;
 
     public static class Builder {
         
@@ -35,6 +35,9 @@ public class Source {
         }
         
         public Source create() {
+            if (source.filters == null) {
+                throw new RuntimeException("Cannot found filters.");
+            }
             return source;
         }
     }

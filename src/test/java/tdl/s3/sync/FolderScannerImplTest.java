@@ -37,7 +37,9 @@ public class FolderScannerImplTest {
     @Before
     public void setUp() throws Exception {
 
-        Filters filters = new Filters();
+        Filters filters = Filters.getBuilder()
+                            .include(Filters.endsWith("txt"))
+                            .create();
         folderScanner = new FolderScannerImpl(filters);
 
         //create empty directory if not exists
