@@ -1,22 +1,10 @@
 package tdl.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.beust.jcommander.JCommander;
 import tdl.s3.cli.CLIParams;
-import tdl.s3.credentials.AWSSecretsProvider;
-import tdl.s3.sync.FolderScannerImpl;
-import tdl.s3.sync.FolderSynchronizer;
-import tdl.s3.upload.FileUploadingService;
-
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static tdl.s3.cli.CLIParams.SYNC_COMMAND;
 import static tdl.s3.cli.CLIParams.UPLOAD_COMMAND;

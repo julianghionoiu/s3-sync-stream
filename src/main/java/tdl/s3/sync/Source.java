@@ -9,6 +9,8 @@ public class Source {
     private Path path;
 
     private boolean isRecursive;
+    
+    private Filters filters;
 
     public static class Builder {
         
@@ -27,7 +29,15 @@ public class Source {
             return this;
         }
         
+        public Builder setFilters(Filters filters) {
+            source.filters = filters;
+            return this;
+        }
+        
         public Source create() {
+            if (source.filters == null) {
+                throw new RuntimeException("Cannot found filters.");
+            }
             return source;
         }
     }
@@ -38,6 +48,10 @@ public class Source {
 
     public Path getPath() {
         return path;
+    }
+
+    public Filters getFilters() {
+        return filters;
     }
     
     public boolean isRecursive() {

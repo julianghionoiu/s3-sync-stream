@@ -15,6 +15,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import tdl.s3.sync.Destination;
+import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
 
 public class A_OnDemand_FileUpload_AccTest {
@@ -32,7 +33,10 @@ public class A_OnDemand_FileUpload_AccTest {
     @Test
     public void should_not_upload_file_if_already_present() throws Exception {
         Path path = Paths.get("src/test/resources/already_uploaded.txt");
-        Source source = Source.getBuilder(path).create();
+        Filters filters = Filters.getBuilder().include(Filters.endsWith("txt")).create();
+        Source source = Source.getBuilder(path)
+                .setFilters(filters)
+                .create();
 
         //Upload first file just to check in test that it will not be uploaded twice
         RemoteSync sync = new RemoteSync(source, destination);
@@ -53,7 +57,10 @@ public class A_OnDemand_FileUpload_AccTest {
     @Test
     public void should_upload_simple_file_to_bucket() throws Exception {
         Path path = Paths.get("src/test/resources/sample_small_file_to_upload.txt");
-        Source source = Source.getBuilder(path).create();
+        Filters filters = Filters.getBuilder().include(Filters.endsWith("txt")).create();
+        Source source = Source.getBuilder(path)
+                .setFilters(filters)
+                .create();
 
         RemoteSync sync = new RemoteSync(source, destination);
         sync.run();
@@ -64,7 +71,10 @@ public class A_OnDemand_FileUpload_AccTest {
     @Test
     public void should_upload_large_file_to_bucket_using_multipart_upload() throws Exception {
         Path path = Paths.get("src/test/resources/large_file.bin");
-        Source source = Source.getBuilder(path).create();
+        Filters filters = Filters.getBuilder().include(Filters.endsWith("txt")).create();
+        Source source = Source.getBuilder(path)
+                .setFilters(filters)
+                .create();
 
         RemoteSync sync = new RemoteSync(source, destination);
         sync.run();

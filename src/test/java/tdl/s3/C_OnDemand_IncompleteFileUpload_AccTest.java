@@ -23,11 +23,14 @@ import org.junit.Before;
 import static tdl.s3.rules.TemporarySyncFolder.ONE_MEGABYTE;
 import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
 import tdl.s3.sync.Destination;
+import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
 
 public class C_OnDemand_IncompleteFileUpload_AccTest {
     
     private Destination destination;
+    
+    private Filters defaultFilters;
 
     @Rule
     public RemoteTestBucket remoteTestBucket = new RemoteTestBucket();
@@ -38,6 +41,10 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
     @Before
     public void setUp() {
         destination = Destination.createDefaultDestination();
+        defaultFilters = Filters.getBuilder()
+                .include(Filters.endsWith("txt"))
+                .include(Filters.endsWith("bin"))
+                .create();
     }
 
     @Test
@@ -48,7 +55,10 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
 
         //synchronize folder
         Path directoryPath = targetSyncFolder.getFolderPath();
-        Source directorySource = Source.getBuilder(directoryPath).setRecursive(true).create();
+        Source directorySource = Source.getBuilder(directoryPath)
+                .setFilters(defaultFilters)
+                .setRecursive(true)
+                .create();
         
         RemoteSync directorySync = new RemoteSync(directorySource, destination);
         directorySync.run();
@@ -79,7 +89,10 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
 
         //synchronize folder
         Path directoryPath = targetSyncFolder.getFolderPath();
-        Source directorySource = Source.getBuilder(directoryPath).setRecursive(true).create();
+        Source directorySource = Source.getBuilder(directoryPath)
+                .setFilters(defaultFilters)
+                .setRecursive(true)
+                .create();
         
         RemoteSync directoryFirstSync = new RemoteSync(directorySource, destination);
         directoryFirstSync.run();
@@ -129,7 +142,10 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
 
         //synchronize folder
         Path directoryPath = targetSyncFolder.getFolderPath();
-        Source directorySource = Source.getBuilder(directoryPath).setRecursive(true).create();
+        Source directorySource = Source.getBuilder(directoryPath)
+                .setFilters(defaultFilters)
+                .setRecursive(true)
+                .create();
         
         RemoteSync directorySync = new RemoteSync(directorySource, destination);
         directorySync.run();

@@ -10,6 +10,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import org.junit.Before;
 import tdl.s3.sync.Destination;
+import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
 
 public class B_OnDemand_FolderSync_AccTest {
@@ -28,7 +29,10 @@ public class B_OnDemand_FolderSync_AccTest {
     public void should_upload_all_new_files_from_folder() throws Exception {
         
         Path filePath = Paths.get("src/test/resources/test_dir/test_file_1.txt");
-        Source fileSource = Source.getBuilder(filePath).create();
+        Filters filters = Filters.getBuilder().include(Filters.endsWith("txt")).create();
+        Source fileSource = Source.getBuilder(filePath)
+                .setFilters(filters)
+                .create();
         
         //upload first file
         RemoteSync fileSync = new RemoteSync(fileSource, destination);
@@ -41,7 +45,10 @@ public class B_OnDemand_FolderSync_AccTest {
 
         //synchronize folder
         Path directoryPath = Paths.get("src/test/resources/test_dir");
-        Source directorySource = Source.getBuilder(directoryPath).setRecursive(true).create();
+        Source directorySource = Source.getBuilder(directoryPath)
+                .setFilters(filters)
+                .setRecursive(true)
+                .create();
         
         RemoteSync directorySync = new RemoteSync(directorySource, destination);
         directorySync.run();

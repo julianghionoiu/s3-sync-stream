@@ -11,6 +11,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import tdl.s3.credentials.AWSSecretsProvider;
 import tdl.s3.sync.Destination;
+import tdl.s3.sync.Filters;
 import tdl.s3.sync.FolderScannerImpl;
 import tdl.s3.sync.FolderSynchronizer;
 import tdl.s3.sync.Source;
@@ -58,9 +59,7 @@ public class RemoteSync {
     }
     
     private void buildFolderSynchronizer() {
-        List<Predicate<Path>> filters = FILTERED_EXTENSIONS.stream()
-                .map(ext -> (Predicate<Path>)(path -> ! path.toString().endsWith(ext)))
-                .collect(Collectors.toList());
+        Filters filters = source.getFilters();
         FolderScannerImpl folderScanner = new FolderScannerImpl(filters);
         folderSynchronizer = new FolderSynchronizer(folderScanner, fileUploadingService);
     }
