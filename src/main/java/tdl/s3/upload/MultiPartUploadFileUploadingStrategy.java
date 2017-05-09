@@ -10,9 +10,9 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
+import tdl.s3.helpers.MultipartUploadHelper;
 import tdl.s3.sync.SyncProgressListener;
 
 public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
@@ -28,7 +28,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private String uploadId;
 
-    private List<PartETag> tags;
+    private List<PartETag> eTags;
 
     private long uploadedSize;
 
@@ -90,7 +90,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
             failedMiddleParts = getFailedMiddlePartNumbers(alreadyUploadedParts);
             nextPartToUploadIndex = getLastPartIndex(alreadyUploadedParts) + 1;
         }
-        tags = getETags(alreadyUploadedParts);
+        eTags = MultipartUploadHelper.getPartETagsFromPartListing(alreadyUploadedParts);
         try {
             if (Files.size(file.toPath()) < uploadedSize) {
                 throw new IllegalStateException("Already uploaded size of file " + file + " is greater than actual file size. "
@@ -99,15 +99,6 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         } catch (IOException e) {
             throw new RuntimeException("Can't read size of file to upload, " + file + ". " + e.getMessage(), e);
         }
-    }
-
-    private List<PartETag> getETags(PartListing alreadyUploadedParts) {
-        return Optional.ofNullable(alreadyUploadedParts)
-                .map(PartListing::getParts)
-                .map(Collection::stream)
-                .orElseGet(Stream::empty)
-                .map(partSummary -> new PartETag(partSummary.getPartNumber(), partSummary.getETag()))
-                .collect(Collectors.toList());
     }
 
     private void uploadRequiredParts(AmazonS3 s3, File file, RemoteFile remoteFile) throws IOException {
@@ -132,7 +123,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
                 .map(request -> getUploadingCallable(s3, request))
                 .map(executorService::submit)
                 .map(this::getUploadingResult)
-                .forEach(tags::add);
+                .forEach(eTags::add);
     }
 
     private byte[] readPart(Integer partNumber, File file) {
@@ -144,15 +135,15 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private void commit(AmazonS3 s3, RemoteFile remoteFile) {
-        tags.sort(Comparator.comparing(PartETag::getPartNumber));
-        CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(remoteFile.getBucket(), remoteFile.getFullPath(), uploadId, tags);
+        eTags.sort(Comparator.comparing(PartETag::getPartNumber));
+        CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(remoteFile.getBucket(), remoteFile.getFullPath(), uploadId, eTags);
         s3.completeMultipartUpload(request);
     }
 
     private void uploadIncompleteParts(AmazonS3 s3, RemoteFile remoteFile, InputStream inputStream, boolean uploadLastPart) throws IOException, InterruptedException {
         uploadPartsConcurrent(s3, remoteFile, inputStream, uploadLastPart).stream()
                 .map(this::getUploadingResult)
-                .forEach(tags::add);
+                .forEach(eTags::add);
     }
 
     private List<Future<PartETag>> uploadPartsConcurrent(AmazonS3 s3, RemoteFile remoteFile, InputStream inputStream, boolean uploadLastPart) throws IOException, InterruptedException {
@@ -188,7 +179,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private UploadPartRequest getUploadPartRequest(RemoteFile remoteFile, byte[] nextPart, boolean isLastPart, int partNumber) {
-        try (ByteArrayInputStream partInputStream = getInputStream(nextPart)) {
+        try (ByteArrayInputStream partInputStream = createInputStream(nextPart)) {
             return new UploadPartRequest()
                     .withBucketName(remoteFile.getBucket())
                     .withKey(remoteFile.getFullPath())
@@ -220,8 +211,8 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         return result;
     }
 
-    private ByteArrayInputStream getInputStream(byte[] nextPartBytes) {
-        return new ByteArrayInputStream(nextPartBytes, 0, nextPartBytes.length);
+    private ByteArrayInputStream createInputStream(byte[] bytes) {
+        return new ByteArrayInputStream(bytes, 0, bytes.length);
     }
 
     private byte[] getNextPart(long offset, InputStream inputStream, boolean readLastBytes) throws IOException {
