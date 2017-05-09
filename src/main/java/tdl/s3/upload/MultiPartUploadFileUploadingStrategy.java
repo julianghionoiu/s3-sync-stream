@@ -104,7 +104,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     private void initAttributesFromAlreadyUploadedParts(PartListing partListing) {
         uploadId = partListing.getUploadId();
         uploadedSize = MultipartUploadHelper.getUploadedSize(partListing);
-        failedMiddleParts = getFailedMiddlePartNumbers(partListing);
+        failedMiddleParts = MultipartUploadHelper.getFailedMiddlePartNumbers(partListing);
         nextPartToUploadIndex = MultipartUploadHelper.getLastPartIndex(partListing) + 1;
     }
 
@@ -205,23 +205,6 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(remoteFile.getBucket(), remoteFile.getFullPath());
         InitiateMultipartUploadResult result = s3.initiateMultipartUpload(request);
         return result.getUploadId();
-    }
-
-    private Set<Integer> getFailedMiddlePartNumbers(PartListing partListing) {
-        AtomicInteger lastPartNumber = new AtomicInteger(0);
-        Set<Integer> uploadedParts = partListing.getParts().stream()
-                .map(PartSummary::getPartNumber)
-                .peek(n -> {
-                    if (lastPartNumber.get() < n) {
-                        lastPartNumber.set(n);
-                    }
-                })
-                .collect(Collectors.toSet());
-
-        return IntStream.range(1, lastPartNumber.get())
-                .filter(n -> !uploadedParts.contains(n))
-                .boxed()
-                .collect(Collectors.toSet());
     }
 
     @Override

@@ -9,7 +9,10 @@ import com.amazonaws.services.s3.model.PartSummary;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import tdl.s3.upload.RemoteFile;
 
@@ -49,5 +52,22 @@ public class MultipartUploadHelper {
                 .mapToInt(PartSummary::getPartNumber)
                 .max()
                 .orElse(1);
+    }
+    
+    public static Set<Integer> getFailedMiddlePartNumbers(PartListing partListing) {
+        AtomicInteger lastPartNumber = new AtomicInteger(0);
+        Set<Integer> uploadedParts = partListing.getParts().stream()
+                .map(PartSummary::getPartNumber)
+                .peek(n -> {
+                    if (lastPartNumber.get() < n) {
+                        lastPartNumber.set(n);
+                    }
+                })
+                .collect(Collectors.toSet());
+
+        return IntStream.range(1, lastPartNumber.get())
+                .filter(n -> !uploadedParts.contains(n))
+                .boxed()
+                .collect(Collectors.toSet());
     }
 }
