@@ -137,21 +137,13 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     private void uploadFailedParts(AmazonS3 s3, File file, RemoteFile remoteFile) {
         failedMiddleParts.stream()
                 .map(partNumber -> {
-                    byte[] partData = readPart(partNumber, file);
+                    byte[] partData = ByteHelper.readPart(partNumber, file);
                     uploadedSize += partData.length;
                     return getUploadPartRequest(remoteFile, partData, false, partNumber);
                 })
                 .map(concurrentUploader::submitTaskForPartUploading)
                 .map(this::getUploadingResult)
                 .forEach(eTags::add);
-    }
-
-    private byte[] readPart(Integer partNumber, File file) {
-        try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            return getNextPart(MINIMUM_PART_SIZE * (partNumber - 1), inputStream, false);
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe.getMessage(), ioe);
-        }
     }
 
     private void commit(AmazonS3 s3, RemoteFile remoteFile) {
@@ -169,9 +161,9 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     private List<Future<PartETag>> uploadPartsConcurrent(AmazonS3 s3, RemoteFile remoteFile, InputStream inputStream, boolean uploadLastPart) throws IOException, InterruptedException {
         List<Future<PartETag>> uploadingResults = new ArrayList<>();
 
-        for (byte[] nextPart = getNextPart(uploadedSize, inputStream, uploadLastPart);
+        for (byte[] nextPart = ByteHelper.getNextPartFromInputStream(inputStream, uploadedSize, uploadLastPart);
                 nextPart.length > 0;
-                nextPart = getNextPart(0, inputStream, uploadLastPart)) {
+                nextPart = ByteHelper.getNextPartFromInputStream(inputStream, 0, uploadLastPart)) {
             int partSize = nextPart.length;
             boolean isLastPart = uploadLastPart && partSize < MINIMUM_PART_SIZE;
             UploadPartRequest request = getUploadPartRequest(remoteFile, nextPart, isLastPart, nextPartToUploadIndex++);
@@ -206,32 +198,6 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
             return future.get();
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Some part uploads was unsuccessful. " + e.getMessage(), e);
-        }
-    }
-
-    private byte[] getNextPart(long offset, InputStream inputStream, boolean readLastBytes) throws IOException {
-        byte[] buffer = new byte[MINIMUM_PART_SIZE];
-        int read = 0;
-        skipAlreadyUploadedParts(offset, inputStream);
-        int available = inputStream.available();
-        if (available < MINIMUM_PART_SIZE && !readLastBytes) {
-            return new byte[0];
-        }
-        while (available > 0) {
-            int currentRed = inputStream.read(buffer, read, MINIMUM_PART_SIZE - read);
-            read += currentRed;
-            available = inputStream.available();
-            if (read == MINIMUM_PART_SIZE) {
-                break;
-            }
-        }
-        return ByteHelper.truncate(buffer, read);
-    }
-
-    private void skipAlreadyUploadedParts(long offset, InputStream inputStream) throws IOException {
-        long skipped = 0;
-        while (skipped < offset) {
-            skipped += inputStream.skip(offset);
         }
     }
 
