@@ -75,31 +75,47 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     @Override
     public void upload(AmazonS3 s3, File file, RemoteFile remoteFile) throws Exception {
         concurrentUploader.setClient(s3); //TODO: Put this in appropriate place
+        this.client = s3;
         initStrategy(s3, file, remoteFile, upload);
         uploadRequiredParts(s3, file, remoteFile);
     }
 
     private void initStrategy(AmazonS3 s3, File file, RemoteFile remoteFile, MultipartUpload upload) {
         writingFinished = !FileHelper.lockFileExists(file);
-        PartListing alreadyUploadedParts = getAlreadyUploadedParts(s3, remoteFile, upload);
+        PartListing alreadyUploadedParts = MultipartUploadHelper.getAlreadyUploadedParts(s3, remoteFile, upload);
 
         boolean uploadingStarted = alreadyUploadedParts != null;
         if (!uploadingStarted) {
-            uploadId = initUploading(s3, remoteFile);
-            uploadedSize = 0;
-            failedMiddleParts = Collections.emptySet();
-            nextPartToUploadIndex = 1;
+            initAttributes(remoteFile);
         } else {
-            uploadId = alreadyUploadedParts.getUploadId();
-            uploadedSize = getUploadedSize(alreadyUploadedParts);
-            failedMiddleParts = getFailedMiddlePartNumbers(alreadyUploadedParts);
-            nextPartToUploadIndex = getLastPartIndex(alreadyUploadedParts) + 1;
+            initAttributesFromAlreadyUploadedParts(alreadyUploadedParts);
         }
         eTags = MultipartUploadHelper.getPartETagsFromPartListing(alreadyUploadedParts);
+        validateUploadedFileSize(file);
+    }
+
+    private void initAttributes(RemoteFile remoteFile) {
+        uploadId = initUploading(client, remoteFile);
+        uploadedSize = 0;
+        failedMiddleParts = Collections.emptySet();
+        nextPartToUploadIndex = 1;
+    }
+
+    private void initAttributesFromAlreadyUploadedParts(PartListing partListing) {
+        uploadId = partListing.getUploadId();
+        uploadedSize = MultipartUploadHelper.getUploadedSize(partListing);
+        failedMiddleParts = getFailedMiddlePartNumbers(partListing);
+        nextPartToUploadIndex = MultipartUploadHelper.getLastPartIndex(partListing) + 1;
+    }
+
+    private void validateUploadedFileSize(File file) {
         try {
             if (Files.size(file.toPath()) < uploadedSize) {
-                throw new IllegalStateException("Already uploaded size of file " + file + " is greater than actual file size. "
-                        + "Probably file was changed and can't be uploaded now.");
+                throw new IllegalStateException(
+                        "Already uploaded size of file " + file.getName()
+                        + " is greater than actual file size. "
+                        + "Probably file was changed and can't be uploaded now."
+                );
             }
         } catch (IOException e) {
             throw new RuntimeException("Can't read size of file to upload, " + file + ". " + e.getMessage(), e);
@@ -240,31 +256,6 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
                 .filter(n -> !uploadedParts.contains(n))
                 .boxed()
                 .collect(Collectors.toSet());
-    }
-
-    private long getUploadedSize(PartListing partListing) {
-        return partListing.getParts().stream()
-                .mapToLong(PartSummary::getSize)
-                .sum();
-    }
-
-    private int getLastPartIndex(PartListing partListing) {
-        return partListing.getParts().stream()
-                .mapToInt(PartSummary::getPartNumber)
-                .max()
-                .orElse(1);
-    }
-
-    private PartListing getAlreadyUploadedParts(AmazonS3 s3, RemoteFile remoteFile, MultipartUpload upload) {
-        return Optional.ofNullable(upload)
-                .map(MultipartUpload::getUploadId)
-                .map(id -> getPartListing(s3, remoteFile, id))
-                .orElse(null);
-    }
-
-    private PartListing getPartListing(AmazonS3 s3, RemoteFile remoteFile, String uploadId) {
-        ListPartsRequest request = new ListPartsRequest(remoteFile.getBucket(), remoteFile.getFullPath(), uploadId);
-        return s3.listParts(request);
     }
 
     @Override
