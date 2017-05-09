@@ -5,9 +5,6 @@ import com.amazonaws.services.s3.model.*;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -15,18 +12,19 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import tdl.s3.helpers.FileHelper;
+import tdl.s3.helpers.MD5Digest;
 import tdl.s3.sync.SyncProgressListener;
 
 public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     //Minimum part size is 5 MB
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
+
     private static final long MAX_UPLOADING_TIME = 60;
+
     private static final int DEFAULT_THREAD_COUNT = 4;
 
     private final MultipartUpload upload;
-
-    private MessageDigest md5Digest;
 
     private String uploadId;
 
@@ -67,11 +65,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         }
         executorService = Executors.newFixedThreadPool(threadsCount);
         this.upload = upload;
-        try {
-            md5Digest = MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Can't send multipart upload. Can't create MD5 digest. " + e.getMessage(), e);
-        }
+
     }
 
     @Override
@@ -199,7 +193,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
                     .withBucketName(remoteFile.getBucket())
                     .withKey(remoteFile.getFullPath())
                     .withPartNumber(partNumber)
-                    .withMD5Digest(getDigest(nextPart))
+                    .withMD5Digest(MD5Digest.digest(nextPart))
                     .withLastPart(isLastPart)
                     .withPartSize(nextPart.length)
                     .withUploadId(uploadId)
@@ -228,10 +222,6 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private ByteArrayInputStream getInputStream(byte[] nextPartBytes) {
         return new ByteArrayInputStream(nextPartBytes, 0, nextPartBytes.length);
-    }
-
-    private String getDigest(byte[] nextPartBytes) {
-        return Base64.getEncoder().encodeToString(md5Digest.digest(nextPartBytes));
     }
 
     private byte[] getNextPart(long offset, InputStream inputStream, boolean readLastBytes) throws IOException {
