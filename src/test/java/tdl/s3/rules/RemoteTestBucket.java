@@ -92,7 +92,11 @@ public class RemoteTestBucket extends ExternalResource {
         return amazonS3.listParts(listPartsRequest).getParts();
     }
 
-    
+    public void upload(String key, Path path) {
+        PutObjectRequest objectRequest = new PutObjectRequest(bucketName, uploadPrefix + key, path.toFile());
+        amazonS3.putObject(objectRequest);
+    }
+
     public String initiateMultipartUpload(String name) {
         InitiateMultipartUploadResult result = amazonS3.initiateMultipartUpload(
                 new InitiateMultipartUploadRequest(bucketName, uploadPrefix + name)
@@ -111,4 +115,5 @@ public class RemoteTestBucket extends ExternalResource {
                 .withInputStream(new ByteArrayInputStream(partData));
         amazonS3.uploadPart(request);
     }
+
 }

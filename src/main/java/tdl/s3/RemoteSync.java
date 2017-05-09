@@ -1,14 +1,6 @@
 package tdl.s3;
 
 import com.amazonaws.services.s3.AmazonS3;
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import tdl.s3.credentials.AWSSecretsProvider;
 import tdl.s3.sync.Destination;
 import tdl.s3.sync.Filters;
@@ -32,6 +24,9 @@ public class RemoteSync {
 
     public RemoteSync(Source source, Destination destination) {
         this.source = source;
+        if (!this.source.isValidPath()) {
+            throw new RuntimeException("Source has to be a directory");
+        }
         this.destination = destination;
     }
 
@@ -41,16 +36,9 @@ public class RemoteSync {
 
     public void run() {
         buildUploadingService();
-        if (source.isUpload()) { //TODO: UNUSED
-            File file = source.getPath().toFile();
-            fileUploadingService.upload(file);
-        } else if (source.isSync()) { // just in case sync is not just checking if it's directory
-            buildFolderSynchronizer();
-            folderSynchronizer.setListener(listener);
-            folderSynchronizer.synchronize(source.getPath(), source.isRecursive());
-        } else {
-            throw new UnsupportedOperationException("No action to this path");
-        }
+        buildFolderSynchronizer();
+        folderSynchronizer.setListener(listener);
+        folderSynchronizer.synchronize(source.getPath(), source.isRecursive());
     }
 
     private void buildUploadingService() {
