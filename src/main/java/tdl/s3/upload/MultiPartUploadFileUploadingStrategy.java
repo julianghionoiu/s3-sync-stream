@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import tdl.s3.helpers.FileHelper;
+import tdl.s3.sync.SyncProgressListener;
 
 public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
@@ -41,10 +42,13 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private ExecutorService executorService;
 
+    private SyncProgressListener listener;
+
     /**
      * Creates new Multipart upload strategy
      *
-     * @param upload {@link MultipartUpload} object that represents already started uploading or null if it should be clean upload
+     * @param upload {@link MultipartUpload} object that represents already
+     * started uploading or null if it should be clean upload
      */
     MultiPartUploadFileUploadingStrategy(MultipartUpload upload) {
         this(upload, DEFAULT_THREAD_COUNT);
@@ -53,11 +57,14 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     /**
      * Creates new Multipart upload strategy
      *
-     * @param upload       {@link MultipartUpload} object that represents already started uploading or null if it should be clean upload
+     * @param upload {@link MultipartUpload} object that represents already
+     * started uploading or null if it should be clean upload
      * @param threadsCount count of threads that should be used for uploading
      */
     MultiPartUploadFileUploadingStrategy(MultipartUpload upload, int threadsCount) {
-        if (threadsCount < 1) throw new IllegalArgumentException("Thread count should be >= 1");
+        if (threadsCount < 1) {
+            throw new IllegalArgumentException("Thread count should be >= 1");
+        }
         executorService = Executors.newFixedThreadPool(threadsCount);
         this.upload = upload;
         try {
@@ -66,17 +73,17 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
             throw new RuntimeException("Can't send multipart upload. Can't create MD5 digest. " + e.getMessage(), e);
         }
     }
-    
+
     @Override
     public void upload(AmazonS3 s3, File file, RemoteFile remoteFile) throws Exception {
-        initStrategy(s3,file, remoteFile, upload);
+        initStrategy(s3, file, remoteFile, upload);
         uploadRequiredParts(s3, file, remoteFile);
     }
 
     private void initStrategy(AmazonS3 s3, File file, RemoteFile remoteFile, MultipartUpload upload) {
         writingFinished = !FileHelper.lockFileExists(file);
         PartListing alreadyUploadedParts = getAlreadyUploadedParts(s3, remoteFile, upload);
-        
+
         boolean uploadingStarted = alreadyUploadedParts != null;
         if (!uploadingStarted) {
             uploadId = initUploading(s3, remoteFile);
@@ -92,8 +99,8 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         tags = getETags(alreadyUploadedParts);
         try {
             if (Files.size(file.toPath()) < uploadedSize) {
-                throw new IllegalStateException("Already uploaded size of file " + file + " is greater than actual file size. " +
-                        "Probably file was changed and can't be uploaded now.");
+                throw new IllegalStateException("Already uploaded size of file " + file + " is greater than actual file size. "
+                        + "Probably file was changed and can't be uploaded now.");
             }
         } catch (IOException e) {
             throw new RuntimeException("Can't read size of file to upload, " + file + ". " + e.getMessage(), e);
@@ -158,8 +165,8 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         List<Future<PartETag>> uploadingResults = new ArrayList<>();
 
         for (byte[] nextPart = getNextPart(uploadedSize, inputStream, uploadLastPart);
-             nextPart.length > 0;
-             nextPart = getNextPart(0, inputStream, uploadLastPart)) {
+                nextPart.length > 0;
+                nextPart = getNextPart(0, inputStream, uploadLastPart)) {
             int partSize = nextPart.length;
             boolean isLastPart = uploadLastPart && partSize < MINIMUM_PART_SIZE;
             UploadPartRequest request = getUploadPartRequest(remoteFile, nextPart, isLastPart, nextPartToUploadIndex++);
@@ -211,7 +218,9 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private byte[] truncate(byte[] nextPartBytes, int partSize) {
-        if (partSize == nextPartBytes.length) return nextPartBytes;
+        if (partSize == nextPartBytes.length) {
+            return nextPartBytes;
+        }
         byte[] result = new byte[partSize];
         System.arraycopy(nextPartBytes, 0, result, 0, partSize);
         return result;
@@ -230,12 +239,16 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         int read = 0;
         skipAlreadyUploadedParts(offset, inputStream);
         int available = inputStream.available();
-        if (available < MINIMUM_PART_SIZE && !readLastBytes) return new byte[0];
+        if (available < MINIMUM_PART_SIZE && !readLastBytes) {
+            return new byte[0];
+        }
         while (available > 0) {
             int currentRed = inputStream.read(buffer, read, MINIMUM_PART_SIZE - read);
             read += currentRed;
             available = inputStream.available();
-            if (read == MINIMUM_PART_SIZE) break;
+            if (read == MINIMUM_PART_SIZE) {
+                break;
+            }
         }
         return truncate(buffer, read);
     }
@@ -258,8 +271,9 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         Set<Integer> uploadedParts = partListing.getParts().stream()
                 .map(PartSummary::getPartNumber)
                 .peek(n -> {
-                    if (lastPartNumber.get() < n)
+                    if (lastPartNumber.get() < n) {
                         lastPartNumber.set(n);
+                    }
                 })
                 .collect(Collectors.toSet());
 
@@ -292,6 +306,11 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     private PartListing getPartListing(AmazonS3 s3, RemoteFile remoteFile, String uploadId) {
         ListPartsRequest request = new ListPartsRequest(remoteFile.getBucket(), remoteFile.getFullPath(), uploadId);
         return s3.listParts(request);
+    }
+
+    @Override
+    public void setListener(SyncProgressListener listener) {
+        this.listener = listener;
     }
 
 }

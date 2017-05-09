@@ -28,15 +28,15 @@ public class RemoteSync {
 
     private FolderSynchronizer folderSynchronizer;
 
-    private List<SyncProgressListener> listeners = new ArrayList<>();
+    private SyncProgressListener listener;
 
     public RemoteSync(Source source, Destination destination) {
         this.source = source;
         this.destination = destination;
     }
 
-    public void addListener(SyncProgressListener listener) {
-        listeners.add(listener);
+    public void setListener(SyncProgressListener listener) {
+        this.listener = listener;
     }
 
     public void run() {
@@ -46,7 +46,7 @@ public class RemoteSync {
             fileUploadingService.upload(file);
         } else if (source.isSync()) { // just in case sync is not just checking if it's directory
             buildFolderSynchronizer();
-            folderSynchronizer.setListeners(listeners);
+            folderSynchronizer.setListener(listener);
             folderSynchronizer.synchronize(source.getPath(), source.isRecursive());
         } else {
             throw new UnsupportedOperationException("No action to this path");

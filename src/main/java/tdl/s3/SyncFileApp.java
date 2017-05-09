@@ -40,7 +40,7 @@ public class SyncFileApp {
         RemoteSync sync = new RemoteSync(source, destination);
 
         ProgressBar progressBar = new ProgressBar();
-        sync.addListener(progressBar);
+        sync.setListener(progressBar);
         sync.run();
     }
 

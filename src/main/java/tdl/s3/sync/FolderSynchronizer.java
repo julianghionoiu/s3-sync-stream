@@ -11,8 +11,6 @@ public class FolderSynchronizer {
 
     private final FileUploadingService fileUploadingService;
 
-    private List<SyncProgressListener> listeners;
-
     public FolderSynchronizer(FolderScanner folderScanner, FileUploadingService fileUploadingService) {
         this.folderScanner = folderScanner;
         this.fileUploadingService = fileUploadingService;
@@ -22,7 +20,7 @@ public class FolderSynchronizer {
         folderScanner.traverseFolder(folder, fileUploadingService::upload, recursive);
     }
 
-    public void setListeners(List<SyncProgressListener> listeners) {
-        this.listeners = listeners;
+    public void setListener(SyncProgressListener listener) {
+        fileUploadingService.setListener(listener);
     }
 }
