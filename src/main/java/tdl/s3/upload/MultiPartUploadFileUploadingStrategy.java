@@ -5,11 +5,19 @@ import com.amazonaws.services.s3.model.*;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import tdl.s3.helpers.ByteHelper;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
 import tdl.s3.helpers.MultipartUploadHelper;
@@ -20,9 +28,9 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     //Minimum part size is 5 MB
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
 
-    private static final long MAX_UPLOADING_TIME = 60;
-
     private static final int DEFAULT_THREAD_COUNT = 4;
+
+    private AmazonS3 client;
 
     private final MultipartUpload upload;
 
@@ -38,7 +46,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private boolean writingFinished;
 
-    private ExecutorService executorService;
+    private ConcurrentMultipartUploader concurrentUploader;
 
     private SyncProgressListener listener;
 
@@ -60,10 +68,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
      * @param threadsCount count of threads that should be used for uploading
      */
     MultiPartUploadFileUploadingStrategy(MultipartUpload upload, int threadsCount) {
-        if (threadsCount < 1) {
-            throw new IllegalArgumentException("Thread count should be >= 1");
-        }
-        executorService = Executors.newFixedThreadPool(threadsCount);
+        concurrentUploader = new ConcurrentMultipartUploader(threadsCount);
         this.upload = upload;
 
     }
@@ -121,7 +126,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
                     return getUploadPartRequest(remoteFile, partData, false, partNumber);
                 })
                 .map(request -> getUploadingCallable(s3, request))
-                .map(executorService::submit)
+                .map(concurrentUploader.getExecutorService()::submit)
                 .map(this::getUploadingResult)
                 .forEach(eTags::add);
     }
@@ -156,12 +161,11 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
             boolean isLastPart = uploadLastPart && partSize < MINIMUM_PART_SIZE;
             UploadPartRequest request = getUploadPartRequest(remoteFile, nextPart, isLastPart, nextPartToUploadIndex++);
 
-            Future<PartETag> uploadingResult = executorService.submit(getUploadingCallable(s3, request));
+            Future<PartETag> uploadingResult = concurrentUploader.getExecutorService().submit(getUploadingCallable(s3, request));
             uploadingResults.add(uploadingResult);
         }
 
-        executorService.shutdown();
-        executorService.awaitTermination(MAX_UPLOADING_TIME, TimeUnit.MINUTES);
+        concurrentUploader.shutdownAndAwaitTermination();
 
         return uploadingResults;
     }
@@ -179,7 +183,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private UploadPartRequest getUploadPartRequest(RemoteFile remoteFile, byte[] nextPart, boolean isLastPart, int partNumber) {
-        try (ByteArrayInputStream partInputStream = createInputStream(nextPart)) {
+        try (ByteArrayInputStream partInputStream = ByteHelper.createInputStream(nextPart)) {
             return new UploadPartRequest()
                     .withBucketName(remoteFile.getBucket())
                     .withKey(remoteFile.getFullPath())
@@ -202,19 +206,6 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         }
     }
 
-    private byte[] truncate(byte[] nextPartBytes, int partSize) {
-        if (partSize == nextPartBytes.length) {
-            return nextPartBytes;
-        }
-        byte[] result = new byte[partSize];
-        System.arraycopy(nextPartBytes, 0, result, 0, partSize);
-        return result;
-    }
-
-    private ByteArrayInputStream createInputStream(byte[] bytes) {
-        return new ByteArrayInputStream(bytes, 0, bytes.length);
-    }
-
     private byte[] getNextPart(long offset, InputStream inputStream, boolean readLastBytes) throws IOException {
         byte[] buffer = new byte[MINIMUM_PART_SIZE];
         int read = 0;
@@ -231,7 +222,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
                 break;
             }
         }
-        return truncate(buffer, read);
+        return ByteHelper.truncate(buffer, read);
     }
 
     private void skipAlreadyUploadedParts(long offset, InputStream inputStream) throws IOException {
