@@ -11,7 +11,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -75,6 +74,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     @Override
     public void upload(AmazonS3 s3, File file, RemoteFile remoteFile) throws Exception {
+        concurrentUploader.setClient(s3); //TODO: Put this in appropriate place
         initStrategy(s3, file, remoteFile, upload);
         uploadRequiredParts(s3, file, remoteFile);
     }
@@ -125,8 +125,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
                     uploadedSize += partData.length;
                     return getUploadPartRequest(remoteFile, partData, false, partNumber);
                 })
-                .map(request -> getUploadingCallable(s3, request))
-                .map(concurrentUploader.getExecutorService()::submit)
+                .map(concurrentUploader::submitTaskForPartUploading)
                 .map(this::getUploadingResult)
                 .forEach(eTags::add);
     }
@@ -161,25 +160,13 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
             boolean isLastPart = uploadLastPart && partSize < MINIMUM_PART_SIZE;
             UploadPartRequest request = getUploadPartRequest(remoteFile, nextPart, isLastPart, nextPartToUploadIndex++);
 
-            Future<PartETag> uploadingResult = concurrentUploader.getExecutorService().submit(getUploadingCallable(s3, request));
+            Future<PartETag> uploadingResult = concurrentUploader.submitTaskForPartUploading(request);
             uploadingResults.add(uploadingResult);
         }
 
         concurrentUploader.shutdownAndAwaitTermination();
 
         return uploadingResults;
-    }
-
-    private Callable<PartETag> getUploadingCallable(AmazonS3 s3, UploadPartRequest request) {
-        return () -> {
-            try {
-                UploadPartResult result = s3.uploadPart(request);
-                return result.getPartETag();
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            }
-        };
     }
 
     private UploadPartRequest getUploadPartRequest(RemoteFile remoteFile, byte[] nextPart, boolean isLastPart, int partNumber) {
