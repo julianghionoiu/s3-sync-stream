@@ -20,7 +20,7 @@ public class FolderSynchronizer {
         folderScanner.traverseFolder(folder, fileUploadingService::upload, recursive);
     }
 
-    public void setListener(SyncProgressListener listener) {
+    public void setListener(ProgressListener listener) {
         fileUploadingService.setListener(listener);
     }
 }

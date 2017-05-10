@@ -44,16 +44,16 @@ public class ConcurrentMultipartUploader {
         executorService.awaitTermination(MAX_UPLOADING_TIME, TimeUnit.SECONDS);
     }
 
-    public Future<PartETag> submitTaskForPartUploading(UploadPartRequest request) {
-        Callable<PartETag> task = createCallableForPartUploadingAndReturnETag(request);
+    public Future<MultipartUploadResult> submitTaskForPartUploading(UploadPartRequest request) {
+        Callable<MultipartUploadResult> task = createCallableForPartUploadingAndReturnETag(request);
         return executorService.submit(task);
     }
 
-    private Callable<PartETag> createCallableForPartUploadingAndReturnETag(UploadPartRequest request) {
+    private Callable<MultipartUploadResult> createCallableForPartUploadingAndReturnETag(UploadPartRequest request) {
         return () -> {
             try {
                 UploadPartResult result = client.uploadPart(request);
-                return result.getPartETag();
+                return new MultipartUploadResult(request, result);
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);

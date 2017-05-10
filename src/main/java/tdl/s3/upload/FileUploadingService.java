@@ -5,7 +5,8 @@ import com.amazonaws.services.s3.model.MultipartUpload;
 
 import java.io.File;
 import tdl.s3.helpers.ExistingMultipartUploadFinder;
-import tdl.s3.sync.SyncProgressListener;
+import tdl.s3.sync.DummyProgressListener;
+import tdl.s3.sync.ProgressListener;
 
 public class FileUploadingService {
 
@@ -15,7 +16,7 @@ public class FileUploadingService {
 
     private final String prefix;
 
-    private SyncProgressListener listener;
+    private ProgressListener listener;
 
     public FileUploadingService(AmazonS3 amazonS3, String bucket, String prefix) {
         this.amazonS3 = amazonS3;
@@ -23,7 +24,7 @@ public class FileUploadingService {
         this.prefix = prefix;
     }
 
-    public void setListener(SyncProgressListener listener) {
+    public void setListener(ProgressListener listener) {
         this.listener = listener;
     }
 
@@ -46,7 +47,7 @@ public class FileUploadingService {
         ExistingMultipartUploadFinder finder = new ExistingMultipartUploadFinder(amazonS3, remoteFile.getBucket(), remoteFile.getPrefix());
         MultipartUpload multipartUpload = finder.findOrNull(remoteFile);
 
-        UploadingStrategy strategy = new MultiPartUploadFileUploadingStrategy(multipartUpload);
+        UploadingStrategy strategy = new MultipartUploadFileUploadingStrategy(multipartUpload);
         strategy.setListener(listener);
         return new FileUploaderImpl(amazonS3, bucket, prefix, strategy);
     }

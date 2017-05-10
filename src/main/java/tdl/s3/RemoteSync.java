@@ -7,8 +7,8 @@ import tdl.s3.sync.Filters;
 import tdl.s3.sync.FolderScannerImpl;
 import tdl.s3.sync.FolderSynchronizer;
 import tdl.s3.sync.Source;
-import tdl.s3.sync.SyncProgressListener;
 import tdl.s3.upload.FileUploadingService;
+import tdl.s3.sync.ProgressListener;
 
 public class RemoteSync {
 
@@ -20,7 +20,7 @@ public class RemoteSync {
 
     private FolderSynchronizer folderSynchronizer;
 
-    private SyncProgressListener listener;
+    private ProgressListener listener;
 
     public RemoteSync(Source source, Destination destination) {
         this.source = source;
@@ -30,7 +30,7 @@ public class RemoteSync {
         this.destination = destination;
     }
 
-    public void setListener(SyncProgressListener listener) {
+    public void setListener(ProgressListener listener) {
         this.listener = listener;
     }
 

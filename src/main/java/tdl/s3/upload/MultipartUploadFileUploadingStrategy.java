@@ -9,21 +9,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import tdl.s3.helpers.ByteHelper;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
 import tdl.s3.helpers.MultipartUploadHelper;
-import tdl.s3.sync.SyncProgressListener;
+import tdl.s3.sync.DummyProgressListener;
+import tdl.s3.sync.ProgressListener;
 
-public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
+public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     //Minimum part size is 5 MB
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
@@ -48,7 +45,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private ConcurrentMultipartUploader concurrentUploader;
 
-    private SyncProgressListener listener;
+    private ProgressListener listener = new DummyProgressListener();
 
     /**
      * Creates new Multipart upload strategy
@@ -56,7 +53,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
      * @param upload {@link MultipartUpload} object that represents already
      * started uploading or null if it should be clean upload
      */
-    MultiPartUploadFileUploadingStrategy(MultipartUpload upload) {
+    MultipartUploadFileUploadingStrategy(MultipartUpload upload) {
         this(upload, DEFAULT_THREAD_COUNT);
     }
 
@@ -67,7 +64,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
      * started uploading or null if it should be clean upload
      * @param threadsCount count of threads that should be used for uploading
      */
-    MultiPartUploadFileUploadingStrategy(MultipartUpload upload, int threadsCount) {
+    MultipartUploadFileUploadingStrategy(MultipartUpload upload, int threadsCount) {
         concurrentUploader = new ConcurrentMultipartUploader(threadsCount);
         this.upload = upload;
 
@@ -78,6 +75,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         concurrentUploader.setClient(s3); //TODO: Put this in appropriate place
         this.client = s3;
         initStrategy(s3, file, remoteFile, upload);
+        listener.uploadFileStarted(file, uploadId);
         uploadRequiredParts(s3, file, remoteFile);
     }
 
@@ -131,10 +129,12 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
             )
                     .map(concurrentUploader::submitTaskForPartUploading)
                     .map(this::getUploadingResult)
+                    .map(e -> e.getResult().getPartETag())
                     .forEach(eTags::add);
             concurrentUploader.shutdownAndAwaitTermination();
             if (writingFinished) {
                 commit(s3, remoteFile);
+                listener.uploadFileFinished(file);
             }
         } catch (InterruptedException e) {
             throw new RuntimeException("File uploading was terminated.");
@@ -186,9 +186,11 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         }
     }
 
-    private PartETag getUploadingResult(Future<PartETag> future) {
+    private MultipartUploadResult getUploadingResult(Future<MultipartUploadResult> future) {
         try {
-            return future.get();
+            MultipartUploadResult result = future.get();
+            listener.uploadFileProgress(result.getRequest().getUploadId(), (int) result.getRequest().getPartSize());
+            return result;
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Some part uploads was unsuccessful. " + e.getMessage(), e);
         }
@@ -201,7 +203,7 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     @Override
-    public void setListener(SyncProgressListener listener) {
+    public void setListener(ProgressListener listener) {
         this.listener = listener;
     }
 

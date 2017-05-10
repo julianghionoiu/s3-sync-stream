@@ -3,11 +3,11 @@ package tdl.s3.upload;
 import com.amazonaws.services.s3.AmazonS3;
 
 import java.io.File;
-import tdl.s3.sync.SyncProgressListener;
+import tdl.s3.sync.ProgressListener;
 
 public interface UploadingStrategy {
 
     void upload(AmazonS3 s3, File file, RemoteFile remoteFile) throws Exception;
 
-    void setListener(SyncProgressListener listener);
+    void setListener(ProgressListener listener);
 }

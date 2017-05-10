@@ -6,7 +6,7 @@ import java.nio.file.Paths;
 
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.Parameter;
-import tdl.s3.cli.ProgressBar;
+import tdl.s3.cli.ProgressStatus;
 import tdl.s3.sync.Destination;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
@@ -39,7 +39,7 @@ public class SyncFileApp {
         Destination destination = buildDestination();
         RemoteSync sync = new RemoteSync(source, destination);
 
-        ProgressBar progressBar = new ProgressBar();
+        ProgressStatus progressBar = new ProgressStatus();
         sync.setListener(progressBar);
         sync.run();
     }

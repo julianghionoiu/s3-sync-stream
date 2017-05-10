@@ -4,7 +4,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
-import tdl.s3.sync.SyncProgressListener;
 
 @Slf4j
 public class FileUploaderImpl implements FileUploader {
