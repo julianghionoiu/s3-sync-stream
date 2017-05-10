@@ -16,6 +16,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import tdl.s3.helpers.ByteHelper;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
@@ -124,8 +125,14 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private void uploadRequiredParts(AmazonS3 s3, File file, RemoteFile remoteFile) throws IOException {
         try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            uploadFailedParts(s3, file, remoteFile);
-            uploadIncompleteParts(s3, remoteFile, inputStream, writingFinished);
+            Stream.concat(
+                    streamUploadForFailedParts(file, remoteFile),
+                    streamUploadForIncompleteParts(remoteFile, inputStream, writingFinished)
+            )
+                    .map(concurrentUploader::submitTaskForPartUploading)
+                    .map(this::getUploadingResult)
+                    .forEach(eTags::add);
+            concurrentUploader.shutdownAndAwaitTermination();
             if (writingFinished) {
                 commit(s3, remoteFile);
             }
@@ -134,47 +141,33 @@ public class MultiPartUploadFileUploadingStrategy implements UploadingStrategy {
         }
     }
 
-    private void uploadFailedParts(AmazonS3 s3, File file, RemoteFile remoteFile) {
-        failedMiddleParts.stream()
+    private Stream<UploadPartRequest> streamUploadForFailedParts(File file, RemoteFile remoteFile) {
+        return failedMiddleParts.stream()
                 .map(partNumber -> {
                     byte[] partData = ByteHelper.readPart(partNumber, file);
                     uploadedSize += partData.length;
                     return getUploadPartRequest(remoteFile, partData, false, partNumber);
-                })
-                .map(concurrentUploader::submitTaskForPartUploading)
-                .map(this::getUploadingResult)
-                .forEach(eTags::add);
+                });
+    }
+
+    private Stream<UploadPartRequest> streamUploadForIncompleteParts(RemoteFile remoteFile, InputStream inputStream, boolean writingFinished) throws IOException {
+        byte[] nextPart = ByteHelper.getNextPartFromInputStream(inputStream, uploadedSize, writingFinished);
+        int partSize = nextPart.length;
+        List<UploadPartRequest> requests = new ArrayList<>();
+        while (partSize > 0) {
+            boolean isLastPart = writingFinished && partSize < MINIMUM_PART_SIZE;
+            UploadPartRequest request = getUploadPartRequest(remoteFile, nextPart, isLastPart, nextPartToUploadIndex++);
+            requests.add(request);
+            nextPart = ByteHelper.getNextPartFromInputStream(inputStream, 0, writingFinished);
+            partSize = nextPart.length;
+        }
+        return requests.stream();
     }
 
     private void commit(AmazonS3 s3, RemoteFile remoteFile) {
         eTags.sort(Comparator.comparing(PartETag::getPartNumber));
         CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(remoteFile.getBucket(), remoteFile.getFullPath(), uploadId, eTags);
         s3.completeMultipartUpload(request);
-    }
-
-    private void uploadIncompleteParts(AmazonS3 s3, RemoteFile remoteFile, InputStream inputStream, boolean uploadLastPart) throws IOException, InterruptedException {
-        uploadPartsConcurrent(s3, remoteFile, inputStream, uploadLastPart).stream()
-                .map(this::getUploadingResult)
-                .forEach(eTags::add);
-    }
-
-    private List<Future<PartETag>> uploadPartsConcurrent(AmazonS3 s3, RemoteFile remoteFile, InputStream inputStream, boolean uploadLastPart) throws IOException, InterruptedException {
-        List<Future<PartETag>> uploadingResults = new ArrayList<>();
-
-        for (byte[] nextPart = ByteHelper.getNextPartFromInputStream(inputStream, uploadedSize, uploadLastPart);
-                nextPart.length > 0;
-                nextPart = ByteHelper.getNextPartFromInputStream(inputStream, 0, uploadLastPart)) {
-            int partSize = nextPart.length;
-            boolean isLastPart = uploadLastPart && partSize < MINIMUM_PART_SIZE;
-            UploadPartRequest request = getUploadPartRequest(remoteFile, nextPart, isLastPart, nextPartToUploadIndex++);
-
-            Future<PartETag> uploadingResult = concurrentUploader.submitTaskForPartUploading(request);
-            uploadingResults.add(uploadingResult);
-        }
-
-        concurrentUploader.shutdownAndAwaitTermination();
-
-        return uploadingResults;
     }
 
     private UploadPartRequest getUploadPartRequest(RemoteFile remoteFile, byte[] nextPart, boolean isLastPart, int partNumber) {
