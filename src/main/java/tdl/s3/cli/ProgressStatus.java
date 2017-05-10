@@ -42,7 +42,8 @@ public class ProgressStatus implements ProgressListener {
     @Override
     public void uploadFileProgress(String uploadId, int uploadedByte) {
         FileStat stat = fileStats.get(uploadId);
-        System.out.println("Uploaded " + uploadedByte + "/" + stat.getTotalSize() + " bytes");
+        stat.incrementUploadedSize(uploadedByte);
+        System.out.println("Uploaded " + stat.getUploadedSize() + "/" + stat.getTotalSize() + " bytes");
     }
 
     @Override
