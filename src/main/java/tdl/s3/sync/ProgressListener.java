@@ -4,9 +4,9 @@ import java.io.File;
 
 public interface ProgressListener {
 
-    public void uploadFileStarted(File file, String uploadId);
+    void uploadFileStarted(File file, String uploadId);
 
-    public void uploadFileProgress(String uploadId, int uploadedByte);
+    void uploadFileProgress(String uploadId, long uploadedByte);
 
-    public void uploadFileFinished(File file);
+    void uploadFileFinished(File file);
 }

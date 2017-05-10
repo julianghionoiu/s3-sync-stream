@@ -14,7 +14,7 @@ import tdl.s3.sync.Source;
 @Parameters
 public class SyncFileApp {
 
-    @Parameter(names = {"--config", "-c"}, required = false)
+    @Parameter(names = {"--config", "-c"})
     private String configPath;
 
     @Parameter(names = {"--dir", "-d"}, required = true)
@@ -24,7 +24,7 @@ public class SyncFileApp {
     private boolean recursive = false;
 
     @Parameter(names = {"--filter"})
-    private String regex = "^[0-9a-zA-Z\\_]+\\.txt$";
+    private String regex = "^[0-9a-zA-Z\\_]+\\.mp4";
 
     public static void main(String[] args) {
         SyncFileApp app = new SyncFileApp();
@@ -48,11 +48,10 @@ public class SyncFileApp {
         Filters filters = Filters.getBuilder()
                 .include(Filters.matches(regex))
                 .create();
-        Source source = Source.getBuilder(Paths.get(dirPath))
+        return Source.getBuilder(Paths.get(dirPath))
                 .setFilters(filters)
                 .setRecursive(recursive)
                 .create();
-        return source;
     }
 
     private Destination buildDestination() {

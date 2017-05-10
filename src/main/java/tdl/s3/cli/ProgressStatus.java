@@ -11,21 +11,21 @@ public class ProgressStatus implements ProgressListener {
 
         private int totalSize = 0;
 
-        private int uploadedSize = 0;
+        private long uploadedSize = 0;
 
-        public FileStat(int totalSize) {
+        FileStat(int totalSize) {
             this.totalSize = totalSize;
         }
 
-        public int getTotalSize() {
+        int getTotalSize() {
             return totalSize;
         }
 
-        public int getUploadedSize() {
+        long getUploadedSize() {
             return uploadedSize;
         }
 
-        public void incrementUploadedSize(int size) {
+        void incrementUploadedSize(long size) {
             this.uploadedSize += size;
         }
     }
@@ -40,7 +40,7 @@ public class ProgressStatus implements ProgressListener {
     }
 
     @Override
-    public void uploadFileProgress(String uploadId, int uploadedByte) {
+    public void uploadFileProgress(String uploadId, long uploadedByte) {
         FileStat stat = fileStats.get(uploadId);
         stat.incrementUploadedSize(uploadedByte);
         System.out.println("Uploaded " + stat.getUploadedSize() + "/" + stat.getTotalSize() + " bytes");

@@ -19,7 +19,7 @@ public class DummyProgressListener implements ProgressListener {
     }
 
     @Override
-    public void uploadFileProgress(String uploadId, int uploadedByte) {
+    public void uploadFileProgress(String uploadId, long uploadedByte) {
         //DO NOTHING
     }
 
