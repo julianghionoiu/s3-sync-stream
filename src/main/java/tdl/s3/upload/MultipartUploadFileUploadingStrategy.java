@@ -67,7 +67,6 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     MultipartUploadFileUploadingStrategy(MultipartUpload upload, int threadsCount) {
         concurrentUploader = new ConcurrentMultipartUploader(threadsCount);
         this.upload = upload;
-
     }
 
     @Override

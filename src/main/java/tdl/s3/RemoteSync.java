@@ -3,6 +3,7 @@ package tdl.s3;
 import com.amazonaws.services.s3.AmazonS3;
 import tdl.s3.credentials.AWSSecretsProvider;
 import tdl.s3.sync.Destination;
+import tdl.s3.sync.DummyProgressListener;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.FolderScannerImpl;
 import tdl.s3.sync.FolderSynchronizer;
@@ -28,6 +29,7 @@ public class RemoteSync {
             throw new RuntimeException("Source has to be a directory");
         }
         this.destination = destination;
+        this.listener = new DummyProgressListener();
     }
 
     public void setListener(ProgressListener listener) {

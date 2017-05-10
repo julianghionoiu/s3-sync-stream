@@ -16,7 +16,7 @@ public class FileUploadingService {
 
     private final String prefix;
 
-    private ProgressListener listener;
+    private ProgressListener listener = new DummyProgressListener();
 
     public FileUploadingService(AmazonS3 amazonS3, String bucket, String prefix) {
         this.amazonS3 = amazonS3;
