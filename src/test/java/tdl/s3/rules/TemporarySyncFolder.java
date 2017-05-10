@@ -17,6 +17,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 public class TemporarySyncFolder extends ExternalResource {
     public static final int PART_SIZE_IN_BYTES = 5 * 1024 * 1024;
@@ -72,6 +73,7 @@ public class TemporarySyncFolder extends ExternalResource {
         File targetFile = getFolderPath().resolve(fileName).toFile();
         try (FileOutputStream fileOutputStream = new FileOutputStream(targetFile, true)) {
             byte[] part = new byte[sizeInBytes];
+            new Random().nextBytes(part);
             fileOutputStream.write(part);
         } catch (IOException e) {
             throw new RuntimeException("Test interrupted.", e);

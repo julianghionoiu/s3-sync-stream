@@ -123,7 +123,8 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         targetSyncFolder.lock(fileName);
 
         String bucket = remoteTestBucket.getBucketName();
-        InitiateMultipartUploadResult result = remoteTestBucket.getAmazonS3().initiateMultipartUpload(new InitiateMultipartUploadRequest(bucket, fileName));
+        String uploadId = remoteTestBucket.initiateMultipartUpload(fileName);
+        
         //write third part of data
         targetSyncFolder.writeBytesToFile(fileName, PART_SIZE_IN_BYTES);
 
@@ -133,8 +134,8 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         byte[] thirdPart = new byte[PART_SIZE_IN_BYTES];
         System.arraycopy(fileContent, 0, firstPart, 0, PART_SIZE_IN_BYTES);
         System.arraycopy(fileContent, PART_SIZE_IN_BYTES * 2, thirdPart, 0, PART_SIZE_IN_BYTES);
-        uploadPart(fileName, bucket, result, firstPart, 1);
-        uploadPart(fileName, bucket, result, thirdPart, 3);
+        remoteTestBucket.uploadPart(fileName, uploadId, firstPart, 1);
+        remoteTestBucket.uploadPart(fileName, uploadId, thirdPart, 3);
 
         //write additional data and delete lock file
         targetSyncFolder.writeBytesToFile(fileName, ONE_MEGABYTE);
@@ -160,17 +161,4 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         assertTrue(remoteTestBucket.getObjectMetadata(fileName)
                 .getETag().startsWith(targetSyncFolder.getCompleteFileMD5(fileName)));
     }
-
-    private void uploadPart(String fileName, String bucket, InitiateMultipartUploadResult result, byte[] firstPart, int partNumber) throws NoSuchAlgorithmException {
-        UploadPartRequest request = new UploadPartRequest()
-                .withBucketName(bucket)
-                .withKey(fileName)
-                .withPartNumber(partNumber)
-                .withMD5Digest(Base64.getEncoder().encodeToString(MessageDigest.getInstance("MD5").digest(firstPart)))
-                .withPartSize(PART_SIZE_IN_BYTES)
-                .withUploadId(result.getUploadId())
-                .withInputStream(new ByteArrayInputStream(firstPart));
-        remoteTestBucket.getAmazonS3().uploadPart(request);
-    }
-
 }
