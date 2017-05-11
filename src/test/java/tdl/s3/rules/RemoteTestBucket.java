@@ -3,6 +3,7 @@ package tdl.s3.rules;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
+import java.io.ByteArrayInputStream;
 import lombok.Getter;
 import org.junit.rules.ExternalResource;
 import tdl.s3.credentials.AWSSecretsProvider;
@@ -11,6 +12,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
+
+import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
 
 @Getter
 public class RemoteTestBucket extends ExternalResource {
@@ -84,6 +90,30 @@ public class RemoteTestBucket extends ExternalResource {
         ListPartsRequest listPartsRequest = new ListPartsRequest(bucketName,
                 multipartUpload.getKey(), multipartUpload.getUploadId());
         return amazonS3.listParts(listPartsRequest).getParts();
+    }
+
+    public void upload(String key, Path path) {
+        PutObjectRequest objectRequest = new PutObjectRequest(bucketName, uploadPrefix + key, path.toFile());
+        amazonS3.putObject(objectRequest);
+    }
+
+    public String initiateMultipartUpload(String name) {
+        InitiateMultipartUploadResult result = amazonS3.initiateMultipartUpload(
+                new InitiateMultipartUploadRequest(bucketName, uploadPrefix + name)
+        );
+        return result.getUploadId();
+    }
+
+    public void uploadPart(String name, String uploadId, byte[] partData, int partNumber) throws NoSuchAlgorithmException {
+        UploadPartRequest request = new UploadPartRequest()
+                .withBucketName(bucketName)
+                .withKey(uploadPrefix + name)
+                .withPartNumber(partNumber)
+                .withMD5Digest(Base64.getEncoder().encodeToString(MessageDigest.getInstance("MD5").digest(partData)))
+                .withPartSize(PART_SIZE_IN_BYTES)
+                .withUploadId(uploadId)
+                .withInputStream(new ByteArrayInputStream(partData));
+        amazonS3.uploadPart(request);
     }
 
 }

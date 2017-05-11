@@ -3,12 +3,13 @@ package tdl.s3.sync;
 import tdl.s3.upload.FileUploadingService;
 
 import java.nio.file.Path;
+import java.util.List;
 
 public class FolderSynchronizer {
 
-    private FolderScanner folderScanner;
+    private final FolderScanner folderScanner;
 
-    private FileUploadingService fileUploadingService;
+    private final FileUploadingService fileUploadingService;
 
     public FolderSynchronizer(FolderScanner folderScanner, FileUploadingService fileUploadingService) {
         this.folderScanner = folderScanner;
@@ -17,5 +18,9 @@ public class FolderSynchronizer {
 
     public void synchronize(Path folder, boolean recursive) {
         folderScanner.traverseFolder(folder, fileUploadingService::upload, recursive);
+    }
+
+    public void setListener(ProgressListener listener) {
+        fileUploadingService.setListener(listener);
     }
 }

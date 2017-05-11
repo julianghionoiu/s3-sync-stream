@@ -1,76 +1,54 @@
 package tdl.s3.upload;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
 import com.amazonaws.services.s3.model.MultipartUpload;
-import com.amazonaws.services.s3.model.MultipartUploadListing;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import tdl.s3.helpers.ExistingMultipartUploadFinder;
+import tdl.s3.sync.DummyProgressListener;
+import tdl.s3.sync.ProgressListener;
 
 public class FileUploadingService {
+
     private final AmazonS3 amazonS3;
+
     private final String bucket;
-    private String prefix;
+
+    private final String prefix;
+
+    private ProgressListener listener = new DummyProgressListener();
 
     public FileUploadingService(AmazonS3 amazonS3, String bucket, String prefix) {
         this.amazonS3 = amazonS3;
         this.bucket = bucket;
-	    this.prefix = prefix;
+        this.prefix = prefix;
+    }
+
+    public void setListener(ProgressListener listener) {
+        this.listener = listener;
     }
 
     public void upload(File file) {
         RemoteFile remoteFile = new RemoteFile(bucket, prefix, file.getName(), amazonS3);
         upload(file, remoteFile);
     }
-    
+
     public void upload(File file, String remoteName) {
         RemoteFile remoteFile = new RemoteFile(bucket, prefix, remoteName, amazonS3);
         upload(file, remoteFile);
     }
 
     private void upload(File file, RemoteFile remoteFile) {
-        FileUploader fileUploader = bringFileUploader(remoteFile);
+        FileUploader fileUploader = createFileUploader(remoteFile);
         fileUploader.upload(file, remoteFile);
     }
 
-    private FileUploader bringFileUploader(RemoteFile remoteFile) {
-        List<MultipartUpload> alreadyStartedUploads = getMultipartUploads(amazonS3, remoteFile.getBucket(), remoteFile.getPrefix());
-        MultipartUpload multipartUpload = alreadyStartedUploads.stream()
-                .filter(upload -> upload.getKey().equals(remoteFile.getFullPath()))
-                .findAny()
-                .orElse(null);
-        UploadingStrategy strategy = new MultiPartUploadFileUploadingStrategy(multipartUpload);
+    private FileUploader createFileUploader(RemoteFile remoteFile) {
+        ExistingMultipartUploadFinder finder = new ExistingMultipartUploadFinder(amazonS3, remoteFile.getBucket(), remoteFile.getPrefix());
+        MultipartUpload multipartUpload = finder.findOrNull(remoteFile);
+
+        UploadingStrategy strategy = new MultipartUploadFileUploadingStrategy(multipartUpload);
+        strategy.setListener(listener);
         return new FileUploaderImpl(amazonS3, bucket, prefix, strategy);
-    }
-
-    private static List<MultipartUpload> getMultipartUploads(AmazonS3 s3, String bucket, String prefix) {
-        ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(bucket);
-        uploadsRequest.setPrefix(prefix);
-        MultipartUploadListing multipartUploadListing = s3.listMultipartUploads(uploadsRequest);
-
-        return Stream.of(multipartUploadListing)
-                .flatMap(listing -> getNextListing(s3, listing, bucket, prefix))
-                .map(MultipartUploadListing::getMultipartUploads)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
-    }
-
-    private static Stream<MultipartUploadListing> getNextListing(AmazonS3 s3, MultipartUploadListing listing,
-                                                          String bucket, String prefix) {
-        if (listing.isTruncated()) {
-            ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(bucket);
-            uploadsRequest.setPrefix(prefix);
-            uploadsRequest.setUploadIdMarker(listing.getNextUploadIdMarker());
-            uploadsRequest.setKeyMarker(listing.getNextKeyMarker());
-            Stream<MultipartUploadListing> head = Stream.of(listing);
-            Stream<MultipartUploadListing> tail = getNextListing(s3, s3.listMultipartUploads(uploadsRequest), bucket, prefix);
-            return Stream.concat(head, tail);
-        } else {
-            return Stream.of(listing);
-        }
     }
 }

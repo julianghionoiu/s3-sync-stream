@@ -11,8 +11,11 @@ public class FileUploaderImpl implements FileUploader {
     public static int RETRY_TIMES_COUNT = 2;
 
     private final AmazonS3 s3Provider;
+
     private final String bucket;
+
     private final String prefix;
+
     private final UploadingStrategy uploadingStrategy;
 
     public FileUploaderImpl(final AmazonS3 s3Provider, String bucket, String prefix, UploadingStrategy uploadingStrategy) {
@@ -54,7 +57,7 @@ public class FileUploaderImpl implements FileUploader {
             }
         }
     }
-    
+
     private void uploadInternal(File file, RemoteFile remoteFile) throws Exception {
         uploadingStrategy.upload(s3Provider, file, remoteFile);
     }
