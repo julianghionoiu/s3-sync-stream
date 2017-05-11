@@ -1,5 +1,6 @@
 package tdl.s3.upload;
 
+import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 
@@ -172,7 +173,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private UploadPartRequest getUploadPartRequest(RemoteFile remoteFile, byte[] nextPart, boolean isLastPart, int partNumber) {
         try (ByteArrayInputStream partInputStream = ByteHelper.createInputStream(nextPart)) {
-            return new UploadPartRequest()
+            UploadPartRequest request = new UploadPartRequest()
                     .withBucketName(remoteFile.getBucket())
                     .withKey(remoteFile.getFullPath())
                     .withPartNumber(partNumber)
@@ -181,15 +182,27 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                     .withPartSize(nextPart.length)
                     .withUploadId(uploadId)
                     .withInputStream(partInputStream);
+
+            request.setGeneralProgressListener(createListenerForUploadPartRequest(request));
+            return request;
         } catch (IOException ioe) {
             throw new RuntimeException(ioe.getMessage(), ioe);
         }
     }
 
+    private com.amazonaws.event.ProgressListener createListenerForUploadPartRequest(UploadPartRequest request) {
+        return new com.amazonaws.event.ProgressListener() {
+            @Override
+            public void progressChanged(com.amazonaws.event.ProgressEvent pe) {
+                listener.uploadFileProgress(request.getUploadId(), pe.getBytesTransferred());
+            }
+        };
+    }
+
     private MultipartUploadResult getUploadingResult(Future<MultipartUploadResult> future) {
         try {
             MultipartUploadResult result = future.get();
-            listener.uploadFileProgress(result.getRequest().getUploadId(), (int) result.getRequest().getPartSize());
+            //listener.uploadFileProgress(result.getRequest().getUploadId(), (int) result.getRequest().getPartSize());
             return result;
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Some part uploads was unsuccessful. " + e.getMessage(), e);
@@ -206,5 +219,4 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     public void setListener(ProgressListener listener) {
         this.listener = listener;
     }
-
 }
