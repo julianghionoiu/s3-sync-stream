@@ -122,14 +122,8 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private void uploadRequiredParts(AmazonS3 s3, File file, RemoteFile remoteFile) throws IOException {
         try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            Stream.concat(
-                    streamUploadForFailedParts(file, remoteFile),
-                    streamUploadForIncompleteParts(remoteFile, inputStream, writingFinished)
-            )
-                    .map(concurrentUploader::submitTaskForPartUploading)
-                    .map(this::getUploadingResult)
-                    .map(e -> e.getResult().getPartETag())
-                    .forEach(eTags::add);
+            submitUploadRequestStream(streamUploadForFailedParts(file, remoteFile));
+            submitUploadRequestStream(streamUploadForIncompleteParts(remoteFile, inputStream, writingFinished));
             concurrentUploader.shutdownAndAwaitTermination();
             if (writingFinished) {
                 commit(s3, remoteFile);
@@ -161,6 +155,13 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
             partSize = nextPart.length;
         }
         return requests.stream();
+    }
+
+    private void submitUploadRequestStream(Stream<UploadPartRequest> requestStream) {
+        requestStream.map(concurrentUploader::submitTaskForPartUploading)
+                .map(this::getUploadingResult)
+                .map(e -> e.getResult().getPartETag())
+                .forEach(eTags::add);
     }
 
     private void commit(AmazonS3 s3, RemoteFile remoteFile) {
