@@ -45,7 +45,7 @@ public class RemoteSync {
 
     private void buildUploadingService() {
         AWSSecretsProvider secret = destination.getSecret();
-        AmazonS3 client = destination.buildClient();
+        AmazonS3 client = destination.getClient();
         fileUploadingService = new FileUploadingService(
                 client,
                 secret.getS3Bucket(),

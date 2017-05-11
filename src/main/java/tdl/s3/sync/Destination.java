@@ -9,6 +9,8 @@ import tdl.s3.credentials.AWSSecretsProvider;
 public class Destination {
 
     private AWSSecretsProvider secret;
+    
+    private AmazonS3 client;
 
     public static class Builder {
 
@@ -22,6 +24,7 @@ public class Destination {
         }
 
         public final Destination create() {
+            this.destination.buildClient();
             return this.destination;
         }
     }
@@ -41,8 +44,12 @@ public class Destination {
         return secret;
     }
 
-    public AmazonS3 buildClient() {
-        return AmazonS3ClientBuilder.standard()
+    public AmazonS3 getClient() {
+        return client;
+    }
+    
+    private void buildClient() {
+        this.client = AmazonS3ClientBuilder.standard()
                 .withCredentials(secret)
                 .withRegion(secret.getS3Region())
                 .build();
