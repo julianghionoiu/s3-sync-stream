@@ -43,7 +43,7 @@ public class FolderScannerImplTest {
         folderScanner = new FolderScannerImpl(filters);
 
         //create empty directory if not exists
-        emptyDirPath = Paths.get("empty_dir");
+        emptyDirPath = Paths.get("build", "empty_dir");
         if (! Files.exists(emptyDirPath)) {
             Files.createDirectory(emptyDirPath);
         }
