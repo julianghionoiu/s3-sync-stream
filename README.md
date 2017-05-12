@@ -1,5 +1,5 @@
 [![Java Version](http://img.shields.io/badge/Java-1.8-blue.svg)](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
-[![Latest release](https://img.shields.io/bintray/v/julianghionoiu/maven/s3-sync-stream.svg)](https://bintray.com/julianghionoiu/maven/s3-sync-stream/0.0.3)
+[![Latest release](https://img.shields.io/bintray/v/julianghionoiu/maven/s3-sync-stream.svg)](https://bintray.com/julianghionoiu/maven/s3-sync-stream/_latestVersion)
 [![Codeship Status for julianghionoiu/s3-sync-stream](https://img.shields.io/codeship/b617e390-006f-0135-fe1b-4ee982914aba/master.svg)](https://codeship.com/projects/212588)
 [![Coverage Status](https://coveralls.io/repos/github/julianghionoiu/s3-sync-stream/badge.svg?branch=master)](https://coveralls.io/github/julianghionoiu/s3-sync?branch=master)
 
