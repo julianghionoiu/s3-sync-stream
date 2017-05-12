@@ -1,5 +1,6 @@
 package tdl.s3.upload;
 
+import com.amazonaws.services.s3.AmazonS3;
 import java.io.File;
 
 /**
@@ -7,6 +8,8 @@ import java.io.File;
  *
  */
 public interface FileUploader {
+    
+    void setClient(AmazonS3 client);
 
     void upload(File file);
 

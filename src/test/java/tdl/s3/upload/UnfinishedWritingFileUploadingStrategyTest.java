@@ -59,13 +59,16 @@ public class UnfinishedWritingFileUploadingStrategyTest {
 
     @Test
     public void upload_newlyCreatedButIncompleteFile() throws Exception {
-        MultipartUploadFileUploadingStrategy strategy = new MultipartUploadFileUploadingStrategy(null, 1);
+        RemoteFile remoteFile = mock(RemoteFile.class);
+        MultipartUploadFileUploadingStrategy strategy = spy(new MultipartUploadFileUploadingStrategy(amazonS3));
+        doReturn(null).when(strategy).findMultiPartUpload(any());
+        
         FileUploader fileUploader = new FileUploaderImpl(amazonS3, "bucket", "test_prefix/", strategy);
 
         String fileName = "unfinished_writing_file.bin";
         targetSyncFolder.addFileFromResources(fileName);
         targetSyncFolder.lock(fileName);
-        fileUploader.upload(targetSyncFolder.getFilePath(fileName).toFile());
+        fileUploader.upload(targetSyncFolder.getFilePath(fileName).toFile(), remoteFile);
 
         //verify that uploading started
         verify(amazonS3, times(1)).initiateMultipartUpload(any());
@@ -78,10 +81,11 @@ public class UnfinishedWritingFileUploadingStrategyTest {
         targetSyncFolder.unlock(fileName);
 
 
-        MultipartUploadFileUploadingStrategy newStrategy = new MultipartUploadFileUploadingStrategy(multipartUpload, 1);
+        MultipartUploadFileUploadingStrategy newStrategy = spy(new MultipartUploadFileUploadingStrategy(amazonS3, 1));
+        doReturn(multipartUpload).when(newStrategy).findMultiPartUpload(any());
         FileUploader newFileUploader = new FileUploaderImpl(amazonS3, "bucket", "test_prefix/", newStrategy);
         //upload the rest of the file
-        newFileUploader.upload(targetSyncFolder.getFilePath(fileName).toFile());
+        newFileUploader.upload(targetSyncFolder.getFilePath(fileName).toFile(), remoteFile);
 
         //verify that rest part uploaded (4 times means 2 from previous session and 2 current)
         verify(amazonS3, times(4)).uploadPart(any());

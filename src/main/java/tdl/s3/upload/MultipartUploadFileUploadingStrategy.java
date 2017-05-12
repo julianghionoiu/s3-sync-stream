@@ -15,6 +15,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import tdl.s3.helpers.ByteHelper;
+import tdl.s3.helpers.ExistingMultipartUploadFinder;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
 import tdl.s3.helpers.MultipartUploadHelper;
@@ -29,8 +30,6 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     private static final int DEFAULT_THREAD_COUNT = 4;
 
     private AmazonS3 client;
-
-    private final MultipartUpload upload;
 
     private String uploadId;
 
@@ -54,8 +53,8 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
      * @param upload {@link MultipartUpload} object that represents already
      * started uploading or null if it should be clean upload
      */
-    MultipartUploadFileUploadingStrategy(MultipartUpload upload) {
-        this(upload, DEFAULT_THREAD_COUNT);
+    MultipartUploadFileUploadingStrategy(AmazonS3 client) {
+        this(client, DEFAULT_THREAD_COUNT);
     }
 
     /**
@@ -65,23 +64,28 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
      * started uploading or null if it should be clean upload
      * @param threadsCount count of threads that should be used for uploading
      */
-    MultipartUploadFileUploadingStrategy(MultipartUpload upload, int threadsCount) {
+    MultipartUploadFileUploadingStrategy(AmazonS3 client, int threadsCount) {
+        this.client = client;
         concurrentUploader = new ConcurrentMultipartUploader(threadsCount);
-        this.upload = upload;
     }
-
+    
     @Override
-    public void upload(AmazonS3 s3, File file, RemoteFile remoteFile) throws Exception {
-        concurrentUploader.setClient(s3); //TODO: Put this in appropriate place
-        this.client = s3;
-        initStrategy(s3, file, remoteFile, upload);
+    public void upload(File file, RemoteFile remoteFile) throws Exception {
+        concurrentUploader.setClient(client);
+        initStrategy(file, remoteFile);
         listener.uploadFileStarted(file, uploadId);
-        uploadRequiredParts(s3, file, remoteFile);
+        uploadRequiredParts(file, remoteFile);
+    }
+    
+    public MultipartUpload findMultiPartUpload(RemoteFile remoteFile) {
+        ExistingMultipartUploadFinder finder = new ExistingMultipartUploadFinder(client, remoteFile.getBucket(), remoteFile.getPrefix());
+        return finder.findOrNull(remoteFile);
     }
 
-    private void initStrategy(AmazonS3 s3, File file, RemoteFile remoteFile, MultipartUpload upload) {
+    private void initStrategy(File file, RemoteFile remoteFile) {
         writingFinished = !FileHelper.lockFileExists(file);
-        PartListing alreadyUploadedParts = MultipartUploadHelper.getAlreadyUploadedParts(s3, remoteFile, upload);
+        MultipartUpload multipartUpload = findMultiPartUpload(remoteFile);
+        PartListing alreadyUploadedParts = MultipartUploadHelper.getAlreadyUploadedParts(client, remoteFile, multipartUpload);
 
         boolean uploadingStarted = alreadyUploadedParts != null;
         if (!uploadingStarted) {
@@ -94,7 +98,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private void initAttributes(RemoteFile remoteFile) {
-        uploadId = initUploading(client, remoteFile);
+        uploadId = initUploading(remoteFile);
         uploadedSize = 0;
         failedMiddleParts = Collections.emptySet();
         nextPartToUploadIndex = 1;
@@ -121,13 +125,13 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         }
     }
 
-    private void uploadRequiredParts(AmazonS3 s3, File file, RemoteFile remoteFile) throws IOException {
+    private void uploadRequiredParts(File file, RemoteFile remoteFile) throws IOException {
         try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             submitUploadRequestStream(streamUploadForFailedParts(file, remoteFile));
             submitUploadRequestStream(streamUploadForIncompleteParts(remoteFile, inputStream, writingFinished));
             concurrentUploader.shutdownAndAwaitTermination();
             if (writingFinished) {
-                commit(s3, remoteFile);
+                commit(remoteFile);
                 listener.uploadFileFinished(file);
             }
         } catch (InterruptedException e) {
@@ -165,10 +169,10 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                 .forEach(eTags::add);
     }
 
-    private void commit(AmazonS3 s3, RemoteFile remoteFile) {
+    private void commit(RemoteFile remoteFile) {
         eTags.sort(Comparator.comparing(PartETag::getPartNumber));
         CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(remoteFile.getBucket(), remoteFile.getFullPath(), uploadId, eTags);
-        s3.completeMultipartUpload(request);
+        client.completeMultipartUpload(request);
     }
 
     private UploadPartRequest getUploadPartRequest(RemoteFile remoteFile, byte[] nextPart, boolean isLastPart, int partNumber) {
@@ -209,14 +213,19 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         }
     }
 
-    private String initUploading(AmazonS3 s3, RemoteFile remoteFile) {
+    private String initUploading(RemoteFile remoteFile) {
         InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(remoteFile.getBucket(), remoteFile.getFullPath());
-        InitiateMultipartUploadResult result = s3.initiateMultipartUpload(request);
+        InitiateMultipartUploadResult result = client.initiateMultipartUpload(request);
         return result.getUploadId();
     }
 
     @Override
     public void setListener(ProgressListener listener) {
         this.listener = listener;
+    }
+
+    @Override
+    public void setClient(AmazonS3 client) {
+        this.client = client;
     }
 }

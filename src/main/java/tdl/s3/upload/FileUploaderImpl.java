@@ -10,7 +10,7 @@ public class FileUploaderImpl implements FileUploader {
 
     public static int RETRY_TIMES_COUNT = 2;
 
-    private final AmazonS3 s3Provider;
+    private AmazonS3 client;
 
     private final String bucket;
 
@@ -19,7 +19,7 @@ public class FileUploaderImpl implements FileUploader {
     private final UploadingStrategy uploadingStrategy;
 
     public FileUploaderImpl(final AmazonS3 s3Provider, String bucket, String prefix, UploadingStrategy uploadingStrategy) {
-        this.s3Provider = s3Provider;
+        this.client = s3Provider;
         this.bucket = bucket;
         this.prefix = prefix;
         this.uploadingStrategy = uploadingStrategy;
@@ -27,7 +27,7 @@ public class FileUploaderImpl implements FileUploader {
 
     @Override
     public void upload(File file) {
-        RemoteFile remoteFile = new RemoteFile(bucket, prefix, file.getName(), s3Provider);
+        RemoteFile remoteFile = new RemoteFile(bucket, prefix, file.getName(), client);
         upload(file, remoteFile);
     }
 
@@ -39,6 +39,11 @@ public class FileUploaderImpl implements FileUploader {
     @Override
     public boolean exists(RemoteFile remoteFile) {
         return remoteFile.exists();
+    }
+
+    @Override
+    public void setClient(AmazonS3 client) {
+        this.client = client;
     }
 
     private void upload(File file, RemoteFile remoteFile, int retry) {
@@ -59,7 +64,8 @@ public class FileUploaderImpl implements FileUploader {
     }
 
     private void uploadInternal(File file, RemoteFile remoteFile) throws Exception {
-        uploadingStrategy.upload(s3Provider, file, remoteFile);
+        uploadingStrategy.setClient(client);
+        uploadingStrategy.upload(file, remoteFile);
     }
 
 }
