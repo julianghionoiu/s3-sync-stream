@@ -5,23 +5,18 @@ import com.amazonaws.services.s3.model.MultipartUpload;
 
 import java.io.File;
 import tdl.s3.helpers.ExistingMultipartUploadFinder;
+import tdl.s3.sync.Destination;
 import tdl.s3.sync.DummyProgressListener;
 import tdl.s3.sync.ProgressListener;
 
 public class FileUploadingService {
 
-    private final AmazonS3 client;
-
-    private final String bucket;
-
-    private final String prefix;
+    private final Destination destination;
 
     private ProgressListener listener = new DummyProgressListener();
 
-    public FileUploadingService(AmazonS3 client, String bucket, String prefix) {
-        this.client = client;
-        this.bucket = bucket;
-        this.prefix = prefix;
+    public FileUploadingService(Destination destination) {
+        this.destination = destination;
     }
 
     public void setListener(ProgressListener listener) {
@@ -29,12 +24,12 @@ public class FileUploadingService {
     }
 
     public void upload(File file) {
-        RemoteFile remoteFile = new RemoteFile(bucket, prefix, file.getName(), client);
+        RemoteFile remoteFile = this.destination.createRemoteFile(file.getName());
         upload(file, remoteFile);
     }
 
     public void upload(File file, String remoteName) {
-        RemoteFile remoteFile = new RemoteFile(bucket, prefix, remoteName, client);
+        RemoteFile remoteFile = this.destination.createRemoteFile(remoteName);
         upload(file, remoteFile);
     }
 
@@ -44,8 +39,8 @@ public class FileUploadingService {
     }
 
     private FileUploader createFileUploader() {
-        UploadingStrategy strategy = new MultipartUploadFileUploadingStrategy(client);
+        UploadingStrategy strategy = new MultipartUploadFileUploadingStrategy(destination);
         strategy.setListener(listener);
-        return new FileUploaderImpl(client, bucket, prefix, strategy);
+        return new FileUploaderImpl(destination, strategy);
     }
 }

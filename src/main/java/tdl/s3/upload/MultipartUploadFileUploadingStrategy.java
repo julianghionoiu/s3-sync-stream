@@ -19,6 +19,7 @@ import tdl.s3.helpers.ExistingMultipartUploadFinder;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
 import tdl.s3.helpers.MultipartUploadHelper;
+import tdl.s3.sync.Destination;
 import tdl.s3.sync.DummyProgressListener;
 import tdl.s3.sync.ProgressListener;
 
@@ -28,8 +29,8 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
 
     private static final int DEFAULT_THREAD_COUNT = 4;
-
-    private AmazonS3 client;
+    
+    private Destination destination;
 
     private String uploadId;
 
@@ -49,43 +50,37 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     /**
      * Creates new Multipart upload strategy
-     *
-     * @param upload {@link MultipartUpload} object that represents already
-     * started uploading or null if it should be clean upload
      */
-    MultipartUploadFileUploadingStrategy(AmazonS3 client) {
-        this(client, DEFAULT_THREAD_COUNT);
+    MultipartUploadFileUploadingStrategy(Destination destination) {
+        this(destination, DEFAULT_THREAD_COUNT);
     }
 
     /**
-     * Creates new Multipart upload strategy
-     *
-     * @param upload {@link MultipartUpload} object that represents already
-     * started uploading or null if it should be clean upload
+     * Creates new Multipart upload strategy.
      * @param threadsCount count of threads that should be used for uploading
      */
-    MultipartUploadFileUploadingStrategy(AmazonS3 client, int threadsCount) {
-        this.client = client;
+    MultipartUploadFileUploadingStrategy(Destination destination, int threadsCount) {
+        this.destination = destination;
         concurrentUploader = new ConcurrentMultipartUploader(threadsCount);
     }
     
     @Override
     public void upload(File file, RemoteFile remoteFile) throws Exception {
-        concurrentUploader.setClient(client);
+        concurrentUploader.setClient(destination.getClient());
         initStrategy(file, remoteFile);
         listener.uploadFileStarted(file, uploadId);
         uploadRequiredParts(file, remoteFile);
     }
     
     public MultipartUpload findMultiPartUpload(RemoteFile remoteFile) {
-        ExistingMultipartUploadFinder finder = new ExistingMultipartUploadFinder(client, remoteFile.getBucket(), remoteFile.getPrefix());
+        ExistingMultipartUploadFinder finder = new ExistingMultipartUploadFinder(destination.getClient(), remoteFile.getBucket(), remoteFile.getPrefix());
         return finder.findOrNull(remoteFile);
     }
 
     private void initStrategy(File file, RemoteFile remoteFile) {
         writingFinished = !FileHelper.lockFileExists(file);
         MultipartUpload multipartUpload = findMultiPartUpload(remoteFile);
-        PartListing alreadyUploadedParts = MultipartUploadHelper.getAlreadyUploadedParts(client, remoteFile, multipartUpload);
+        PartListing alreadyUploadedParts = MultipartUploadHelper.getAlreadyUploadedParts(destination.getClient(), remoteFile, multipartUpload);
 
         boolean uploadingStarted = alreadyUploadedParts != null;
         if (!uploadingStarted) {
@@ -172,7 +167,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     private void commit(RemoteFile remoteFile) {
         eTags.sort(Comparator.comparing(PartETag::getPartNumber));
         CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(remoteFile.getBucket(), remoteFile.getFullPath(), uploadId, eTags);
-        client.completeMultipartUpload(request);
+        destination.getClient().completeMultipartUpload(request);
     }
 
     private UploadPartRequest getUploadPartRequest(RemoteFile remoteFile, byte[] nextPart, boolean isLastPart, int partNumber) {
@@ -215,7 +210,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private String initUploading(RemoteFile remoteFile) {
         InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(remoteFile.getBucket(), remoteFile.getFullPath());
-        InitiateMultipartUploadResult result = client.initiateMultipartUpload(request);
+        InitiateMultipartUploadResult result = destination.getClient().initiateMultipartUpload(request);
         return result.getUploadId();
     }
 
@@ -223,9 +218,10 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     public void setListener(ProgressListener listener) {
         this.listener = listener;
     }
-
+    
+    
     @Override
-    public void setClient(AmazonS3 client) {
-        this.client = client;
+    public void setDestination(Destination destination) {
+        this.destination = destination;
     }
 }

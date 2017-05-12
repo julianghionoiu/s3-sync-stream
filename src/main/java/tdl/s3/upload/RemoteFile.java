@@ -15,17 +15,10 @@ public class RemoteFile {
 
     private final String path;
 
-    private AmazonS3 client;
-
-    public RemoteFile(String bucket, String prefix, String path, AmazonS3 client) {
+    public RemoteFile(String bucket, String prefix, String path) {
         this.bucket = bucket;
         this.prefix = prefix;
         this.path = path;
-        this.client = client;
-    }
-
-    public void setClient(AmazonS3 client) {
-        this.client = client;
     }
 
     public String getPrefix() {
@@ -38,20 +31,5 @@ public class RemoteFile {
 
     public String getFullPath() {
         return prefix + path;
-    }
-
-    public boolean exists() {
-        try {
-            client.getObjectMetadata(bucket, getFullPath());
-            return true;
-        } catch (NotFoundException ex) {
-            return false;
-        } catch (AmazonS3Exception ex) {
-            if (ex.getStatusCode() == 404) {
-                return false;
-            } else {
-                throw ex;
-            }
-        }
     }
 }

@@ -18,6 +18,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 import static tdl.s3.rules.TemporarySyncFolder.ONE_MEGABYTE;
 import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
+import tdl.s3.sync.Destination;
 
 @RunWith(MockitoJUnitRunner.class)
 public class UnfinishedWritingFileUploadingStrategyTest {
@@ -39,6 +40,8 @@ public class UnfinishedWritingFileUploadingStrategyTest {
     private PartETag partETag;
     @Mock
     private MultipartUpload multipartUpload;
+    @Mock
+    private Destination destination;
 
     @Before
     public void setUp() throws Exception {
@@ -55,15 +58,16 @@ public class UnfinishedWritingFileUploadingStrategyTest {
 
         when(partSummary.getPartNumber()).thenReturn(0);
         when(partSummary.getSize()).thenReturn(10L * 1024 * 1024);
+        when(destination.getClient()).thenReturn(amazonS3);
     }
 
     @Test
     public void upload_newlyCreatedButIncompleteFile() throws Exception {
         RemoteFile remoteFile = mock(RemoteFile.class);
-        MultipartUploadFileUploadingStrategy strategy = spy(new MultipartUploadFileUploadingStrategy(amazonS3));
+        MultipartUploadFileUploadingStrategy strategy = spy(new MultipartUploadFileUploadingStrategy(destination));
         doReturn(null).when(strategy).findMultiPartUpload(any());
         
-        FileUploader fileUploader = new FileUploaderImpl(amazonS3, "bucket", "test_prefix/", strategy);
+        FileUploader fileUploader = new FileUploaderImpl(destination, strategy);
 
         String fileName = "unfinished_writing_file.bin";
         targetSyncFolder.addFileFromResources(fileName);
@@ -81,9 +85,9 @@ public class UnfinishedWritingFileUploadingStrategyTest {
         targetSyncFolder.unlock(fileName);
 
 
-        MultipartUploadFileUploadingStrategy newStrategy = spy(new MultipartUploadFileUploadingStrategy(amazonS3, 1));
+        MultipartUploadFileUploadingStrategy newStrategy = spy(new MultipartUploadFileUploadingStrategy(destination, 1));
         doReturn(multipartUpload).when(newStrategy).findMultiPartUpload(any());
-        FileUploader newFileUploader = new FileUploaderImpl(amazonS3, "bucket", "test_prefix/", newStrategy);
+        FileUploader newFileUploader = new FileUploaderImpl(destination, newStrategy);
         //upload the rest of the file
         newFileUploader.upload(targetSyncFolder.getFilePath(fileName).toFile(), remoteFile);
 

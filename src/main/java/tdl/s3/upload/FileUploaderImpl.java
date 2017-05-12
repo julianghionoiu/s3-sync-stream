@@ -4,30 +4,25 @@ import com.amazonaws.services.s3.AmazonS3;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
+import tdl.s3.sync.Destination;
 
 @Slf4j
 public class FileUploaderImpl implements FileUploader {
 
     public static int RETRY_TIMES_COUNT = 2;
 
-    private AmazonS3 client;
-
-    private final String bucket;
-
-    private final String prefix;
+    private final Destination destination;
 
     private final UploadingStrategy uploadingStrategy;
 
-    public FileUploaderImpl(final AmazonS3 s3Provider, String bucket, String prefix, UploadingStrategy uploadingStrategy) {
-        this.client = s3Provider;
-        this.bucket = bucket;
-        this.prefix = prefix;
+    public FileUploaderImpl(final Destination destination, UploadingStrategy uploadingStrategy) {
+        this.destination = destination;
         this.uploadingStrategy = uploadingStrategy;
     }
 
     @Override
     public void upload(File file) {
-        RemoteFile remoteFile = new RemoteFile(bucket, prefix, file.getName(), client);
+        RemoteFile remoteFile = destination.createRemoteFile(file.getName());
         upload(file, remoteFile);
     }
 
@@ -38,12 +33,7 @@ public class FileUploaderImpl implements FileUploader {
 
     @Override
     public boolean exists(RemoteFile remoteFile) {
-        return remoteFile.exists();
-    }
-
-    @Override
-    public void setClient(AmazonS3 client) {
-        this.client = client;
+        return destination.existsRemoteFile(remoteFile);
     }
 
     private void upload(File file, RemoteFile remoteFile, int retry) {
@@ -64,7 +54,7 @@ public class FileUploaderImpl implements FileUploader {
     }
 
     private void uploadInternal(File file, RemoteFile remoteFile) throws Exception {
-        uploadingStrategy.setClient(client);
+        uploadingStrategy.setDestination(destination);
         uploadingStrategy.upload(file, remoteFile);
     }
 
