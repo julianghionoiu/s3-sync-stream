@@ -19,8 +19,7 @@ buildscript {
 apply plugin: 'java'
 apply plugin: 'application'
 
-group 'ro'
-version '1.0-SNAPSHOT'
+group 'tdl'
 
 //noinspection GroovyUnusedAssignment
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -84,7 +83,86 @@ jacocoTestReport {
     }
 }
 
+//~~~~~ Release management
 
-// ~~~~~ Release management
-
+/**
+ * Prerequisites
+ *    - Create package in Bintray
+ *
+ * Now you can use regular maven upload to push files to you package.
+ * The version will be created automatically
+ *
+ * To push to Maven Central use Bintray sync features:
+ *    - Created request for jcenter ( if missing )
+ *    - Manually sync the two repos
+ *
+ * To publish new version use the Bintray UI:
+ *    - publish current artifacts
+ *    - sync with Maven Central
+ */
 apply plugin: "ch.netzwerg.release"
+apply plugin: 'maven'
+
+release {
+    dependsOn build // 'distZip' could e.g be used in combination with the 'application' plugin
+    push = false // 'true' would e.g. be useful when triggering the release task on a CI server
+    versionSuffix = '-SNAPSHOT' // '.DEV' or '' (empty) could be useful alternatives
+    tagPrefix = 'v' // 'r' or '' (empty) could be useful alternatives
+}
+
+private static String readSystem(String property) {
+    System.getenv(property) != null  ? System.getenv(property) : "unset"
+}
+
+task sourceJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+// Add the sourceJars to non-extractor modules
+artifacts {
+    archives sourceJar
+    archives javadocJar
+}
+
+uploadArchives {
+    repositories.mavenDeployer {
+        name = 'bintray-julianghionoiu-s3-sync-stream'
+        repository(id: 'bintray-julianghionoiu-s3-sync-stream',
+                url: 'https://api.bintray.com/maven/julianghionoiu/maven/s3-sync-stream') {
+            authentication(userName: readSystem("BINTRAY_USER"), password: readSystem("BINTRAY_KEY"))
+        }
+
+        pom.project {
+            name 'S3 Sync Stream'
+            description 'Library that continuously syncs the contents of a folder to an S3 bucket. Optimised for streaming file formats (video, logs).'
+            url 'https://github.com/julianghionoiu/s3-sync-stream'
+
+            developers {
+                developer {
+                    name 'Iulian (Julian) Ghionoiu'
+                    email 'iulian.ghionoiu@gmail.com'
+                    organization 'Iulian Ghionoiu'
+                    organizationUrl 'https://github.com/julianghionoiu'
+                }
+            }
+
+            scm {
+                connection 'scm:git:git@github.com:julianghionoiu/s3-sync-stream.git'
+                developerConnection 'scm:git:git@github.com:julianghionoiu/s3-sync-stream.git'
+                url 'git@github.com:julianghionoiu/s3-sync-stream.git'
+            }
+
+            licenses {
+                license {
+                    name 'Apache License, Version 2.0'
+                    url 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                }
+            }
+        }
+    }
+}
