@@ -3,12 +3,12 @@
 [![Codeship Status for julianghionoiu/s3-sync-stream](https://img.shields.io/codeship/b617e390-006f-0135-fe1b-4ee982914aba/master.svg)](https://codeship.com/projects/212588)
 [![Coverage Status](https://coveralls.io/repos/github/julianghionoiu/s3-sync-stream/badge.svg?branch=master)](https://coveralls.io/github/julianghionoiu/s3-sync?branch=master)
 
-Library that continuously syncs the contents of a folder to an S3 bucket. Optimised for streaming file formats (video, logs).
+`s3-sync-stream` is library that continuously syncs the contents of a folder to an S3 bucket. Optimised for streaming file formats (video, logs).
 
-The library will aggresively try to upload content as it is being generated:
-* Each chunk will be uploaded as a part in a multipart upload.
-* The multipart upload in kept open while the file is being generated. 
-* To signal the fact that file is being generated, the generator has to create a `.lock` with the same name.
+The library will aggresively upload content as it is being generated:
+* Each chunk will be uploaded as a part in a multipart upload
+* The multipart upload in kept open while the file is being generated 
+* It is the responsibility of the generator to create a `.lock` with the same name.
 * Once the file generation is completed and the `.lock` file removed, the multipart upload will be finalised.
 
 
@@ -24,6 +24,10 @@ Add a dependency to `tdl:s3-sync-stream` in test scope. (Note: 0.0.3 is the late
   <version>0.0.3</version>
 </dependency>
 ```
+
+### Configure AWS user with minimal permissions
+
+**WIP** - TODO Add detailed IAM instructions
 
 ### Define sync source and destination
 
@@ -113,17 +117,12 @@ s3_bucket=bucketname
 s3_prefix=prefix
 ```
 
-The available values are
-1. `aws_access_key_id`
-    This contains the access key to the AWS account.
-2. `aws_secret_access_key`
-    This contains the secret key to the AWS account.
-3. `s3_region`
-    This contains the region that holds the S3 bucket.
-4. `s3_bucket`
-    This contains the bucket that will store the uploaded files.
-5. `s3_prefix`
-    This contains optional prefix for the base storage.
+The values are:
+* `aws_access_key_id` - access key to the AWS account.
+* `aws_secret_access_key` - secret key to the AWS account.
+* `s3_region` - this contains the region that holds the S3 bucket.
+* `s3_bucket` the bucket that will store the uploaded files.
+* `s3_prefix` S3 prefix that will be added before all files
 
 ### Build and run as command-line app
 ```bash
