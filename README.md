@@ -127,7 +127,8 @@ The values are:
 ### Build and run as command-line app
 ```bash
 ./gradlew shadowJar
-java -jar ./build/libs/s3-sync-1.0-SNAPSHOT-all.jar \
+java -Dlogback.configurationFile=`pwd`/logback.xml \
+    -jar ./build/libs/s3-sync-1.0-SNAPSHOT-all.jar \
     -c config.properties \
     -d $PATH_TO_REC/ \
     -R \
