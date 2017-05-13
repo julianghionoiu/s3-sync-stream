@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import tdl.s3.credentials.AWSSecretsProvider;
+import tdl.s3.helpers.ExistingMultipartUploadFinder;
 import tdl.s3.upload.MultipartUploadResult;
 
 public class Destination {
@@ -115,8 +116,11 @@ public class Destination {
         return new MultipartUploadResult(request, result);
     }
 
-    public PartListing getAlreadyUploadedParts(String remotePath, MultipartUpload upload) {
-        return Optional.ofNullable(upload)
+    public PartListing getAlreadyUploadedParts(String remotePath) {
+        ExistingMultipartUploadFinder finder = new ExistingMultipartUploadFinder(this);
+        MultipartUpload multipartUpload = finder.findOrNull(remotePath);
+        
+        return Optional.ofNullable(multipartUpload)
                 .map(MultipartUpload::getUploadId)
                 .map(id -> getPartListing(remotePath, id))
                 .orElse(null);

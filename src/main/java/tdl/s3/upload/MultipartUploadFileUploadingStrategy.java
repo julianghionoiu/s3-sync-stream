@@ -27,7 +27,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
 
     private static final int DEFAULT_THREAD_COUNT = 4;
-    
+
     private Destination destination;
 
     private String uploadId;
@@ -55,29 +55,24 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     /**
      * Creates new Multipart upload strategy.
+     *
      * @param threadsCount count of threads that should be used for uploading
      */
     MultipartUploadFileUploadingStrategy(Destination destination, int threadsCount) {
         this.destination = destination;
         concurrentUploader = new ConcurrentMultipartUploader(destination, threadsCount);
     }
-    
+
     @Override
     public void upload(File file, String remotePath) throws Exception {
         initStrategy(file, remotePath);
         listener.uploadFileStarted(file, uploadId);
         uploadRequiredParts(file, remotePath);
     }
-    
-    public MultipartUpload findMultiPartUpload(String remotePath) {
-        ExistingMultipartUploadFinder finder = new ExistingMultipartUploadFinder(destination);
-        return finder.findOrNull(remotePath);
-    }
 
     private void initStrategy(File file, String remotePath) {
         writingFinished = !FileHelper.lockFileExists(file);
-        MultipartUpload multipartUpload = findMultiPartUpload(remotePath);
-        PartListing alreadyUploadedParts = destination.getAlreadyUploadedParts(remotePath, multipartUpload);
+        PartListing alreadyUploadedParts = destination.getAlreadyUploadedParts(remotePath);
 
         boolean uploadingStarted = alreadyUploadedParts != null;
         if (!uploadingStarted) {
@@ -177,20 +172,14 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                     .withUploadId(uploadId)
                     .withInputStream(partInputStream);
 
-            request.setGeneralProgressListener(createListenerForUploadPartRequest(request));
+            request.setGeneralProgressListener((com.amazonaws.event.ProgressEvent pe) -> {
+                listener.uploadFileProgress(request.getUploadId(), pe.getBytesTransferred());
+            });
+
             return request;
         } catch (IOException ioe) {
             throw new RuntimeException(ioe.getMessage(), ioe);
         }
-    }
-
-    private com.amazonaws.event.ProgressListener createListenerForUploadPartRequest(UploadPartRequest request) {
-        return new com.amazonaws.event.ProgressListener() {
-            @Override
-            public void progressChanged(com.amazonaws.event.ProgressEvent pe) {
-                listener.uploadFileProgress(request.getUploadId(), pe.getBytesTransferred());
-            }
-        };
     }
 
     private MultipartUploadResult getUploadingResult(Future<MultipartUploadResult> future) {
@@ -207,7 +196,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     public void setListener(ProgressListener listener) {
         this.listener = listener;
     }
-    
+
     @Override
     public void setDestination(Destination destination) {
         this.destination = destination;
