@@ -32,15 +32,8 @@ repositories {
 
 // ~~~~~ Dependencies
 
-apply plugin: "io.spring.dependency-management"
-dependencyManagement {
-    imports {
-        mavenBom 'com.amazonaws:aws-java-sdk-bom:1.11.117'
-    }
-}
-
 dependencies {
-    compile 'com.amazonaws:aws-java-sdk-s3'
+    compile 'com.amazonaws:aws-java-sdk-s3:1.11.127'
     compile 'com.beust:jcommander:1.64'
 
     compile 'org.slf4j:slf4j-api:1.7.25'
