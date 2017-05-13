@@ -4,7 +4,17 @@ import com.amazonaws.services.kms.model.NotFoundException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
+import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
+import com.amazonaws.services.s3.model.ListPartsRequest;
+import com.amazonaws.services.s3.model.MultipartUploadListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PartListing;
+import com.amazonaws.services.s3.model.UploadPartRequest;
+import com.amazonaws.services.s3.model.UploadPartResult;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import tdl.s3.credentials.AWSSecretsProvider;
@@ -87,5 +97,27 @@ public class Destination {
                 throw ex;
             }
         }
+    }
+    
+    public String initUploading(String remotePath) {
+        InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(getBucket(), getFullPath(remotePath));
+        InitiateMultipartUploadResult result = client.initiateMultipartUpload(request);
+        return result.getUploadId();
+    }
+    
+    public MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest request) {
+        return client.listMultipartUploads(request);
+    }
+    
+    public PartListing listParts(ListPartsRequest request) {
+        return client.listParts(request);
+    }
+
+    public UploadPartResult uploadPart(UploadPartRequest request)  {
+        return client.uploadPart(request);
+    }
+    
+    public CompleteMultipartUploadResult completeMultipartUpload(CompleteMultipartUploadRequest request) {
+        return client.completeMultipartUpload(request);
     }
 }

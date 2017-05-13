@@ -19,7 +19,7 @@ public class ExistingMultipartUploadFinder {
 
     public List<MultipartUpload> getAlreadyStartedMultipartUploads() {
         ListMultipartUploadsRequest uploadsRequest = createListMultipartUploadsRequest();
-        MultipartUploadListing multipartUploadListing = destination.getClient().listMultipartUploads(uploadsRequest);
+        MultipartUploadListing multipartUploadListing = destination.listMultipartUploads(uploadsRequest);
 
         Stream<MultipartUploadListing> stream = Stream.of(multipartUploadListing)
                 .flatMap(listing -> streamNextListing(listing));
@@ -46,7 +46,7 @@ public class ExistingMultipartUploadFinder {
         uploadsRequest.setUploadIdMarker(listing.getNextUploadIdMarker());
         uploadsRequest.setKeyMarker(listing.getNextKeyMarker());
 
-        return destination.getClient().listMultipartUploads(uploadsRequest);
+        return destination.listMultipartUploads(uploadsRequest);
     }
 
     private ListMultipartUploadsRequest createListMultipartUploadsRequest() {

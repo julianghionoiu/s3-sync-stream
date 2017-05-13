@@ -43,7 +43,7 @@ public class MultipartUploadHelper {
 
     private static PartListing getPartListing(Destination destination, String remotePath, String uploadId) {
         ListPartsRequest request = new ListPartsRequest(destination.getBucket(), destination.getFullPath(remotePath), uploadId);
-        return destination.getClient().listParts(request);
+        return destination.listParts(request);
     }
 
     public static int getLastPartIndex(PartListing partListing) {

@@ -50,7 +50,7 @@ public class ConcurrentMultipartUploader {
     private Callable<MultipartUploadResult> createCallableForPartUploadingAndReturnETag(UploadPartRequest request) {
         return () -> {
             try {
-                UploadPartResult result = destination.getClient().uploadPart(request);
+                UploadPartResult result = destination.uploadPart(request);
                 return new MultipartUploadResult(request, result);
             } catch (Exception e) {
                 e.printStackTrace();

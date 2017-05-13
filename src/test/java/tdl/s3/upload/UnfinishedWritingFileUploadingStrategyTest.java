@@ -49,9 +49,9 @@ public class UnfinishedWritingFileUploadingStrategyTest {
         when(amazonS3.getObjectMetadata(anyString(), anyString())).thenThrow(NotFoundException.class);
         when(multipartUpload.getKey()).thenReturn("unfinished_writing_file_to_upload.bin");
         when(multipartUpload.getUploadId()).thenReturn("id");
-        when(amazonS3.listParts(any())).thenReturn(partListing);
-        when(amazonS3.initiateMultipartUpload(any())).thenReturn(initiatingResult);
-        when(amazonS3.uploadPart(any())).thenReturn(uploadPartResult);
+        when(destination.listParts(any())).thenReturn(partListing);
+        when(destination.initUploading(any())).thenReturn("id");
+        when(destination.uploadPart(any())).thenReturn(uploadPartResult);
         when(uploadPartResult.getPartETag()).thenReturn(partETag);
 
         when(partListing.getParts()).thenReturn(Collections.emptyList());
@@ -74,9 +74,9 @@ public class UnfinishedWritingFileUploadingStrategyTest {
         fileUploader.upload(targetSyncFolder.getFilePath(fileName).toFile());
 
         //verify that uploading started
-        verify(amazonS3, times(1)).initiateMultipartUpload(any());
+        verify(destination, times(1)).initUploading(any());
         //verify that existing parts uploaded (10 MB - 2 parts)
-        verify(amazonS3, times(2)).uploadPart(any());
+        verify(destination, times(2)).uploadPart(any());
 
         when(partListing.getParts()).thenReturn(Collections.singletonList(partSummary));
         //write additional  data and delete lock file
@@ -91,8 +91,8 @@ public class UnfinishedWritingFileUploadingStrategyTest {
         newFileUploader.upload(targetSyncFolder.getFilePath(fileName).toFile());
 
         //verify that rest part uploaded (4 times means 2 from previous session and 2 current)
-        verify(amazonS3, times(4)).uploadPart(any());
+        verify(destination, times(4)).uploadPart(any());
         //verify uploading completed
-        verify(amazonS3, times(1)).completeMultipartUpload(any());
+        verify(destination, times(1)).completeMultipartUpload(any());
     }
 }

@@ -90,7 +90,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private void initAttributes(String remotePath) {
-        uploadId = initUploading(remotePath);
+        uploadId = destination.initUploading(remotePath);
         uploadedSize = 0;
         failedMiddleParts = Collections.emptySet();
         nextPartToUploadIndex = 1;
@@ -169,7 +169,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                 uploadId,
                 eTags
         );
-        destination.getClient().completeMultipartUpload(request);
+        destination.completeMultipartUpload(request);
     }
 
     private UploadPartRequest getUploadPartRequest(String remotePath, byte[] nextPart, boolean isLastPart, int partNumber) {
@@ -210,12 +210,6 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         }
     }
 
-    //TODO: Refactor to destination
-    private String initUploading(String remotePath) {
-        InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(destination.getBucket(), destination.getFullPath(remotePath));
-        InitiateMultipartUploadResult result = destination.getClient().initiateMultipartUpload(request);
-        return result.getUploadId();
-    }
 
     @Override
     public void setListener(ProgressListener listener) {
