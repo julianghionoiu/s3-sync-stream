@@ -18,7 +18,7 @@ public class ExistingMultipartUploadFinder {
     }
 
     public List<MultipartUpload> getAlreadyStartedMultipartUploads() {
-        ListMultipartUploadsRequest uploadsRequest = createListMultipartUploadsRequest();
+        ListMultipartUploadsRequest uploadsRequest = destination.createListMultipartUploadsRequest();
         MultipartUploadListing multipartUploadListing = destination.listMultipartUploads(uploadsRequest);
 
         Stream<MultipartUploadListing> stream = Stream.of(multipartUploadListing)
@@ -42,17 +42,11 @@ public class ExistingMultipartUploadFinder {
     }
 
     private MultipartUploadListing getNextListing(MultipartUploadListing listing) {
-        ListMultipartUploadsRequest uploadsRequest = createListMultipartUploadsRequest();
+        ListMultipartUploadsRequest uploadsRequest = destination.createListMultipartUploadsRequest();
         uploadsRequest.setUploadIdMarker(listing.getNextUploadIdMarker());
         uploadsRequest.setKeyMarker(listing.getNextKeyMarker());
 
         return destination.listMultipartUploads(uploadsRequest);
-    }
-
-    private ListMultipartUploadsRequest createListMultipartUploadsRequest() {
-        ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(destination.getBucket());
-        uploadsRequest.setPrefix(destination.getPrefix());
-        return uploadsRequest;
     }
 
     public MultipartUpload findOrNull(String remotePath) {

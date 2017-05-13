@@ -6,14 +6,12 @@ import java.io.*;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import tdl.s3.helpers.ByteHelper;
-import tdl.s3.helpers.ExistingMultipartUploadFinder;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
 import tdl.s3.helpers.MultipartUploadHelper;
@@ -162,9 +160,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private UploadPartRequest getUploadPartRequest(String remotePath, byte[] nextPart, boolean isLastPart, int partNumber) {
         try (ByteArrayInputStream partInputStream = ByteHelper.createInputStream(nextPart)) {
-            UploadPartRequest request = new UploadPartRequest()
-                    .withBucketName(destination.getBucket())
-                    .withKey(destination.getFullPath(remotePath))
+            UploadPartRequest request = destination.createUploadPartRequest(remotePath)
                     .withPartNumber(partNumber)
                     .withMD5Digest(MD5Digest.digest(nextPart))
                     .withLastPart(isLastPart)
