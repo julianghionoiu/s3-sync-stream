@@ -16,7 +16,7 @@ The library will aggresively upload content as it is being generated:
 
 ### Add as Maven dependency
 
-Add a dependency to `tdl:s3-sync-stream` in `compile` scope. See top of README for latest release.
+Add a dependency to `tdl:s3-sync-stream` in `compile` scope. See `bintray` shield for latest release number.
 ```xml
 <dependency>
   <groupId>ro.ghionoiu</groupId>
