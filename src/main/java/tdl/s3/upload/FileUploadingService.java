@@ -4,7 +4,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.MultipartUpload;
 
 import java.io.File;
-import tdl.s3.helpers.ExistingMultipartUploadFinder;
 import tdl.s3.sync.Destination;
 import tdl.s3.sync.DummyProgressListener;
 import tdl.s3.sync.ProgressListener;
@@ -24,18 +23,12 @@ public class FileUploadingService {
     }
 
     public void upload(File file) {
-        RemoteFile remoteFile = this.destination.createRemoteFile(file.getName());
-        upload(file, remoteFile);
+        upload(file, file.getName());
     }
 
     public void upload(File file, String remoteName) {
-        RemoteFile remoteFile = this.destination.createRemoteFile(remoteName);
-        upload(file, remoteFile);
-    }
-
-    private void upload(File file, RemoteFile remoteFile) {
         FileUploader fileUploader = createFileUploader();
-        fileUploader.upload(file, remoteFile);
+        fileUploader.upload(file, remoteName);
     }
 
     private FileUploader createFileUploader() {

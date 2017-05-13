@@ -1,6 +1,5 @@
 package tdl.s3.helpers;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
 import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
@@ -8,25 +7,19 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import tdl.s3.upload.RemoteFile;
+import tdl.s3.sync.Destination;
 
 public class ExistingMultipartUploadFinder {
 
-    private final AmazonS3 client;
+    private final Destination destination;
 
-    private final String bucket;
-
-    private final String prefix;
-
-    public ExistingMultipartUploadFinder(AmazonS3 client, String bucket, String prefix) {
-        this.client = client;
-        this.bucket = bucket;
-        this.prefix = prefix;
+    public ExistingMultipartUploadFinder(Destination destination) {
+        this.destination = destination;
     }
 
     public List<MultipartUpload> getAlreadyStartedMultipartUploads() {
         ListMultipartUploadsRequest uploadsRequest = createListMultipartUploadsRequest();
-        MultipartUploadListing multipartUploadListing = client.listMultipartUploads(uploadsRequest);
+        MultipartUploadListing multipartUploadListing = destination.getClient().listMultipartUploads(uploadsRequest);
 
         Stream<MultipartUploadListing> stream = Stream.of(multipartUploadListing)
                 .flatMap(listing -> streamNextListing(listing));
@@ -44,7 +37,7 @@ public class ExistingMultipartUploadFinder {
 
         Stream<MultipartUploadListing> head = Stream.of(listing);
         Stream<MultipartUploadListing> tail = streamNextListing(nextListing);
-        
+
         return Stream.concat(head, tail);
     }
 
@@ -52,20 +45,20 @@ public class ExistingMultipartUploadFinder {
         ListMultipartUploadsRequest uploadsRequest = createListMultipartUploadsRequest();
         uploadsRequest.setUploadIdMarker(listing.getNextUploadIdMarker());
         uploadsRequest.setKeyMarker(listing.getNextKeyMarker());
-        
-        return client.listMultipartUploads(uploadsRequest);
+
+        return destination.getClient().listMultipartUploads(uploadsRequest);
     }
 
     private ListMultipartUploadsRequest createListMultipartUploadsRequest() {
-        ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(bucket);
-        uploadsRequest.setPrefix(prefix);
+        ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(destination.getBucket());
+        uploadsRequest.setPrefix(destination.getPrefix());
         return uploadsRequest;
     }
 
-    public MultipartUpload findOrNull(RemoteFile remoteFile) {
+    public MultipartUpload findOrNull(String remotePath) {
         List<MultipartUpload> uploads = getAlreadyStartedMultipartUploads();
         return uploads.stream()
-                .filter(upload -> upload.getKey().equals(remoteFile.getFullPath()))
+                .filter(upload -> upload.getKey().equals(destination.getFullPath(remotePath)))
                 .findAny()
                 .orElse(null);
     }

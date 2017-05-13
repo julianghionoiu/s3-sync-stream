@@ -8,7 +8,6 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import tdl.s3.credentials.AWSSecretsProvider;
-import tdl.s3.upload.RemoteFile;
 
 public class Destination {
 
@@ -51,6 +50,14 @@ public class Destination {
     public AmazonS3 getClient() {
         return client;
     }
+    
+    public String getBucket() {
+        return secret.getS3Bucket();
+    }
+    
+    public String getPrefix() {
+        return secret.getS3Prefix();
+    }
 
     private void buildClient() {
         this.client = AmazonS3ClientBuilder.standard()
@@ -59,17 +66,17 @@ public class Destination {
                 .build();
     }
 
-    public RemoteFile createRemoteFile(String name) {
-        return new RemoteFile(secret.getS3Bucket(), secret.getS3Prefix(), name);
-    }
-
     public ObjectMetadata getObjectMetadata(String bucket, String key) {
         return this.client.getObjectMetadata(bucket, key);
     }
+    
+    public String getFullPath(String path) {
+        return getPrefix()+ path;
+    }
 
-    public boolean existsRemoteFile(RemoteFile remoteFile) {
+    public boolean canUpload(String path) {
         try {
-            client.getObjectMetadata(remoteFile.getBucket(), remoteFile.getFullPath());
+            client.getObjectMetadata(getBucket(), getFullPath(path));
             return true;
         } catch (NotFoundException ex) {
             return false;

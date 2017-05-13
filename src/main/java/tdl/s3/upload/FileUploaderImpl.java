@@ -22,25 +22,24 @@ public class FileUploaderImpl implements FileUploader {
 
     @Override
     public void upload(File file) {
-        RemoteFile remoteFile = destination.createRemoteFile(file.getName());
-        upload(file, remoteFile);
+        upload(file, file.getName());
     }
 
     @Override
-    public void upload(File file, RemoteFile remoteFile) {
-        upload(file, remoteFile, RETRY_TIMES_COUNT);
+    public void upload(File file, String path) {
+        upload(file, path, RETRY_TIMES_COUNT);
     }
 
     @Override
-    public boolean exists(RemoteFile remoteFile) {
-        return destination.existsRemoteFile(remoteFile);
+    public boolean exists(String path) {
+        return destination.canUpload(path);
     }
 
-    private void upload(File file, RemoteFile remoteFile, int retry) {
+    private void upload(File file, String path, int retry) {
         log.info("Uploading file " + file);
         try {
-            if (!exists(remoteFile)) {
-                uploadInternal(file, remoteFile);
+            if (!exists(path)) {
+                uploadInternal(file, path);
             }
         } catch (Exception e) {
             if (retry == 0) {
@@ -48,14 +47,14 @@ public class FileUploaderImpl implements FileUploader {
                 throw new UploadingException("Can't upload file " + file + " due to error " + e.getMessage(), e);
             } else {
                 log.warn("Error during uploading : " + e.getMessage() + " Trying next time...");
-                upload(file, remoteFile, retry - 1);
+                upload(file, path, retry - 1);
             }
         }
     }
 
-    private void uploadInternal(File file, RemoteFile remoteFile) throws Exception {
+    private void uploadInternal(File file, String path) throws Exception {
         uploadingStrategy.setDestination(destination);
-        uploadingStrategy.upload(file, remoteFile);
+        uploadingStrategy.upload(file, path);
     }
 
 }

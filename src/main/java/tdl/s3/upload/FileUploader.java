@@ -12,7 +12,7 @@ public interface FileUploader {
 
     void upload(File file);
 
-    void upload(File file, RemoteFile remoteFile);
+    void upload(File file, String path);
 
-    boolean exists(RemoteFile remoteFile);
+    boolean exists(String path);
 }

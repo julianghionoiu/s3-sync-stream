@@ -1,7 +1,5 @@
 package tdl.s3.upload;
 
-import com.amazonaws.event.ProgressEventType;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 
 import java.io.*;
@@ -65,26 +63,26 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     }
     
     @Override
-    public void upload(File file, RemoteFile remoteFile) throws Exception {
+    public void upload(File file, String remotePath) throws Exception {
         concurrentUploader.setClient(destination.getClient());
-        initStrategy(file, remoteFile);
+        initStrategy(file, remotePath);
         listener.uploadFileStarted(file, uploadId);
-        uploadRequiredParts(file, remoteFile);
+        uploadRequiredParts(file, remotePath);
     }
     
-    public MultipartUpload findMultiPartUpload(RemoteFile remoteFile) {
-        ExistingMultipartUploadFinder finder = new ExistingMultipartUploadFinder(destination.getClient(), remoteFile.getBucket(), remoteFile.getPrefix());
-        return finder.findOrNull(remoteFile);
+    public MultipartUpload findMultiPartUpload(String remotePath) {
+        ExistingMultipartUploadFinder finder = new ExistingMultipartUploadFinder(destination);
+        return finder.findOrNull(remotePath);
     }
 
-    private void initStrategy(File file, RemoteFile remoteFile) {
+    private void initStrategy(File file, String remotePath) {
         writingFinished = !FileHelper.lockFileExists(file);
-        MultipartUpload multipartUpload = findMultiPartUpload(remoteFile);
-        PartListing alreadyUploadedParts = MultipartUploadHelper.getAlreadyUploadedParts(destination.getClient(), remoteFile, multipartUpload);
+        MultipartUpload multipartUpload = findMultiPartUpload(remotePath);
+        PartListing alreadyUploadedParts = MultipartUploadHelper.getAlreadyUploadedParts(destination, remotePath, multipartUpload);
 
         boolean uploadingStarted = alreadyUploadedParts != null;
         if (!uploadingStarted) {
-            initAttributes(remoteFile);
+            initAttributes(remotePath);
         } else {
             initAttributesFromAlreadyUploadedParts(alreadyUploadedParts);
         }
@@ -92,8 +90,8 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         validateUploadedFileSize(file);
     }
 
-    private void initAttributes(RemoteFile remoteFile) {
-        uploadId = initUploading(remoteFile);
+    private void initAttributes(String remotePath) {
+        uploadId = initUploading(remotePath);
         uploadedSize = 0;
         failedMiddleParts = Collections.emptySet();
         nextPartToUploadIndex = 1;
@@ -120,13 +118,13 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         }
     }
 
-    private void uploadRequiredParts(File file, RemoteFile remoteFile) throws IOException {
+    private void uploadRequiredParts(File file, String remotePath) throws IOException {
         try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            submitUploadRequestStream(streamUploadForFailedParts(file, remoteFile));
-            submitUploadRequestStream(streamUploadForIncompleteParts(remoteFile, inputStream, writingFinished));
+            submitUploadRequestStream(streamUploadForFailedParts(file, remotePath));
+            submitUploadRequestStream(streamUploadForIncompleteParts(remotePath, inputStream, writingFinished));
             concurrentUploader.shutdownAndAwaitTermination();
             if (writingFinished) {
-                commit(remoteFile);
+                commit(remotePath);
                 listener.uploadFileFinished(file);
             }
         } catch (InterruptedException e) {
@@ -134,22 +132,22 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         }
     }
 
-    private Stream<UploadPartRequest> streamUploadForFailedParts(File file, RemoteFile remoteFile) {
+    private Stream<UploadPartRequest> streamUploadForFailedParts(File file, String remotePath) {
         return failedMiddleParts.stream()
                 .map(partNumber -> {
                     byte[] partData = ByteHelper.readPart(partNumber, file);
                     uploadedSize += partData.length;
-                    return getUploadPartRequest(remoteFile, partData, false, partNumber);
+                    return getUploadPartRequest(remotePath, partData, false, partNumber);
                 });
     }
 
-    private Stream<UploadPartRequest> streamUploadForIncompleteParts(RemoteFile remoteFile, InputStream inputStream, boolean writingFinished) throws IOException {
+    private Stream<UploadPartRequest> streamUploadForIncompleteParts(String remotePath, InputStream inputStream, boolean writingFinished) throws IOException {
         byte[] nextPart = ByteHelper.getNextPartFromInputStream(inputStream, uploadedSize, writingFinished);
         int partSize = nextPart.length;
         List<UploadPartRequest> requests = new ArrayList<>();
         while (partSize > 0) {
             boolean isLastPart = writingFinished && partSize < MINIMUM_PART_SIZE;
-            UploadPartRequest request = getUploadPartRequest(remoteFile, nextPart, isLastPart, nextPartToUploadIndex++);
+            UploadPartRequest request = getUploadPartRequest(remotePath, nextPart, isLastPart, nextPartToUploadIndex++);
             requests.add(request);
             nextPart = ByteHelper.getNextPartFromInputStream(inputStream, 0, writingFinished);
             partSize = nextPart.length;
@@ -164,17 +162,22 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                 .forEach(eTags::add);
     }
 
-    private void commit(RemoteFile remoteFile) {
+    private void commit(String remotePath) {
         eTags.sort(Comparator.comparing(PartETag::getPartNumber));
-        CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(remoteFile.getBucket(), remoteFile.getFullPath(), uploadId, eTags);
+        CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(
+                destination.getBucket(), 
+                destination.getFullPath(remotePath),
+                uploadId,
+                eTags
+        );
         destination.getClient().completeMultipartUpload(request);
     }
 
-    private UploadPartRequest getUploadPartRequest(RemoteFile remoteFile, byte[] nextPart, boolean isLastPart, int partNumber) {
+    private UploadPartRequest getUploadPartRequest(String remotePath, byte[] nextPart, boolean isLastPart, int partNumber) {
         try (ByteArrayInputStream partInputStream = ByteHelper.createInputStream(nextPart)) {
             UploadPartRequest request = new UploadPartRequest()
-                    .withBucketName(remoteFile.getBucket())
-                    .withKey(remoteFile.getFullPath())
+                    .withBucketName(destination.getBucket())
+                    .withKey(destination.getFullPath(remotePath))
                     .withPartNumber(partNumber)
                     .withMD5Digest(MD5Digest.digest(nextPart))
                     .withLastPart(isLastPart)
@@ -208,8 +211,9 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         }
     }
 
-    private String initUploading(RemoteFile remoteFile) {
-        InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(remoteFile.getBucket(), remoteFile.getFullPath());
+    //TODO: Refactor to destination
+    private String initUploading(String remotePath) {
+        InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(destination.getBucket(), destination.getFullPath(remotePath));
         InitiateMultipartUploadResult result = destination.getClient().initiateMultipartUpload(request);
         return result.getUploadId();
     }
