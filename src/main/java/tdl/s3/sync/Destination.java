@@ -75,18 +75,14 @@ public class Destination {
                 .withRegion(secret.getS3Region())
                 .build();
     }
-
-    public ObjectMetadata getObjectMetadata(String bucket, String key) {
-        return this.client.getObjectMetadata(bucket, key);
-    }
     
     public String getFullPath(String path) {
         return getPrefix()+ path;
     }
 
-    public boolean canUpload(String path) {
+    public boolean canUpload(String remotePath) {
         try {
-            client.getObjectMetadata(getBucket(), getFullPath(path));
+            client.getObjectMetadata(getBucket(), getFullPath(remotePath));
             return true;
         } catch (NotFoundException ex) {
             return false;
