@@ -59,12 +59,11 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
      */
     MultipartUploadFileUploadingStrategy(Destination destination, int threadsCount) {
         this.destination = destination;
-        concurrentUploader = new ConcurrentMultipartUploader(threadsCount);
+        concurrentUploader = new ConcurrentMultipartUploader(destination, threadsCount);
     }
     
     @Override
     public void upload(File file, String remotePath) throws Exception {
-        concurrentUploader.setClient(destination.getClient());
         initStrategy(file, remotePath);
         listener.uploadFileStarted(file, uploadId);
         uploadRequiredParts(file, remotePath);

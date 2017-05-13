@@ -9,6 +9,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import tdl.s3.sync.Destination;
 
 public class ConcurrentMultipartUploader {
 
@@ -16,15 +17,16 @@ public class ConcurrentMultipartUploader {
 
     private static final int MAX_UPLOADING_TIME = 360;
 
-    private AmazonS3 client;
+    private final Destination destination;
 
     private final ExecutorService executorService;
 
-    public ConcurrentMultipartUploader() {
-        this(DEFAULT_THREAD_COUNT);
+    public ConcurrentMultipartUploader(Destination destination) {
+        this(destination, DEFAULT_THREAD_COUNT);
     }
 
-    public ConcurrentMultipartUploader(int threadCount) {
+    public ConcurrentMultipartUploader(Destination destination, int threadCount) {
+        this.destination = destination;
         if (threadCount < 1) {
             throw new IllegalArgumentException("Thread count should be >= 1");
         }
@@ -33,10 +35,6 @@ public class ConcurrentMultipartUploader {
 
     public ExecutorService getExecutorService() {
         return executorService;
-    }
-
-    public void setClient(AmazonS3 client) {
-        this.client = client;
     }
 
     public void shutdownAndAwaitTermination() throws InterruptedException {
@@ -52,7 +50,7 @@ public class ConcurrentMultipartUploader {
     private Callable<MultipartUploadResult> createCallableForPartUploadingAndReturnETag(UploadPartRequest request) {
         return () -> {
             try {
-                UploadPartResult result = client.uploadPart(request);
+                UploadPartResult result = destination.getClient().uploadPart(request);
                 return new MultipartUploadResult(request, result);
             } catch (Exception e) {
                 e.printStackTrace();
