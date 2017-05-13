@@ -134,7 +134,14 @@ java -jar ./build/libs/s3-sync-1.0-SNAPSHOT-all.jar \
     --filter "^[0-9a-zA-Z\\_]+\\.txt$"
 ```
 
-### To release
+### Install to mavenLocal
+
+If you want to build the SNAPSHOT version locally you can install to the local Maven cache
+```
+./gradlew -x test install
+```
+
+### Release to jcenter and mavenCentral
 
 The CI server is configured to pushs release branches to Bintray.
 You trigger the process by running the `release` command locally. 
