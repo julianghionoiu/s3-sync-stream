@@ -136,11 +136,11 @@ java -jar ./build/libs/s3-sync-1.0-SNAPSHOT-all.jar \
 
 ### To release
 
-The CI server is configured to push release branches to Bintray.
+The CI server is configured to pushs release branches to Bintray.
 You trigger the process by running the `release` command locally. 
 
 The command will increment the release number and create and annotated tag:
 ```bash
 ./gradlew release
-git push
+git push --tags
 ```
