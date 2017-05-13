@@ -19,7 +19,7 @@ The library will aggresively upload content as it is being generated:
 Add a dependency to `tdl:s3-sync-stream` in `compile` scope. See top of README for latest release.
 ```xml
 <dependency>
-  <groupId>tdl</groupId>
+  <groupId>ro.ghionoiu</groupId>
   <artifactId>s3-sync-stream</artifactId>
   <version>X.Y.Z</version>
 </dependency>
