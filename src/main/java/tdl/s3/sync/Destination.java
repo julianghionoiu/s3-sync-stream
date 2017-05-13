@@ -12,7 +12,6 @@ import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
 import com.amazonaws.services.s3.model.ListPartsRequest;
 import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.PartListing;
 import com.amazonaws.services.s3.model.UploadPartRequest;
@@ -23,6 +22,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import tdl.s3.credentials.AWSSecretsProvider;
+import tdl.s3.upload.MultipartUploadResult;
 
 public class Destination {
 
@@ -109,9 +109,10 @@ public class Destination {
     public MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest request) {
         return client.listMultipartUploads(request);
     }
-
-    public UploadPartResult uploadPart(UploadPartRequest request) {
-        return client.uploadPart(request);
+    
+    public MultipartUploadResult uploadMultiPart(UploadPartRequest request) {
+        UploadPartResult result = client.uploadPart(request);
+        return new MultipartUploadResult(request, result);
     }
 
     public PartListing getAlreadyUploadedParts(String remotePath, MultipartUpload upload) {

@@ -1,9 +1,6 @@
 package tdl.s3.upload;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.UploadPartRequest;
-import com.amazonaws.services.s3.model.UploadPartResult;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -50,8 +47,7 @@ public class ConcurrentMultipartUploader {
     private Callable<MultipartUploadResult> createCallableForPartUploadingAndReturnETag(UploadPartRequest request) {
         return () -> {
             try {
-                UploadPartResult result = destination.uploadPart(request);
-                return new MultipartUploadResult(request, result);
+                return destination.uploadMultiPart(request);
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
