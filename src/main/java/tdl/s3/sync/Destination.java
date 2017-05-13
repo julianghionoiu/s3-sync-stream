@@ -10,13 +10,18 @@ import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
 import com.amazonaws.services.s3.model.ListPartsRequest;
+import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.PartListing;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import tdl.s3.credentials.AWSSecretsProvider;
 
 public class Destination {
@@ -60,11 +65,11 @@ public class Destination {
     public AmazonS3 getClient() {
         return client;
     }
-    
+
     public String getBucket() {
         return secret.getS3Bucket();
     }
-    
+
     public String getPrefix() {
         return secret.getS3Prefix();
     }
@@ -75,9 +80,9 @@ public class Destination {
                 .withRegion(secret.getS3Region())
                 .build();
     }
-    
+
     public String getFullPath(String path) {
-        return getPrefix()+ path;
+        return getPrefix() + path;
     }
 
     public boolean canUpload(String remotePath) {
@@ -94,26 +99,50 @@ public class Destination {
             }
         }
     }
-    
+
     public String initUploading(String remotePath) {
         InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(getBucket(), getFullPath(remotePath));
         InitiateMultipartUploadResult result = client.initiateMultipartUpload(request);
         return result.getUploadId();
     }
-    
+
     public MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest request) {
         return client.listMultipartUploads(request);
     }
-    
-    public PartListing listParts(ListPartsRequest request) {
+
+    public UploadPartResult uploadPart(UploadPartRequest request) {
+        return client.uploadPart(request);
+    }
+
+    public PartListing getAlreadyUploadedParts(String remotePath, MultipartUpload upload) {
+        return Optional.ofNullable(upload)
+                .map(MultipartUpload::getUploadId)
+                .map(id -> getPartListing(remotePath, id))
+                .orElse(null);
+    }
+
+    private PartListing getPartListing(String remotePath, String uploadId) {
+        ListPartsRequest request = new ListPartsRequest(getBucket(), getFullPath(remotePath), uploadId);
+        return listParts(request);
+    }
+
+    private PartListing listParts(ListPartsRequest request) {
         return client.listParts(request);
     }
 
-    public UploadPartResult uploadPart(UploadPartRequest request)  {
-        return client.uploadPart(request);
+    public void commitMultipartUpload(String remotePath, List<PartETag> eTags, String uploadId) {
+        eTags.sort(Comparator.comparing(PartETag::getPartNumber));
+        CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(
+                getBucket(),
+                getFullPath(remotePath),
+                uploadId,
+                eTags
+        );
+        completeMultipartUpload(request);
     }
-    
-    public CompleteMultipartUploadResult completeMultipartUpload(CompleteMultipartUploadRequest request) {
+
+    private CompleteMultipartUploadResult completeMultipartUpload(CompleteMultipartUploadRequest request) {
         return client.completeMultipartUpload(request);
     }
+
 }

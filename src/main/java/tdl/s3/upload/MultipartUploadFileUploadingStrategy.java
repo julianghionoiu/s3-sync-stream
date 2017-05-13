@@ -77,7 +77,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     private void initStrategy(File file, String remotePath) {
         writingFinished = !FileHelper.lockFileExists(file);
         MultipartUpload multipartUpload = findMultiPartUpload(remotePath);
-        PartListing alreadyUploadedParts = MultipartUploadHelper.getAlreadyUploadedParts(destination, remotePath, multipartUpload);
+        PartListing alreadyUploadedParts = destination.getAlreadyUploadedParts(remotePath, multipartUpload);
 
         boolean uploadingStarted = alreadyUploadedParts != null;
         if (!uploadingStarted) {
@@ -162,14 +162,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private void commit(String remotePath) {
-        eTags.sort(Comparator.comparing(PartETag::getPartNumber));
-        CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(
-                destination.getBucket(), 
-                destination.getFullPath(remotePath),
-                uploadId,
-                eTags
-        );
-        destination.completeMultipartUpload(request);
+        destination.commitMultipartUpload(remotePath, eTags, uploadId);
     }
 
     private UploadPartRequest getUploadPartRequest(String remotePath, byte[] nextPart, boolean isLastPart, int partNumber) {
@@ -210,12 +203,10 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         }
     }
 
-
     @Override
     public void setListener(ProgressListener listener) {
         this.listener = listener;
     }
-    
     
     @Override
     public void setDestination(Destination destination) {
