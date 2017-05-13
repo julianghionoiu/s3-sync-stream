@@ -139,7 +139,7 @@ java -Dlogback.configurationFile=`pwd`/logback.xml \
 
 If you want to build the SNAPSHOT version locally you can install to the local Maven cache
 ```
-./gradlew -x test install
+./gradlew -x test clean install
 ```
 
 ### Release to jcenter and mavenCentral
