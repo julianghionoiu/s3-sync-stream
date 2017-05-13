@@ -19,7 +19,7 @@ buildscript {
 apply plugin: 'java'
 apply plugin: 'application'
 
-group 'tdl'
+group 'ro.ghionoiu'
 
 //noinspection GroovyUnusedAssignment
 targetCompatibility = JavaVersion.VERSION_1_8
