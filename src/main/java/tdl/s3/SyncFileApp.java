@@ -1,18 +1,21 @@
 package tdl.s3;
 
 import com.beust.jcommander.JCommander;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import com.beust.jcommander.Parameters;
 import com.beust.jcommander.Parameter;
-import tdl.s3.cli.ProgressStatus;
+import com.beust.jcommander.Parameters;
+import tdl.s3.sync.Filters;
 import tdl.s3.sync.RemoteSync;
 import tdl.s3.sync.RemoteSyncException;
-import tdl.s3.sync.destination.Destination;
-import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
+import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.S3BucketDestination;
+import tdl.s3.sync.progress.UploadStatsProgressListener;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.NumberFormat;
+import java.util.Timer;
+import java.util.TimerTask;
 
 @Parameters
 public class SyncFileApp {
@@ -29,6 +32,14 @@ public class SyncFileApp {
     @Parameter(names = {"--filter"})
     private String regex = "^[0-9a-zA-Z\\_]+\\.mp4";
 
+    private static final NumberFormat percentageFormatter = NumberFormat.getPercentInstance();
+    private static final NumberFormat uploadSpeedFormatter = NumberFormat.getNumberInstance();
+
+    static {
+        percentageFormatter.setMinimumFractionDigits(1);
+        uploadSpeedFormatter.setMinimumFractionDigits(1);
+    }
+
     public static void main(String[] args) throws RemoteSyncException {
         SyncFileApp app = new SyncFileApp();
         JCommander jCommander = new JCommander(app);
@@ -38,13 +49,33 @@ public class SyncFileApp {
     }
 
     private void run() throws RemoteSyncException {
+        // Prepare
         Source source = buildSource();
         Destination destination = buildDestination();
         RemoteSync sync = new RemoteSync(source, destination);
 
-        ProgressStatus progressBar = new ProgressStatus();
-        sync.setListener(progressBar);
+        // Configure progress listener
+        UploadStatsProgressListener uploadStatsProgressListener = new UploadStatsProgressListener();
+        sync.setListener(uploadStatsProgressListener);
+        Timer timer = new Timer();
+
+
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                uploadStatsProgressListener.getCurrentStats().ifPresent(fileUploadStat -> System.out.println("\rUploaded : "
+                        + percentageFormatter.format(fileUploadStat.getUploadRatio())
+                        + ". "
+                        + fileUploadStat.getUploadedSize() + "/" + fileUploadStat.getTotalSize()
+                        + " bytes. "
+                        + uploadSpeedFormatter.format(fileUploadStat.getMBps())
+                        + " Mbps"));
+            }
+        }, 0, 1000);
+
+        // Run (blocking)
         sync.run();
+        timer.cancel();
     }
 
     private Source buildSource() {

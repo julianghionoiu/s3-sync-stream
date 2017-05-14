@@ -1,4 +1,4 @@
-package tdl.s3.sync;
+package tdl.s3.sync.progress;
 
 import java.io.File;
 

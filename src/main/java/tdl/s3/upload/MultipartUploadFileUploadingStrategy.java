@@ -15,8 +15,8 @@ import tdl.s3.helpers.ByteHelper;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
 import tdl.s3.sync.destination.Destination;
-import tdl.s3.sync.DummyProgressListener;
-import tdl.s3.sync.ProgressListener;
+import tdl.s3.sync.progress.DummyProgressListener;
+import tdl.s3.sync.progress.ProgressListener;
 
 public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 

@@ -128,10 +128,9 @@ The values are:
 ```bash
 ./gradlew shadowJar
 java -Dlogback.configurationFile=`pwd`/logback.xml \
-    -jar ./build/libs/s3-sync-1.0-SNAPSHOT-all.jar \
-    -c config.properties \
-    -d $PATH_TO_REC/ \
-    -R \
+    -jar ./build/libs/s3-sync-stream-0.0.6-SNAPSHOT-all.jar \
+    -c ./.private/aws-test-secrets \
+    -d ./src/test/resources/test_a_1 \
     --filter "^[0-9a-zA-Z\\_]+\\.txt$"
 ```
 
