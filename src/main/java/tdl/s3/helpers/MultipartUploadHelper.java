@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import tdl.s3.upload.RemoteFile;
 
 public class MultipartUploadHelper {
 
@@ -32,18 +31,6 @@ public class MultipartUploadHelper {
         return partListing.getParts().stream()
                 .mapToLong(PartSummary::getSize)
                 .sum();
-    }
-
-    public static PartListing getAlreadyUploadedParts(AmazonS3 s3, RemoteFile remoteFile, MultipartUpload upload) {
-        return Optional.ofNullable(upload)
-                .map(MultipartUpload::getUploadId)
-                .map(id -> getPartListing(s3, remoteFile, id))
-                .orElse(null);
-    }
-
-    private static PartListing getPartListing(AmazonS3 s3, RemoteFile remoteFile, String uploadId) {
-        ListPartsRequest request = new ListPartsRequest(remoteFile.getBucket(), remoteFile.getFullPath(), uploadId);
-        return s3.listParts(request);
     }
 
     public static int getLastPartIndex(PartListing partListing) {

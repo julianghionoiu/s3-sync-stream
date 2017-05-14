@@ -1,6 +1,5 @@
 package tdl.s3.upload;
 
-import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
 

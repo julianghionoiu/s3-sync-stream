@@ -1,19 +1,14 @@
 package tdl.s3;
 
 import com.amazonaws.services.s3.model.*;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import tdl.s3.rules.RemoteTestBucket;
 import tdl.s3.rules.TemporarySyncFolder;
 
-import java.io.ByteArrayInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 
@@ -22,9 +17,12 @@ import static org.junit.Assert.*;
 import org.junit.Before;
 import static tdl.s3.rules.TemporarySyncFolder.ONE_MEGABYTE;
 import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
-import tdl.s3.sync.Destination;
+
+import tdl.s3.sync.RemoteSync;
+import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
+import tdl.s3.sync.destination.S3BucketDestination;
 
 public class C_OnDemand_IncompleteFileUpload_AccTest {
     
@@ -40,7 +38,7 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
     
     @Before
     public void setUp() {
-        destination = Destination.createDefaultDestination();
+        destination = S3BucketDestination.createDefaultDestination();
         defaultFilters = Filters.getBuilder()
                 .include(Filters.endsWith("txt"))
                 .include(Filters.endsWith("bin"))

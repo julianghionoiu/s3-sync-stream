@@ -1,14 +1,12 @@
 package tdl.s3.upload;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.UploadPartRequest;
-import com.amazonaws.services.s3.model.UploadPartResult;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import tdl.s3.sync.destination.Destination;
 
 public class ConcurrentMultipartUploader {
 
@@ -16,15 +14,16 @@ public class ConcurrentMultipartUploader {
 
     private static final int MAX_UPLOADING_TIME = 360;
 
-    private AmazonS3 client;
+    private final Destination destination;
 
     private final ExecutorService executorService;
 
-    public ConcurrentMultipartUploader() {
-        this(DEFAULT_THREAD_COUNT);
+    public ConcurrentMultipartUploader(Destination destination) {
+        this(destination, DEFAULT_THREAD_COUNT);
     }
 
-    public ConcurrentMultipartUploader(int threadCount) {
+    ConcurrentMultipartUploader(Destination destination, int threadCount) {
+        this.destination = destination;
         if (threadCount < 1) {
             throw new IllegalArgumentException("Thread count should be >= 1");
         }
@@ -35,16 +34,12 @@ public class ConcurrentMultipartUploader {
         return executorService;
     }
 
-    public void setClient(AmazonS3 client) {
-        this.client = client;
-    }
-
-    public void shutdownAndAwaitTermination() throws InterruptedException {
+    void shutdownAndAwaitTermination() throws InterruptedException {
         executorService.shutdown();
         executorService.awaitTermination(MAX_UPLOADING_TIME, TimeUnit.SECONDS);
     }
 
-    public Future<MultipartUploadResult> submitTaskForPartUploading(UploadPartRequest request) {
+    Future<MultipartUploadResult> submitTaskForPartUploading(UploadPartRequest request) {
         Callable<MultipartUploadResult> task = createCallableForPartUploadingAndReturnETag(request);
         return executorService.submit(task);
     }
@@ -52,8 +47,7 @@ public class ConcurrentMultipartUploader {
     private Callable<MultipartUploadResult> createCallableForPartUploadingAndReturnETag(UploadPartRequest request) {
         return () -> {
             try {
-                UploadPartResult result = client.uploadPart(request);
-                return new MultipartUploadResult(request, result);
+                return destination.uploadMultiPart(request);
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);

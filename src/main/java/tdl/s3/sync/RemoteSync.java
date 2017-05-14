@@ -1,8 +1,6 @@
-package tdl.s3;
+package tdl.s3.sync;
 
-import com.amazonaws.services.s3.AmazonS3;
-import tdl.s3.credentials.AWSSecretsProvider;
-import tdl.s3.sync.Destination;
+import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.DummyProgressListener;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.FolderScannerImpl;
@@ -44,13 +42,7 @@ public class RemoteSync {
     }
 
     private void buildUploadingService() {
-        AWSSecretsProvider secret = destination.getSecret();
-        AmazonS3 client = destination.buildClient();
-        fileUploadingService = new FileUploadingService(
-                client,
-                secret.getS3Bucket(),
-                secret.getS3Prefix()
-        );
+        fileUploadingService = new FileUploadingService(destination);
     }
 
     private void buildFolderSynchronizer() {

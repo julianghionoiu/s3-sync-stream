@@ -1,27 +1,18 @@
 package tdl.s3.upload;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.MultipartUpload;
-
 import java.io.File;
-import tdl.s3.helpers.ExistingMultipartUploadFinder;
+import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.DummyProgressListener;
 import tdl.s3.sync.ProgressListener;
 
 public class FileUploadingService {
 
-    private final AmazonS3 amazonS3;
-
-    private final String bucket;
-
-    private final String prefix;
+    private final Destination destination;
 
     private ProgressListener listener = new DummyProgressListener();
 
-    public FileUploadingService(AmazonS3 amazonS3, String bucket, String prefix) {
-        this.amazonS3 = amazonS3;
-        this.bucket = bucket;
-        this.prefix = prefix;
+    public FileUploadingService(Destination destination) {
+        this.destination = destination;
     }
 
     public void setListener(ProgressListener listener) {
@@ -29,26 +20,17 @@ public class FileUploadingService {
     }
 
     public void upload(File file) {
-        RemoteFile remoteFile = new RemoteFile(bucket, prefix, file.getName(), amazonS3);
-        upload(file, remoteFile);
+        upload(file, file.getName());
     }
 
     public void upload(File file, String remoteName) {
-        RemoteFile remoteFile = new RemoteFile(bucket, prefix, remoteName, amazonS3);
-        upload(file, remoteFile);
+        FileUploader fileUploader = createFileUploader();
+        fileUploader.upload(file, remoteName);
     }
 
-    private void upload(File file, RemoteFile remoteFile) {
-        FileUploader fileUploader = createFileUploader(remoteFile);
-        fileUploader.upload(file, remoteFile);
-    }
-
-    private FileUploader createFileUploader(RemoteFile remoteFile) {
-        ExistingMultipartUploadFinder finder = new ExistingMultipartUploadFinder(amazonS3, remoteFile.getBucket(), remoteFile.getPrefix());
-        MultipartUpload multipartUpload = finder.findOrNull(remoteFile);
-
-        UploadingStrategy strategy = new MultipartUploadFileUploadingStrategy(multipartUpload);
+    private FileUploader createFileUploader() {
+        UploadingStrategy strategy = new MultipartUploadFileUploadingStrategy(destination);
         strategy.setListener(listener);
-        return new FileUploaderImpl(amazonS3, bucket, prefix, strategy);
+        return new FileUploaderImpl(destination, strategy);
     }
 }
