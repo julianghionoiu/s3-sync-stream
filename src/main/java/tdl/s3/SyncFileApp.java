@@ -8,6 +8,7 @@ import com.beust.jcommander.Parameters;
 import com.beust.jcommander.Parameter;
 import tdl.s3.cli.ProgressStatus;
 import tdl.s3.sync.RemoteSync;
+import tdl.s3.sync.RemoteSyncException;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
@@ -28,7 +29,7 @@ public class SyncFileApp {
     @Parameter(names = {"--filter"})
     private String regex = "^[0-9a-zA-Z\\_]+\\.mp4";
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws RemoteSyncException {
         SyncFileApp app = new SyncFileApp();
         JCommander jCommander = new JCommander(app);
         jCommander.parse(args);
@@ -36,7 +37,7 @@ public class SyncFileApp {
         app.run();
     }
 
-    private void run() {
+    private void run() throws RemoteSyncException {
         Source source = buildSource();
         Destination destination = buildDestination();
         RemoteSync sync = new RemoteSync(source, destination);

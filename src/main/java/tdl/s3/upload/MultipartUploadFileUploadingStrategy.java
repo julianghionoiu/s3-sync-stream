@@ -14,7 +14,6 @@ import java.util.stream.Stream;
 import tdl.s3.helpers.ByteHelper;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
-import tdl.s3.helpers.MultipartUploadHelper;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.DummyProgressListener;
 import tdl.s3.sync.ProgressListener;

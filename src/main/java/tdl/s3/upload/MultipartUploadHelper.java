@@ -1,11 +1,9 @@
-package tdl.s3.helpers;
+package tdl.s3.upload;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ListPartsRequest;
-import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.PartListing;
 import com.amazonaws.services.s3.model.PartSummary;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -15,9 +13,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class MultipartUploadHelper {
+class MultipartUploadHelper {
 
-    public static List<PartETag> getPartETagsFromPartListing(PartListing listing) {
+    static List<PartETag> getPartETagsFromPartListing(PartListing listing) {
         Stream<PartSummary> partSummaryStream = Optional.ofNullable(listing)
                 .map(PartListing::getParts)
                 .map(Collection::stream)
@@ -27,13 +25,13 @@ public class MultipartUploadHelper {
                 .collect(Collectors.toList());
     }
 
-    public static long getUploadedSize(PartListing partListing) {
+    static long getUploadedSize(PartListing partListing) {
         return partListing.getParts().stream()
                 .mapToLong(PartSummary::getSize)
                 .sum();
     }
 
-    public static int getLastPartIndex(PartListing partListing) {
+    static int getLastPartIndex(PartListing partListing) {
         return partListing.getParts()
                 .stream()
                 .mapToInt(PartSummary::getPartNumber)
@@ -41,7 +39,7 @@ public class MultipartUploadHelper {
                 .orElse(1);
     }
     
-    public static Set<Integer> getFailedMiddlePartNumbers(PartListing partListing) {
+    static Set<Integer> getFailedMiddlePartNumbers(PartListing partListing) {
         AtomicInteger lastPartNumber = new AtomicInteger(0);
         Set<Integer> uploadedParts = partListing.getParts().stream()
                 .map(PartSummary::getPartNumber)

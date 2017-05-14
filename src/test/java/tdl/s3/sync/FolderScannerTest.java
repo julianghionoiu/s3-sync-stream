@@ -10,12 +10,8 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
-import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.startsWith;
@@ -24,7 +20,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
-public class FolderScannerImplTest {
+public class FolderScannerTest {
 
     private Path emptyDirPath;
     private Path notEmptyDirPath;
@@ -40,7 +36,7 @@ public class FolderScannerImplTest {
         Filters filters = Filters.getBuilder()
                             .include(Filters.endsWith("txt"))
                             .create();
-        folderScanner = new FolderScannerImpl(filters);
+        folderScanner = new FolderScanner(filters);
 
         //create empty directory if not exists
         emptyDirPath = Paths.get("build", "empty_dir");

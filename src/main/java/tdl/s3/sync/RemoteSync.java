@@ -1,13 +1,9 @@
 package tdl.s3.sync;
 
 import tdl.s3.sync.destination.Destination;
-import tdl.s3.sync.DummyProgressListener;
-import tdl.s3.sync.Filters;
-import tdl.s3.sync.FolderScannerImpl;
-import tdl.s3.sync.FolderSynchronizer;
-import tdl.s3.sync.Source;
 import tdl.s3.upload.FileUploadingService;
-import tdl.s3.sync.ProgressListener;
+
+import java.io.IOException;
 
 public class RemoteSync {
 
@@ -34,11 +30,15 @@ public class RemoteSync {
         this.listener = listener;
     }
 
-    public void run() {
+    public void run() throws RemoteSyncException {
         buildUploadingService();
         buildFolderSynchronizer();
         folderSynchronizer.setListener(listener);
-        folderSynchronizer.synchronize(source.getPath(), source.isRecursive());
+        try {
+            folderSynchronizer.synchronize(source.getPath(), source.isRecursive());
+        } catch (IOException e) {
+            throw new RemoteSyncException("Failed to sync folder "+source.getPath(), e);
+        }
     }
 
     private void buildUploadingService() {
@@ -47,7 +47,7 @@ public class RemoteSync {
 
     private void buildFolderSynchronizer() {
         Filters filters = source.getFilters();
-        FolderScannerImpl folderScanner = new FolderScannerImpl(filters);
+        FolderScanner folderScanner = new FolderScanner(filters);
         folderSynchronizer = new FolderSynchronizer(folderScanner, fileUploadingService);
     }
 }

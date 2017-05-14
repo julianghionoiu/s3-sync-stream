@@ -2,25 +2,25 @@ package tdl.s3.sync;
 
 import tdl.s3.upload.FileUploadingService;
 
+import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 
-public class FolderSynchronizer {
+class FolderSynchronizer {
 
     private final FolderScanner folderScanner;
 
     private final FileUploadingService fileUploadingService;
 
-    public FolderSynchronizer(FolderScanner folderScanner, FileUploadingService fileUploadingService) {
+    FolderSynchronizer(FolderScanner folderScanner, FileUploadingService fileUploadingService) {
         this.folderScanner = folderScanner;
         this.fileUploadingService = fileUploadingService;
     }
 
-    public void synchronize(Path folder, boolean recursive) {
+    void synchronize(Path folder, boolean recursive) throws IOException {
         folderScanner.traverseFolder(folder, fileUploadingService::upload, recursive);
     }
 
-    public void setListener(ProgressListener listener) {
+    void setListener(ProgressListener listener) {
         fileUploadingService.setListener(listener);
     }
 }
