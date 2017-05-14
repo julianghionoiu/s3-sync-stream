@@ -48,6 +48,8 @@ public class FileUploaderImpl implements FileUploader {
                 log.warn("Error during uploading : " + e.getMessage() + " Trying next time...");
                 upload(file, path, retry - 1);
             }
+        } finally {
+            log.info("Finished uploading file " + file);
         }
     }
 

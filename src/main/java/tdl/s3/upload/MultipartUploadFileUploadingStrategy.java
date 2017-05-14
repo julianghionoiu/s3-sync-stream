@@ -65,6 +65,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         initStrategy(file, remotePath);
         listener.uploadFileStarted(file, uploadId);
         uploadRequiredParts(file, remotePath);
+        listener.uploadFileFinished(file);
     }
 
     private void initStrategy(File file, String remotePath) {
@@ -116,7 +117,6 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
             concurrentUploader.shutdownAndAwaitTermination();
             if (writingFinished) {
                 commit(remotePath);
-                listener.uploadFileFinished(file);
             }
         } catch (InterruptedException e) {
             throw new RuntimeException("File uploading was terminated.");
