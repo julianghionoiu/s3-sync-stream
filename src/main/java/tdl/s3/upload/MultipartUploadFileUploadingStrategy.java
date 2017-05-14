@@ -15,7 +15,7 @@ import tdl.s3.helpers.ByteHelper;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
 import tdl.s3.helpers.MultipartUploadHelper;
-import tdl.s3.sync.Destination;
+import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.DummyProgressListener;
 import tdl.s3.sync.ProgressListener;
 
@@ -56,7 +56,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
      *
      * @param threadsCount count of threads that should be used for uploading
      */
-    MultipartUploadFileUploadingStrategy(Destination destination, int threadsCount) {
+    private MultipartUploadFileUploadingStrategy(Destination destination, int threadsCount) {
         this.destination = destination;
         concurrentUploader = new ConcurrentMultipartUploader(destination, threadsCount);
     }
@@ -168,9 +168,8 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                     .withUploadId(uploadId)
                     .withInputStream(partInputStream);
 
-            request.setGeneralProgressListener((com.amazonaws.event.ProgressEvent pe) -> {
-                listener.uploadFileProgress(request.getUploadId(), pe.getBytesTransferred());
-            });
+            request.setGeneralProgressListener((com.amazonaws.event.ProgressEvent pe) ->
+                    listener.uploadFileProgress(request.getUploadId(), pe.getBytesTransferred()));
 
             return request;
         } catch (IOException ioe) {
@@ -180,9 +179,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private MultipartUploadResult getUploadingResult(Future<MultipartUploadResult> future) {
         try {
-            MultipartUploadResult result = future.get();
-            //listener.uploadFileProgress(result.getRequest().getUploadId(), (int) result.getRequest().getPartSize());
-            return result;
+            return future.get();
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Some part uploads was unsuccessful. " + e.getMessage(), e);
         }

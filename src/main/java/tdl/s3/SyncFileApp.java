@@ -7,9 +7,11 @@ import java.nio.file.Paths;
 import com.beust.jcommander.Parameters;
 import com.beust.jcommander.Parameter;
 import tdl.s3.cli.ProgressStatus;
-import tdl.s3.sync.Destination;
+import tdl.s3.sync.RemoteSync;
+import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
+import tdl.s3.sync.destination.S3BucketDestination;
 
 @Parameters
 public class SyncFileApp {
@@ -56,10 +58,10 @@ public class SyncFileApp {
 
     private Destination buildDestination() {
         if (configPath == null) {
-            return Destination.createDefaultDestination();
+            return S3BucketDestination.createDefaultDestination();
         }
         Path path = Paths.get(configPath);
-        return Destination.getBuilder()
+        return S3BucketDestination.getBuilder()
                 .loadFromPath(path)
                 .create();
     }

@@ -1,4 +1,4 @@
-package tdl.s3.sync;
+package tdl.s3.sync.destination;
 
 import com.amazonaws.services.kms.model.NotFoundException;
 import com.amazonaws.services.s3.AmazonS3;
@@ -18,14 +18,17 @@ import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import tdl.s3.credentials.AWSSecretsProvider;
-import tdl.s3.helpers.ExistingMultipartUploadFinder;
 import tdl.s3.upload.MultipartUploadResult;
 
-public class Destination {
+public class S3BucketDestination implements Destination {
     
     private static final String DEFAULT_CONFIGURATION_PATH = ".private/aws-test-secrets";
 
@@ -37,9 +40,12 @@ public class Destination {
 
     private String prefix;
 
+
+    // ~~~~ Construct
+
     public static class Builder {
 
-        private final Destination destination = new Destination();
+        private final S3BucketDestination destination = new S3BucketDestination();
 
         public Builder loadFromPath(Path path) {
             //TODO: Need to consider removing AWSSecretsProvider class.
@@ -67,10 +73,6 @@ public class Destination {
                 .create();
     }
 
-    public AWSSecretsProvider getSecret() {
-        return secret;
-    }
-
     private void buildClient() {
         this.client = AmazonS3ClientBuilder.standard()
                 .withCredentials(secret)
@@ -78,10 +80,11 @@ public class Destination {
                 .build();
     }
 
-    public String getFullPath(String path) {
-        return prefix + path;
-    }
 
+    // ~~~~ Public methods
+
+
+    @Override
     public boolean canUpload(String remotePath) {
         try {
             client.getObjectMetadata(bucket, getFullPath(remotePath));
@@ -97,24 +100,16 @@ public class Destination {
         }
     }
 
+    @Override
     public String initUploading(String remotePath) {
         InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(bucket, getFullPath(remotePath));
         InitiateMultipartUploadResult result = client.initiateMultipartUpload(request);
         return result.getUploadId();
     }
 
-    public MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest request) {
-        return client.listMultipartUploads(request);
-    }
-
-    public MultipartUploadResult uploadMultiPart(UploadPartRequest request) {
-        UploadPartResult result = client.uploadPart(request);
-        return new MultipartUploadResult(request, result);
-    }
-
+    @Override
     public PartListing getAlreadyUploadedParts(String remotePath) {
-        ExistingMultipartUploadFinder finder = new ExistingMultipartUploadFinder(this);
-        MultipartUpload multipartUpload = finder.findOrNull(remotePath);
+        MultipartUpload multipartUpload = findOrNull(remotePath);
 
         return Optional.ofNullable(multipartUpload)
                 .map(MultipartUpload::getUploadId)
@@ -122,15 +117,13 @@ public class Destination {
                 .orElse(null);
     }
 
-    private PartListing getPartListing(String remotePath, String uploadId) {
-        ListPartsRequest request = new ListPartsRequest(bucket, getFullPath(remotePath), uploadId);
-        return listParts(request);
+    @Override
+    public MultipartUploadResult uploadMultiPart(UploadPartRequest request) {
+        UploadPartResult result = client.uploadPart(request);
+        return new MultipartUploadResult(request, result);
     }
 
-    private PartListing listParts(ListPartsRequest request) {
-        return client.listParts(request);
-    }
-
+    @Override
     public void commitMultipartUpload(String remotePath, List<PartETag> eTags, String uploadId) {
         eTags.sort(Comparator.comparing(PartETag::getPartNumber));
         CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(
@@ -142,19 +135,85 @@ public class Destination {
         completeMultipartUpload(request);
     }
 
-    private CompleteMultipartUploadResult completeMultipartUpload(CompleteMultipartUploadRequest request) {
-        return client.completeMultipartUpload(request);
+    @Override
+    public UploadPartRequest createUploadPartRequest(String remotePath) {
+        return new UploadPartRequest()
+                .withBucketName(bucket)
+                .withKey(getFullPath(remotePath));
     }
 
-    public ListMultipartUploadsRequest createListMultipartUploadsRequest() {
+    // ~~~ MultiPart Helpers
+
+
+    private void completeMultipartUpload(CompleteMultipartUploadRequest request) {
+        client.completeMultipartUpload(request);
+    }
+
+    private ListMultipartUploadsRequest createListMultipartUploadsRequest() {
         ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(bucket);
         uploadsRequest.setPrefix(prefix);
         return uploadsRequest;
     }
 
-    public UploadPartRequest createUploadPartRequest(String remotePath) {
-        return new UploadPartRequest()
-                .withBucketName(bucket)
-                .withKey(getFullPath(remotePath));
+    private MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest request) {
+        return client.listMultipartUploads(request);
+    }
+
+
+    private List<MultipartUpload> getAlreadyStartedMultipartUploads() {
+        ListMultipartUploadsRequest uploadsRequest = createListMultipartUploadsRequest();
+        MultipartUploadListing multipartUploadListing = listMultipartUploads(uploadsRequest);
+
+        Stream<MultipartUploadListing> stream = Stream.of(multipartUploadListing)
+                .flatMap(this::streamNextListing);
+
+        return stream.map(MultipartUploadListing::getMultipartUploads)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+    }
+
+    private Stream<MultipartUploadListing> streamNextListing(MultipartUploadListing listing) {
+        if (!listing.isTruncated()) {
+            return Stream.of(listing);
+        }
+        MultipartUploadListing nextListing = getNextListing(listing);
+
+        Stream<MultipartUploadListing> head = Stream.of(listing);
+        Stream<MultipartUploadListing> tail = streamNextListing(nextListing);
+
+        return Stream.concat(head, tail);
+    }
+
+    private MultipartUploadListing getNextListing(MultipartUploadListing listing) {
+        ListMultipartUploadsRequest uploadsRequest = createListMultipartUploadsRequest();
+        uploadsRequest.setUploadIdMarker(listing.getNextUploadIdMarker());
+        uploadsRequest.setKeyMarker(listing.getNextKeyMarker());
+
+        return listMultipartUploads(uploadsRequest);
+    }
+
+    private MultipartUpload findOrNull(String remotePath) {
+        List<MultipartUpload> uploads = getAlreadyStartedMultipartUploads();
+        return uploads.stream()
+                .filter(upload -> upload.getKey().equals(getFullPath(remotePath)))
+                .findAny()
+                .orElse(null);
+    }
+
+    // ~~~ Part Helpers
+
+    private PartListing getPartListing(String remotePath, String uploadId) {
+        ListPartsRequest request = new ListPartsRequest(bucket, getFullPath(remotePath), uploadId);
+        return listParts(request);
+    }
+
+    private PartListing listParts(ListPartsRequest request) {
+        return client.listParts(request);
+    }
+
+    // ~~~ Path helpers
+
+    private String getFullPath(String path) {
+        return prefix + path;
     }
 }

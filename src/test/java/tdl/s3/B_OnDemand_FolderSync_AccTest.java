@@ -9,9 +9,11 @@ import tdl.s3.rules.RemoteTestBucket;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import org.junit.Before;
-import tdl.s3.sync.Destination;
+import tdl.s3.sync.RemoteSync;
+import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
+import tdl.s3.sync.destination.S3BucketDestination;
 
 public class B_OnDemand_FolderSync_AccTest {
 
@@ -22,7 +24,7 @@ public class B_OnDemand_FolderSync_AccTest {
 
     @Before
     public void setUp() {
-        destination = Destination.createDefaultDestination();
+        destination = S3BucketDestination.createDefaultDestination();
     }
 
     @Test

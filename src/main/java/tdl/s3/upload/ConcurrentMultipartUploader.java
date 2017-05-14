@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import tdl.s3.sync.Destination;
+import tdl.s3.sync.destination.Destination;
 
 public class ConcurrentMultipartUploader {
 
@@ -22,7 +22,7 @@ public class ConcurrentMultipartUploader {
         this(destination, DEFAULT_THREAD_COUNT);
     }
 
-    public ConcurrentMultipartUploader(Destination destination, int threadCount) {
+    ConcurrentMultipartUploader(Destination destination, int threadCount) {
         this.destination = destination;
         if (threadCount < 1) {
             throw new IllegalArgumentException("Thread count should be >= 1");
@@ -34,12 +34,12 @@ public class ConcurrentMultipartUploader {
         return executorService;
     }
 
-    public void shutdownAndAwaitTermination() throws InterruptedException {
+    void shutdownAndAwaitTermination() throws InterruptedException {
         executorService.shutdown();
         executorService.awaitTermination(MAX_UPLOADING_TIME, TimeUnit.SECONDS);
     }
 
-    public Future<MultipartUploadResult> submitTaskForPartUploading(UploadPartRequest request) {
+    Future<MultipartUploadResult> submitTaskForPartUploading(UploadPartRequest request) {
         Callable<MultipartUploadResult> task = createCallableForPartUploadingAndReturnETag(request);
         return executorService.submit(task);
     }

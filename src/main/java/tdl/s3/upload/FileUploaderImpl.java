@@ -1,21 +1,20 @@
 package tdl.s3.upload;
 
-import com.amazonaws.services.s3.AmazonS3;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
-import tdl.s3.sync.Destination;
+import tdl.s3.sync.destination.Destination;
 
 @Slf4j
 public class FileUploaderImpl implements FileUploader {
 
-    public static int RETRY_TIMES_COUNT = 2;
+    private static int RETRY_TIMES_COUNT = 2;
 
     private final Destination destination;
 
     private final UploadingStrategy uploadingStrategy;
 
-    public FileUploaderImpl(final Destination destination, UploadingStrategy uploadingStrategy) {
+    FileUploaderImpl(final Destination destination, UploadingStrategy uploadingStrategy) {
         this.destination = destination;
         this.uploadingStrategy = uploadingStrategy;
     }

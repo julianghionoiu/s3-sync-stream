@@ -2,7 +2,7 @@ package tdl.s3.upload;
 
 
 import java.io.File;
-import tdl.s3.sync.Destination;
+import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.ProgressListener;
 
 public interface UploadingStrategy {

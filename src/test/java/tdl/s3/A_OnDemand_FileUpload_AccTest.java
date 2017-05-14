@@ -6,7 +6,6 @@ import java.nio.file.Paths;
 import org.junit.Rule;
 import org.junit.Test;
 import tdl.s3.rules.RemoteTestBucket;
-import tdl.s3.RemoteSync;
 
 import java.time.Instant;
 
@@ -14,9 +13,11 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
-import tdl.s3.sync.Destination;
+import tdl.s3.sync.RemoteSync;
+import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
+import tdl.s3.sync.destination.S3BucketDestination;
 
 public class A_OnDemand_FileUpload_AccTest {
 
@@ -27,7 +28,7 @@ public class A_OnDemand_FileUpload_AccTest {
 
     @Before
     public void setUp() {
-        destination = Destination.createDefaultDestination();
+        destination = S3BucketDestination.createDefaultDestination();
     }
 
     @Test
