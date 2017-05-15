@@ -151,3 +151,18 @@ The command will increment the release number and create and annotated tag:
 ./gradlew release
 git push --tags
 ```
+
+### Inspect traffic with Charles Proxy
+
+- Install Charles Proxy: https://www.charlesproxy.com/
+- Enable SSL Proxying: https://www.charlesproxy.com/documentation/proxying/ssl-proxying/
+- Add SSL host: `*.amazonaws.com`
+- Export Charles certificate, `SSL Proxying > Save Charles Root Certificate`
+- Import into Java Keystore
+```
+sudo keytool -import -alias charles \
+  -file "${CERT_SAVE_LOCATION}/charles-ssl-proxying-certificate.pem" \
+  -keystore "${JAVA_HOME}/jre/lib/security/cacerts" \
+  -storepass changeit
+```
+- Traffic should appear in Charles
