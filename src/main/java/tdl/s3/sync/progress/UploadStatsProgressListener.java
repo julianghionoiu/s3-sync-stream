@@ -75,4 +75,8 @@ public class UploadStatsProgressListener implements ProgressListener {
         return Optional.ofNullable(fileUploadStat);
     }
 
+
+    public boolean isCurrentlyUploading() {
+        return fileUploadStat != null;
+    }
 }
