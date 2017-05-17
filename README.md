@@ -114,7 +114,7 @@ aws_access_key_id=ABCDEFGHIJKLM
 aws_secret_access_key=ABCDEFGHIJKLM
 s3_region=ap-southeast-1
 s3_bucket=bucketname
-s3_prefix=prefix
+s3_prefix=prefix/
 ```
 
 The values are:
