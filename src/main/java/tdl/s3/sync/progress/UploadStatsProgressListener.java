@@ -11,18 +11,18 @@ public class UploadStatsProgressListener implements ProgressListener {
 
         private final double BYTE_PER_MILLISECOND_TO_MEGABYTES_PER_SECOND = 0.001;
 
-        private int totalSize = 0;
+        private long totalSize = 0;
 
         private long uploadedSize = 0;
 
         private long startTimestamp = 0;
 
-        FileUploadStat(int totalSize) {
+        FileUploadStat(long totalSize) {
             this.totalSize = totalSize;
             this.startTimestamp = new Date().getTime();
         }
 
-        public int getTotalSize() {
+        public long getTotalSize() {
             return totalSize;
         }
 
@@ -53,7 +53,7 @@ public class UploadStatsProgressListener implements ProgressListener {
 
     @Override
     public void uploadFileStarted(File file, String uploadId) {
-        fileUploadStat = new FileUploadStat((int) file.length());
+        fileUploadStat = new FileUploadStat(file.length());
     }
 
     @Override
