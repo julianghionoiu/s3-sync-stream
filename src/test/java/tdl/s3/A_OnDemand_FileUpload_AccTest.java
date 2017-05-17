@@ -17,6 +17,7 @@ import tdl.s3.sync.RemoteSync;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
+import tdl.s3.sync.destination.DebugDestination;
 import tdl.s3.sync.destination.S3BucketDestination;
 
 public class A_OnDemand_FileUpload_AccTest {
@@ -28,7 +29,7 @@ public class A_OnDemand_FileUpload_AccTest {
 
     @Before
     public void setUp() {
-        destination = S3BucketDestination.createDefaultDestination();
+        destination = new DebugDestination((S3BucketDestination) S3BucketDestination.createDefaultDestination());
     }
 
     @Test
