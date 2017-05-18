@@ -2,9 +2,9 @@ package tdl.s3.rules;
 
 import ch.qos.logback.core.encoder.ByteArrayUtil;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
-import sun.misc.IOUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -95,7 +95,7 @@ public class TemporarySyncFolder extends ExternalResource {
             long read = 0;
             for (int i = 1; read < fileSize; i++) {
                 int chunkSize = fileSize - read > PART_SIZE_IN_BYTES ? PART_SIZE_IN_BYTES : (int) (fileSize - read);
-                byte[] chunk = IOUtils.readFully(fileInputStream, chunkSize, true);
+                byte[] chunk = IOUtils.readFully(fileInputStream, chunkSize);
                 String hash = Hex.encodeHexString(digest.digest(chunk));
                 result.put(i, hash);
                 read += chunk.length;
