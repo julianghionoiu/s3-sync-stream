@@ -29,7 +29,7 @@ public class A_OnDemand_FileUpload_AccTest {
 
     @Before
     public void setUp() {
-        destination = new DebugDestination((S3BucketDestination) S3BucketDestination.createDefaultDestination());
+        destination = new DebugDestination(S3BucketDestination.createDefaultDestination());
     }
 
     @Test

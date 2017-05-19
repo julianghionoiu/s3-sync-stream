@@ -14,18 +14,19 @@ import java.util.List;
 import java.util.Optional;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Base64;
 
 import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
 
 @Getter
 public class RemoteTestBucket extends ExternalResource {
+
     private final AmazonS3 amazonS3;
     private final String bucketName;
     private final String uploadPrefix;
 
     //~~~~ Construct
-
     public RemoteTestBucket() {
         Path privatePropertiesFile = Paths.get(".private", "aws-test-secrets");
         AWSSecretsProvider secretsProvider = new AWSSecretsProvider(privatePropertiesFile);
@@ -40,7 +41,6 @@ public class RemoteTestBucket extends ExternalResource {
     }
 
     //~~~~ Lifecycle management
-
     @Override
     protected void before() {
         abortAllMultipartUploads();
@@ -68,7 +68,6 @@ public class RemoteTestBucket extends ExternalResource {
     }
 
     //~~~~ Bucket actions
-
     public boolean doesObjectExists(String key) {
         return amazonS3.doesObjectExist(bucketName, uploadPrefix + key);
     }
@@ -95,6 +94,12 @@ public class RemoteTestBucket extends ExternalResource {
     public void upload(String key, Path path) {
         PutObjectRequest objectRequest = new PutObjectRequest(bucketName, uploadPrefix + key, path.toFile());
         amazonS3.putObject(objectRequest);
+    }
+
+    public void uploadFilesInsideDir(Path dir) {
+        Arrays.stream(dir.toFile().listFiles())
+                .filter(file -> file.isFile())
+                .forEach(file -> upload(file.getName(), file.toPath()));
     }
 
     public String initiateMultipartUpload(String name) {

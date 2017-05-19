@@ -70,6 +70,8 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private void initStrategy(File file, String remotePath) {
         writingFinished = !FileHelper.lockFileExists(file);
+        
+        
         PartListing alreadyUploadedParts = destination.getAlreadyUploadedParts(remotePath);
 
         boolean uploadingStarted = alreadyUploadedParts != null;

@@ -39,7 +39,7 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
     
     @Before
     public void setUp() {
-        destination = new DebugDestination((S3BucketDestination) S3BucketDestination.createDefaultDestination());
+        destination = new DebugDestination(S3BucketDestination.createDefaultDestination());
         defaultFilters = Filters.getBuilder()
                 .include(Filters.endsWith("txt"))
                 .include(Filters.endsWith("bin"))
