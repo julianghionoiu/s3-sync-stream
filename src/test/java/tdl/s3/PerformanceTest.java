@@ -65,20 +65,6 @@ public class PerformanceTest {
         sync.run();
         assertEquals(destination.getCount(), 8); //only call canUpload
     }
-
-    @Test
-    public void uploadLargeMultipartFile() throws RemoteSyncException, FileNotFoundException, IOException {
-        Path path = Paths.get("src/test/resources/performance_test/multipart");
-        createRandomFile(path, PART_SIZE * 4);
-        
-        Source source = Source.getBuilder(path)
-                .setFilters(defaultFilters)
-                .create();
-        RemoteSync sync = new RemoteSync(source, destination);
-        sync.run();
-        //4 x upload multipart, 4x greetings, tec.
-        assertEquals(destination.getCount(), 4004);
-    }
     
     @Test
     public void uploadPartialLargeMultipartFile() throws RemoteSyncException, FileNotFoundException, IOException {
