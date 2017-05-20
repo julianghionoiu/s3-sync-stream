@@ -25,19 +25,31 @@ import tdl.s3.sync.destination.S3BucketDestination;
 
 import static org.junit.Assert.*;
 import tdl.s3.helpers.FileHelper;
+import tdl.s3.rules.TemporarySyncFolder;
+import static tdl.s3.rules.TemporarySyncFolder.ONE_MEGABYTE;
+import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
 
 public class PerformanceTest {
 
     private static int PART_SIZE = 5 * 1024 * 1024;
 
     private DebugDestination destination;
+    
+    private Filters defaultFilters;
 
     @Rule
     public RemoteTestBucket remoteTestBucket = new RemoteTestBucket();
+    
+    @Rule
+    public TemporarySyncFolder targetSyncFolder = new TemporarySyncFolder();
 
     @Before
     public void setUp() {
         destination = new DebugDestination((Destination) S3BucketDestination.createDefaultDestination());
+        defaultFilters = Filters.getBuilder()
+                .include(Filters.endsWith("txt"))
+                .include(Filters.endsWith("bin"))
+                .create();
     }
 
     @Test
@@ -46,9 +58,8 @@ public class PerformanceTest {
         Path path = Paths.get("src/test/resources/performance_test/already_uploaded/");
         remoteTestBucket.uploadFilesInsideDir(path);
 
-        Filters filters = Filters.getBuilder().include(Filters.endsWith("txt")).create();
         Source source = Source.getBuilder(path)
-                .setFilters(filters)
+                .setFilters(defaultFilters)
                 .create();
         RemoteSync sync = new RemoteSync(source, destination);
         sync.run();
@@ -60,9 +71,8 @@ public class PerformanceTest {
         Path path = Paths.get("src/test/resources/performance_test/multipart");
         createRandomFile(path, PART_SIZE * 4);
         
-        Filters filters = Filters.getBuilder().include(Filters.endsWith("txt")).create();
         Source source = Source.getBuilder(path)
-                .setFilters(filters)
+                .setFilters(defaultFilters)
                 .create();
         RemoteSync sync = new RemoteSync(source, destination);
         sync.run();
@@ -74,24 +84,28 @@ public class PerformanceTest {
     public void uploadPartialLargeMultipartFile() throws RemoteSyncException, FileNotFoundException, IOException {
         Path path = Paths.get("src/test/resources/performance_test/multipart_partial");
         File file = createRandomFile(path, PART_SIZE * 4);
-        remoteTestBucket.upload(file.getName(), file.toPath());
-        
-        byte[] b = new byte[PART_SIZE];
-        new Random().nextBytes(b);
-        FileUtils.writeByteArrayToFile(file, b, true);
-        assertEquals(file.length(), PART_SIZE * 5);
-        Path lockFile = FileHelper.getLockFilePath(file);
-        Files.write(lockFile, new byte[] {0});
-        
-        Filters filters = Filters.getBuilder().include(Filters.endsWith("txt")).create();
-        Source source = Source.getBuilder(path)
-                .setFilters(filters)
+        String fileName = file.getName();
+        targetSyncFolder.addFile(file.getAbsolutePath());
+        targetSyncFolder.lock(fileName);
+        Path directoryPath = targetSyncFolder.getFolderPath();
+        Source directorySource = Source.getBuilder(directoryPath)
+                .setFilters(defaultFilters)
+                .setRecursive(true)
                 .create();
-        RemoteSync sync = new RemoteSync(source, destination);
-        sync.run();
         
-        assertEquals(destination.getCount(), 1001);
-        Files.delete(lockFile);
+        RemoteSync directoryFirstSync = new RemoteSync(directorySource, destination);
+        directoryFirstSync.run();
+        assertEquals(destination.getCount(), 4003);
+        
+        targetSyncFolder.writeBytesToFile(fileName, PART_SIZE + ONE_MEGABYTE);
+        targetSyncFolder.unlock(fileName);
+        
+        RemoteSync directorySecondSync = new RemoteSync(directorySource, destination);
+        directorySecondSync.run();
+        
+        //+ 1 canUpload + 1 initUpload + 2000 uploadMultipart + 1 commit
+        assertEquals(destination.getCount(), 6006);
+        Files.delete(file.toPath());
     }
 
     private File createRandomFile(Path path, int size) throws FileNotFoundException, IOException {
