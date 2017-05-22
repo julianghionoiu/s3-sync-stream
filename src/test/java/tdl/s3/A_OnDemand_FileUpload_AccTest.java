@@ -12,9 +12,13 @@ import java.time.Instant;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import tdl.s3.sync.Filters;
+import org.junit.Before;
 import tdl.s3.sync.RemoteSync;
+import tdl.s3.sync.destination.Destination;
+import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
+import tdl.s3.sync.destination.DebugDestination;
+import tdl.s3.sync.destination.S3BucketDestination;
 
 public class A_OnDemand_FileUpload_AccTest {
 

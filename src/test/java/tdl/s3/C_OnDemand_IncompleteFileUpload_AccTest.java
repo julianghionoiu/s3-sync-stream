@@ -9,8 +9,8 @@ import tdl.s3.rules.TemporarySyncFolder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -23,10 +23,11 @@ import tdl.s3.sync.RemoteSync;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
+import tdl.s3.sync.destination.DebugDestination;
 import tdl.s3.sync.destination.S3BucketDestination;
 
 public class C_OnDemand_IncompleteFileUpload_AccTest {
-    
+
     private Filters defaultFilters;
 
     @Rule
@@ -121,6 +122,7 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         assertTrue(remoteTestBucket.getObjectMetadata(fileName)
                 .getETag().startsWith(targetSyncFolder.getCompleteFileMD5(fileName)));
     }
+
 
 
     @Test

@@ -3,76 +3,60 @@ package tdl.s3.sync.destination;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.PartListing;
 import com.amazonaws.services.s3.model.UploadPartRequest;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import tdl.s3.upload.MultipartUploadResult;
 
+import java.util.List;
+
 @Slf4j
-public class DebugDestination implements Destination {
+public class PerformanceMeasureDestination implements Destination {
 
     private final Destination destination;
 
     private int performanceScore = 0;
 
-    public DebugDestination(Destination destination) {
+    public PerformanceMeasureDestination(Destination destination) {
         this.destination = destination;
     }
 
-    public int getPerfomanceScore() {
+    public int getPerformanceScore() {
         return performanceScore;
     }
 
     @Override
     public boolean canUpload(String remotePath) {
         performanceScore += 1;
-        log.debug("canUpload: START");
-        boolean result =  destination.canUpload(remotePath);
-        log.debug("canUpload: FINISH");
-        return result;
+        return destination.canUpload(remotePath);
     }
 
     @Override
     public String initUploading(String remotePath) {
         performanceScore += 1;
-        log.debug("initUploading: START");
-        String result = destination.initUploading(remotePath);
-        log.debug("initUploading: FINISH");
-        return result;
+        return destination.initUploading(remotePath);
     }
 
     @Override
     public PartListing getAlreadyUploadedParts(String remotePath) {
         performanceScore += 1;
-        log.debug("getAlreadyUploadedParts: START");
-        PartListing result = destination.getAlreadyUploadedParts(remotePath);
-        log.debug("getAlreadyUploadedParts: FINISH");
-        return result;
+        return destination.getAlreadyUploadedParts(remotePath);
     }
 
     @Override
     public MultipartUploadResult uploadMultiPart(UploadPartRequest request) {
         performanceScore += 1000;
-        log.debug("uploadMultiPart: START");
-        MultipartUploadResult result = destination.uploadMultiPart(request);
-        log.debug("uploadMultiPart: FINISH");
-        return result;
+        return destination.uploadMultiPart(request);
     }
 
     @Override
     public void commitMultipartUpload(String remotePath, List<PartETag> eTags, String uploadId) {
         performanceScore += 1;
-        log.debug("commitMultipartUpload: START");
         destination.commitMultipartUpload(remotePath, eTags, uploadId);
-        log.debug("commitMultipartUpload: FINISH");
     }
 
     @Override
     public UploadPartRequest createUploadPartRequest(String remotePath) {
-        log.debug("createUploadPartRequest: START");
         performanceScore += 0;
-        UploadPartRequest r = destination.createUploadPartRequest(remotePath);
-        log.debug("createUploadPartRequest: FINISH");
-        return r;
+        return destination.createUploadPartRequest(remotePath);
     }
 
 }

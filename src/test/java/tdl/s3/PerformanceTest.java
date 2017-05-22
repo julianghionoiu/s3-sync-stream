@@ -16,20 +16,18 @@ import tdl.s3.sync.Filters;
 import tdl.s3.sync.RemoteSync;
 import tdl.s3.sync.RemoteSyncException;
 import tdl.s3.sync.Source;
-import tdl.s3.sync.destination.DebugDestination;
-import tdl.s3.sync.destination.Destination;
-import tdl.s3.sync.destination.S3BucketDestination;
 
 import static org.junit.Assert.*;
 import tdl.s3.rules.TemporarySyncFolder;
 import static tdl.s3.rules.TemporarySyncFolder.ONE_MEGABYTE;
+import tdl.s3.sync.destination.PerformanceMeasureDestination;
 
 public class PerformanceTest {
 
     private static int PART_SIZE = 5 * 1024 * 1024;
 
-    private DebugDestination destination;
-    
+    private PerformanceMeasureDestination destination;
+
     private Filters defaultFilters;
 
     @Rule
@@ -40,7 +38,7 @@ public class PerformanceTest {
 
     @Before
     public void setUp() {
-        destination = new DebugDestination(remoteTestBucket.asDestination());
+        destination = new PerformanceMeasureDestination(remoteTestBucket.asDestination());
         defaultFilters = Filters.getBuilder()
                 .include(Filters.endsWith("txt"))
                 .include(Filters.endsWith("bin"))
@@ -58,7 +56,7 @@ public class PerformanceTest {
                 .create();
         RemoteSync sync = new RemoteSync(source, destination);
         sync.run();
-        assertEquals(destination.getCount(), 8); //only call canUpload
+        assertEquals(destination.getPerformanceScore(), 8); //only call canUpload
     }
     
     @Test
@@ -76,7 +74,7 @@ public class PerformanceTest {
         
         RemoteSync directoryFirstSync = new RemoteSync(directorySource, destination);
         directoryFirstSync.run();
-        assertEquals(destination.getCount(), 4003);
+        assertEquals(destination.getPerformanceScore(), 4003);
         
         targetSyncFolder.writeBytesToFile(fileName, PART_SIZE + ONE_MEGABYTE);
         targetSyncFolder.unlock(fileName);
@@ -85,7 +83,7 @@ public class PerformanceTest {
         directorySecondSync.run();
         
         //+ 1 canUpload + 1 initUpload + 2000 uploadMultipart + 1 commit
-        assertEquals(destination.getCount(), 6006);
+        assertEquals(destination.getPerformanceScore(), 6006);
         Files.delete(file.toPath());
     }
 

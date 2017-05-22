@@ -2,22 +2,23 @@ package tdl.s3.rules;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
-import org.junit.rules.ExternalResource;
-import tdl.s3.credentials.AWSSecretProperties;
-import tdl.s3.sync.destination.Destination;
-import tdl.s3.sync.destination.S3BucketDestination;
-
 import java.io.ByteArrayInputStream;
+import org.junit.rules.ExternalResource;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Optional;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.List;
-import java.util.Optional;
+import tdl.s3.credentials.AWSSecretProperties;
 
 import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
+import tdl.s3.sync.destination.DebugDestination;
+import tdl.s3.sync.destination.Destination;
+import tdl.s3.sync.destination.S3BucketDestination;
 
 public class RemoteTestBucket extends ExternalResource {
 
@@ -38,11 +39,12 @@ public class RemoteTestBucket extends ExternalResource {
     //~~~~ Getters
 
     public Destination asDestination() {
-        return S3BucketDestination.builder()
+        S3BucketDestination remoteDestination = S3BucketDestination.builder()
                 .awsClient(amazonS3)
                 .bucket(bucketName)
                 .prefix(uploadPrefix)
                 .build();
+        return new DebugDestination(remoteDestination);
     }
 
     //~~~~ Lifecycle management
@@ -89,6 +91,7 @@ public class RemoteTestBucket extends ExternalResource {
                 .filter(upl -> upl.getKey().equals(uploadPrefix + key))
                 .findAny();
     }
+
 
     public List<PartSummary> getPartsForKey(String key) {
         ListMultipartUploadsRequest multipartUploadsRequest = new ListMultipartUploadsRequest(bucketName);
