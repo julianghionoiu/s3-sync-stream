@@ -3,6 +3,7 @@ package tdl.s3;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import tdl.s3.credentials.AWSSecretProperties;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.RemoteSync;
 import tdl.s3.sync.RemoteSyncException;
@@ -21,7 +22,7 @@ import java.util.TimerTask;
 public class SyncFileApp {
 
     @Parameter(names = {"--config", "-c"})
-    private String configPath;
+    private String configPath = "./.private/aws-test-secrets";
 
     @Parameter(names = {"--dir", "-d"}, required = true)
     private String dirPath;
@@ -89,12 +90,13 @@ public class SyncFileApp {
     }
 
     private Destination buildDestination() {
-        if (configPath == null) {
-            return S3BucketDestination.createDefaultDestination();
-        }
         Path path = Paths.get(configPath);
-        return S3BucketDestination.getBuilder()
-                .loadFromPath(path)
-                .create();
+        AWSSecretProperties awsSecretProperties = AWSSecretProperties.fromPlainTextFile(path);
+
+        return S3BucketDestination.builder()
+                .awsClient(awsSecretProperties.createClient())
+                .bucket(awsSecretProperties.getS3Bucket())
+                .prefix(awsSecretProperties.getS3Prefix())
+                .build();
     }
 }

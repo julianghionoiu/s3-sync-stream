@@ -2,15 +2,12 @@ package tdl.s3;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Random;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -24,10 +21,8 @@ import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.S3BucketDestination;
 
 import static org.junit.Assert.*;
-import tdl.s3.helpers.FileHelper;
 import tdl.s3.rules.TemporarySyncFolder;
 import static tdl.s3.rules.TemporarySyncFolder.ONE_MEGABYTE;
-import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
 
 public class PerformanceTest {
 
@@ -45,7 +40,7 @@ public class PerformanceTest {
 
     @Before
     public void setUp() {
-        destination = new DebugDestination((Destination) S3BucketDestination.createDefaultDestination());
+        destination = new DebugDestination(remoteTestBucket.asDestination());
         defaultFilters = Filters.getBuilder()
                 .include(Filters.endsWith("txt"))
                 .include(Filters.endsWith("bin"))

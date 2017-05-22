@@ -1,25 +1,24 @@
 package tdl.s3.rules;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
-import java.io.ByteArrayInputStream;
-import lombok.Getter;
 import org.junit.rules.ExternalResource;
-import tdl.s3.credentials.AWSSecretsProvider;
+import tdl.s3.credentials.AWSSecretProperties;
+import tdl.s3.sync.destination.Destination;
+import tdl.s3.sync.destination.S3BucketDestination;
 
+import java.io.ByteArrayInputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Optional;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
+import java.util.Optional;
 
 import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
 
-@Getter
 public class RemoteTestBucket extends ExternalResource {
 
     private final AmazonS3 amazonS3;
@@ -29,15 +28,21 @@ public class RemoteTestBucket extends ExternalResource {
     //~~~~ Construct
     public RemoteTestBucket() {
         Path privatePropertiesFile = Paths.get(".private", "aws-test-secrets");
-        AWSSecretsProvider secretsProvider = new AWSSecretsProvider(privatePropertiesFile);
+        AWSSecretProperties secretsProvider = AWSSecretProperties.fromPlainTextFile(privatePropertiesFile);
 
-        amazonS3 = AmazonS3ClientBuilder.standard()
-                .withCredentials(secretsProvider)
-                .withRegion(secretsProvider.getS3Region())
-                .build();
-
+        amazonS3 = secretsProvider.createClient();
         bucketName = secretsProvider.getS3Bucket();
         uploadPrefix = secretsProvider.getS3Prefix();
+    }
+
+    //~~~~ Getters
+
+    public Destination asDestination() {
+        return S3BucketDestination.builder()
+                .awsClient(amazonS3)
+                .bucket(bucketName)
+                .prefix(uploadPrefix)
+                .build();
     }
 
     //~~~~ Lifecycle management
@@ -106,6 +111,7 @@ public class RemoteTestBucket extends ExternalResource {
         return amazonS3.listParts(listPartsRequest).getParts();
     }
 
+    @SuppressWarnings("SameParameterValue")
     public void upload(String key, Path path) {
         PutObjectRequest objectRequest = new PutObjectRequest(bucketName, uploadPrefix + key, path.toFile());
         amazonS3.putObject(objectRequest);
@@ -124,6 +130,10 @@ public class RemoteTestBucket extends ExternalResource {
         return result.getUploadId();
     }
 
+    public String getBucketName() {
+        return bucketName;
+    }
+    
     public void uploadPart(String name, String uploadId, byte[] partData, int partNumber) throws NoSuchAlgorithmException {
         UploadPartRequest request = new UploadPartRequest()
                 .withBucketName(bucketName)
@@ -135,5 +145,4 @@ public class RemoteTestBucket extends ExternalResource {
                 .withInputStream(new ByteArrayInputStream(partData));
         amazonS3.uploadPart(request);
     }
-
 }

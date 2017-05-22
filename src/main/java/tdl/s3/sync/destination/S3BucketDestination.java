@@ -2,10 +2,8 @@ package tdl.s3.sync.destination;
 
 import com.amazonaws.services.kms.model.NotFoundException;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
@@ -16,8 +14,7 @@ import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.PartListing;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -25,61 +22,14 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import tdl.s3.credentials.AWSSecretsProvider;
+import lombok.Builder;
 import tdl.s3.upload.MultipartUploadResult;
 
+@Builder
 public class S3BucketDestination implements Destination {
-    
-    private static final String DEFAULT_CONFIGURATION_PATH = ".private/aws-test-secrets";
-
-    private AWSSecretsProvider secret;
-
-    private AmazonS3 client;
-
-    private String bucket;
-
-    private String prefix;
-
-
-    // ~~~~ Construct
-
-    public static class Builder {
-
-        private final S3BucketDestination destination = new S3BucketDestination();
-
-        public Builder loadFromPath(Path path) {
-            //TODO: Need to consider removing AWSSecretsProvider class.
-            AWSSecretsProvider secrets = new AWSSecretsProvider(path);
-            destination.secret = secrets;
-            destination.bucket = secrets.getS3Bucket();
-            destination.prefix = secrets.getS3Prefix();
-            return this;
-        }
-
-        public final Destination create() {
-            destination.buildClient();
-            return destination;
-        }
-    }
-
-    public static Builder getBuilder() {
-        return new Builder();
-    }
-
-    public static Destination createDefaultDestination() {
-        Path path = Paths.get(DEFAULT_CONFIGURATION_PATH);
-        return getBuilder()
-                .loadFromPath(path)
-                .create();
-    }
-
-    private void buildClient() {
-        this.client = AmazonS3ClientBuilder.standard()
-                .withCredentials(secret)
-                .withRegion(secret.getS3Region())
-                .build();
-    }
-
+    private final AmazonS3 awsClient;
+    private final String bucket;
+    private final String prefix;
 
     // ~~~~ Public methods
 
@@ -87,7 +37,7 @@ public class S3BucketDestination implements Destination {
     @Override
     public boolean canUpload(String remotePath) {
         try {
-            client.getObjectMetadata(bucket, getFullPath(remotePath));
+            awsClient.getObjectMetadata(bucket, getFullPath(remotePath));
             return true;
         } catch (NotFoundException ex) {
             return false;
@@ -103,7 +53,7 @@ public class S3BucketDestination implements Destination {
     @Override
     public String initUploading(String remotePath) {
         InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(bucket, getFullPath(remotePath));
-        InitiateMultipartUploadResult result = client.initiateMultipartUpload(request);
+        InitiateMultipartUploadResult result = awsClient.initiateMultipartUpload(request);
         return result.getUploadId();
     }
 
@@ -119,7 +69,7 @@ public class S3BucketDestination implements Destination {
 
     @Override
     public MultipartUploadResult uploadMultiPart(UploadPartRequest request) {
-        UploadPartResult result = client.uploadPart(request);
+        UploadPartResult result = awsClient.uploadPart(request);
         return new MultipartUploadResult(request, result);
     }
 
@@ -146,7 +96,7 @@ public class S3BucketDestination implements Destination {
 
 
     private void completeMultipartUpload(CompleteMultipartUploadRequest request) {
-        client.completeMultipartUpload(request);
+        awsClient.completeMultipartUpload(request);
     }
 
     private ListMultipartUploadsRequest createListMultipartUploadsRequest() {
@@ -156,7 +106,7 @@ public class S3BucketDestination implements Destination {
     }
 
     private MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest request) {
-        return client.listMultipartUploads(request);
+        return awsClient.listMultipartUploads(request);
     }
 
 
@@ -208,7 +158,7 @@ public class S3BucketDestination implements Destination {
     }
 
     private PartListing listParts(ListPartsRequest request) {
-        return client.listParts(request);
+        return awsClient.listParts(request);
     }
 
     // ~~~ Path helpers
