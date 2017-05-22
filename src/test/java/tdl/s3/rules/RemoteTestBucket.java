@@ -85,6 +85,21 @@ public class RemoteTestBucket extends ExternalResource {
                 .findAny();
     }
 
+    public List<PartSummary> getPartsForKey(String key) {
+        ListMultipartUploadsRequest multipartUploadsRequest = new ListMultipartUploadsRequest(bucketName);
+        multipartUploadsRequest.setPrefix(uploadPrefix);
+        MultipartUpload upload = amazonS3.listMultipartUploads(multipartUploadsRequest)
+                .getMultipartUploads()
+                .stream()
+                .findFirst()
+                .orElse(null);
+        if (upload == null) {
+            return null;
+        } else {
+            return getPartsFor(upload);
+        }
+    }
+
     public List<PartSummary> getPartsFor(MultipartUpload multipartUpload) {
         ListPartsRequest listPartsRequest = new ListPartsRequest(bucketName,
                 multipartUpload.getKey(), multipartUpload.getUploadId());

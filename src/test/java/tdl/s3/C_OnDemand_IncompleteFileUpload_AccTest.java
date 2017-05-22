@@ -9,10 +9,12 @@ import tdl.s3.rules.TemporarySyncFolder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.*;
 import org.junit.Before;
 import static tdl.s3.rules.TemporarySyncFolder.ONE_MEGABYTE;
@@ -157,6 +159,51 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         assertThat(remoteTestBucket.getMultipartUploadFor(fileName), is(Optional.empty()));
 
         //check complete file hash. ETag of complete file consists from complete file MD5 hash and parts count after "-" sign
+        assertTrue(remoteTestBucket.getObjectMetadata(fileName)
+                .getETag().startsWith(targetSyncFolder.getCompleteFileMD5(fileName)));
+    }
+    
+    @Test
+    public void should_be_able_handle_empty_file() throws Exception {
+        String fileName = "empty_file.bin";
+        targetSyncFolder.addFileFromResources(fileName);
+        targetSyncFolder.lock(fileName);
+
+        //synchronize folder
+        Path directoryPath = targetSyncFolder.getFolderPath();
+        Source directorySource = Source.getBuilder(directoryPath)
+                .setFilters(defaultFilters)
+                .setRecursive(true)
+                .create();
+        
+        RemoteSync directoryFirstSync = new RemoteSync(directorySource, destination);
+        directoryFirstSync.run();
+        
+        assertThat(remoteTestBucket.doesObjectExists(fileName), is(false));
+        List<PartSummary> list1 = remoteTestBucket.getPartsForKey(fileName);
+        assertNotNull(list1);
+        assertTrue(list1.isEmpty());
+        
+        targetSyncFolder.writeBytesToFile(fileName, PART_SIZE_IN_BYTES + ONE_MEGABYTE);
+        
+        RemoteSync directorySecondSync = new RemoteSync(directorySource, destination);
+        directorySecondSync.run();
+        
+        assertThat(remoteTestBucket.doesObjectExists(fileName), is(false));
+        List<PartSummary> list2 = remoteTestBucket.getPartsForKey(fileName);
+        assertNotNull(list2);
+        assertFalse(list2.isEmpty());
+        
+        targetSyncFolder.writeBytesToFile(fileName, 3 * PART_SIZE_IN_BYTES + ONE_MEGABYTE);
+        targetSyncFolder.unlock(fileName);
+        
+        RemoteSync directoryThirdSync = new RemoteSync(directorySource, destination);
+        directoryThirdSync.run();
+        
+        assertThat(remoteTestBucket.doesObjectExists(fileName), is(true));
+        
+        assertThat(remoteTestBucket.getMultipartUploadFor(fileName), is(Optional.empty()));
+        
         assertTrue(remoteTestBucket.getObjectMetadata(fileName)
                 .getETag().startsWith(targetSyncFolder.getCompleteFileMD5(fileName)));
     }
