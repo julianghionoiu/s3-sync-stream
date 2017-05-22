@@ -8,15 +8,16 @@ import tdl.s3.rules.RemoteTestBucket;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import org.junit.Before;
 import tdl.s3.sync.RemoteSync;
-import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
-import tdl.s3.sync.destination.S3BucketDestination;
 
 public class B_OnDemand_FolderSync_AccTest {
 
+<<<<<<< 7d921b22aca406f6f37478f0151f3eeb0e89402e
+
+=======
+>>>>>>> Fix failing test
     @Rule
     public RemoteTestBucket remoteTestBucket = new RemoteTestBucket();
 
