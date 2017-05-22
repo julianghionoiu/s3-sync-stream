@@ -60,7 +60,7 @@ public class PerformanceTest {
     }
     
     @Test
-    public void uploadPartialLargeMultipartFile() throws RemoteSyncException, FileNotFoundException, IOException {
+    public void uploadPartialLargeMultipartFile() throws RemoteSyncException, IOException {
         Path path = Paths.get("src/test/resources/performance_test/multipart_partial");
         File file = createRandomFile(path, PART_SIZE * 4);
         String fileName = file.getName();
@@ -87,7 +87,7 @@ public class PerformanceTest {
         Files.delete(file.toPath());
     }
 
-    private File createRandomFile(Path path, int size) throws FileNotFoundException, IOException {
+    private File createRandomFile(Path path, int size) throws IOException {
         byte[] b = new byte[size];
         new Random().nextBytes(b);
         File tmpFile = Paths.get(path.toString() + "/random-file.txt").toFile();
