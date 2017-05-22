@@ -59,6 +59,17 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok:1.16.16'
 }
 
+// ~~~~~ Test
+
+
+test {
+    // pass the proxy configuration to the gradle test executor
+    systemProperty "http.proxyHost", System.getProperty('http.proxyHost')
+    systemProperty "http.proxyPort", System.getProperty('http.proxyPort')
+    systemProperty "https.proxyHost", System.getProperty('https.proxyHost')
+    systemProperty "https.proxyPort", System.getProperty('https.proxyPort')
+}
+
 // ~~~~~ Packaging
 
 apply plugin: 'com.github.johnrengelman.shadow'
