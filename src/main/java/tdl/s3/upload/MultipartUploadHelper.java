@@ -32,16 +32,11 @@ class MultipartUploadHelper {
     }
 
     static int getLastPartIndex(PartListing partListing) {
-        List<PartSummary> parts = partListing.getParts();
-        if (parts.isEmpty()) { //handle previously empty upload
-            return 0;
-        } else {
-            return parts
+        return partListing.getParts()
                 .stream()
                 .mapToInt(PartSummary::getPartNumber)
                 .max()
-                .orElse(1);
-        }
+                .orElse(0);
     }
     
     static Set<Integer> getFailedMiddlePartNumbers(PartListing partListing) {
