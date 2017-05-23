@@ -22,15 +22,8 @@ import tdl.s3.sync.destination.S3BucketDestination;
 
 public class A_OnDemand_FileUpload_AccTest {
 
-    private Destination destination;
-
     @Rule
     public RemoteTestBucket remoteTestBucket = new RemoteTestBucket();
-
-    @Before
-    public void setUp() {
-        destination = new DebugDestination(S3BucketDestination.createDefaultDestination());
-    }
 
     @Test
     public void should_not_upload_file_if_already_present() throws Exception {
@@ -41,7 +34,7 @@ public class A_OnDemand_FileUpload_AccTest {
                 .create();
 
         //Upload first file just to check in test that it will not be uploaded twice
-        RemoteSync sync = new RemoteSync(source, destination);
+        RemoteSync sync = new RemoteSync(source, remoteTestBucket.asDestination());
         sync.run();
 
         // Sleep 2 seconds to distinguish that file uploaded_once.txt on aws was not uploaded by next call
@@ -64,7 +57,7 @@ public class A_OnDemand_FileUpload_AccTest {
                 .setFilters(filters)
                 .create();
 
-        RemoteSync sync = new RemoteSync(source, destination);
+        RemoteSync sync = new RemoteSync(source, remoteTestBucket.asDestination());
         sync.run();
 
         assertThat(remoteTestBucket.doesObjectExists("sample_small_file_to_upload.txt"), is(true));
@@ -78,7 +71,7 @@ public class A_OnDemand_FileUpload_AccTest {
                 .setFilters(filters)
                 .create();
 
-        RemoteSync sync = new RemoteSync(source, destination);
+        RemoteSync sync = new RemoteSync(source, remoteTestBucket.asDestination());
         sync.run();
 
         assertThat(remoteTestBucket.doesObjectExists("large_file.bin"), is(true));

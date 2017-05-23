@@ -13,20 +13,12 @@ import tdl.s3.sync.RemoteSync;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.Source;
-import tdl.s3.sync.destination.DebugDestination;
 import tdl.s3.sync.destination.S3BucketDestination;
 
 public class B_OnDemand_FolderSync_AccTest {
 
-    private Destination destination;
-
     @Rule
     public RemoteTestBucket remoteTestBucket = new RemoteTestBucket();
-
-    @Before
-    public void setUp() {
-        destination = new DebugDestination(S3BucketDestination.createDefaultDestination());
-    }
 
     @Test
     public void should_upload_all_new_files_from_folder() throws Exception {
@@ -46,7 +38,7 @@ public class B_OnDemand_FolderSync_AccTest {
                 .setRecursive(true)
                 .create();
 
-        RemoteSync directorySync = new RemoteSync(directorySource, destination);
+        RemoteSync directorySync = new RemoteSync(directorySource, remoteTestBucket.asDestination());
         directorySync.run();
 
         //state after sync

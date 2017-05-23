@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.*;
 import org.junit.Before;
 import static tdl.s3.rules.TemporarySyncFolder.ONE_MEGABYTE;
@@ -28,9 +27,7 @@ import tdl.s3.sync.destination.DebugDestination;
 import tdl.s3.sync.destination.S3BucketDestination;
 
 public class C_OnDemand_IncompleteFileUpload_AccTest {
-    
-    private Destination destination;
-    
+
     private Filters defaultFilters;
 
     @Rule
@@ -41,7 +38,6 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
     
     @Before
     public void setUp() {
-        destination = new DebugDestination(S3BucketDestination.createDefaultDestination());
         defaultFilters = Filters.getBuilder()
                 .include(Filters.endsWith("txt"))
                 .include(Filters.endsWith("bin"))
@@ -61,7 +57,7 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
                 .setRecursive(true)
                 .create();
         
-        RemoteSync directorySync = new RemoteSync(directorySource, destination);
+        RemoteSync directorySync = new RemoteSync(directorySource, remoteTestBucket.asDestination());
         directorySync.run();
 
         //Check that the file still not exists on the server
@@ -113,7 +109,7 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
                 .setRecursive(true)
                 .create();
         
-        RemoteSync directorySync = new RemoteSync(directorySource, destination);
+        RemoteSync directorySync = new RemoteSync(directorySource, remoteTestBucket.asDestination());
         directorySync.run();
 
         //Check that the file exists on the server
@@ -126,7 +122,9 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         assertTrue(remoteTestBucket.getObjectMetadata(fileName)
                 .getETag().startsWith(targetSyncFolder.getCompleteFileMD5(fileName)));
     }
-    
+
+
+
     @Test
     public void should_be_able_upload_empty_file_continue_incomplete_file_and_finalise() throws Exception {
         String fileName = "empty_file.bin";
@@ -140,7 +138,7 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
                 .setRecursive(true)
                 .create();
         
-        RemoteSync directorySync = new RemoteSync(directorySource, destination);
+        RemoteSync directorySync = new RemoteSync(directorySource, remoteTestBucket.asDestination());
         directorySync.run();
         
         assertThat(remoteTestBucket.doesObjectExists(fileName), is(false));

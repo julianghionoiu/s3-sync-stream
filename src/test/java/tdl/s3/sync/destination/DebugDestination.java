@@ -1,8 +1,5 @@
 package tdl.s3.sync.destination;
 
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.spi.LoggingEvent;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.PartListing;
 import com.amazonaws.services.s3.model.UploadPartRequest;
@@ -15,19 +12,12 @@ public class DebugDestination implements Destination {
 
     private final Destination destination;
 
-    private int count = 0;
-
     public DebugDestination(Destination destination) {
         this.destination = destination;
     }
 
-    public int getCount() {
-        return count;
-    }
-
     @Override
     public boolean canUpload(String remotePath) {
-        count += 1;
         log.debug("canUpload: START");
         boolean result =  destination.canUpload(remotePath);
         log.debug("canUpload: FINISH");
@@ -36,7 +26,6 @@ public class DebugDestination implements Destination {
 
     @Override
     public String initUploading(String remotePath) {
-        count += 1;
         log.debug("initUploading: START");
         String result = destination.initUploading(remotePath);
         log.debug("initUploading: FINISH");
@@ -45,7 +34,6 @@ public class DebugDestination implements Destination {
 
     @Override
     public PartListing getAlreadyUploadedParts(String remotePath) {
-        count += 1;
         log.debug("getAlreadyUploadedParts: START");
         PartListing result = destination.getAlreadyUploadedParts(remotePath);
         log.debug("getAlreadyUploadedParts: FINISH");
@@ -54,7 +42,6 @@ public class DebugDestination implements Destination {
 
     @Override
     public MultipartUploadResult uploadMultiPart(UploadPartRequest request) {
-        count += 1000;
         log.debug("uploadMultiPart: START");
         MultipartUploadResult result = destination.uploadMultiPart(request);
         log.debug("uploadMultiPart: FINISH");
@@ -63,7 +50,6 @@ public class DebugDestination implements Destination {
 
     @Override
     public void commitMultipartUpload(String remotePath, List<PartETag> eTags, String uploadId) {
-        count += 1;
         log.debug("commitMultipartUpload: START");
         destination.commitMultipartUpload(remotePath, eTags, uploadId);
         log.debug("commitMultipartUpload: FINISH");
@@ -72,7 +58,6 @@ public class DebugDestination implements Destination {
     @Override
     public UploadPartRequest createUploadPartRequest(String remotePath) {
         log.debug("createUploadPartRequest: START");
-        count += 0;
         UploadPartRequest r = destination.createUploadPartRequest(remotePath);
         log.debug("createUploadPartRequest: FINISH");
         return r;
