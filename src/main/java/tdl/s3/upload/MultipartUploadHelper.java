@@ -36,7 +36,7 @@ class MultipartUploadHelper {
                 .stream()
                 .mapToInt(PartSummary::getPartNumber)
                 .max()
-                .orElse(1);
+                .orElse(0);
     }
     
     static Set<Integer> getFailedMiddlePartNumbers(PartListing partListing) {
