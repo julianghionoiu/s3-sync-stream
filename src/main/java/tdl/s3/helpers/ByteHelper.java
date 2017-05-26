@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ByteHelper {
 
@@ -16,7 +18,7 @@ public class ByteHelper {
     }
 
     public static byte[] truncate(byte[] nextPartBytes, int partSize) {
-        if (partSize == nextPartBytes.length) {
+        if (partSize >= nextPartBytes.length) {
             return nextPartBytes;
         }
         byte[] result = new byte[partSize];
