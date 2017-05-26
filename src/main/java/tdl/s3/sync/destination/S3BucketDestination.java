@@ -35,7 +35,7 @@ public class S3BucketDestination implements Destination {
 
 
     @Override
-    public boolean canUpload(String remotePath) {
+    public boolean canUpload(String remotePath) throws DestinationOperationException {
         try {
             awsClient.getObjectMetadata(bucket, getFullPath(remotePath));
             return true;
@@ -51,14 +51,14 @@ public class S3BucketDestination implements Destination {
     }
 
     @Override
-    public String initUploading(String remotePath) {
+    public String initUploading(String remotePath) throws DestinationOperationException {
         InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(bucket, getFullPath(remotePath));
         InitiateMultipartUploadResult result = awsClient.initiateMultipartUpload(request);
         return result.getUploadId();
     }
 
     @Override
-    public PartListing getAlreadyUploadedParts(String remotePath) {
+    public PartListing getAlreadyUploadedParts(String remotePath) throws DestinationOperationException {
         MultipartUpload multipartUpload = findOrNull(remotePath);
 
         return Optional.ofNullable(multipartUpload)
@@ -68,13 +68,13 @@ public class S3BucketDestination implements Destination {
     }
 
     @Override
-    public MultipartUploadResult uploadMultiPart(UploadPartRequest request) {
+    public MultipartUploadResult uploadMultiPart(UploadPartRequest request) throws DestinationOperationException {
         UploadPartResult result = awsClient.uploadPart(request);
         return new MultipartUploadResult(request, result);
     }
 
     @Override
-    public void commitMultipartUpload(String remotePath, List<PartETag> eTags, String uploadId) {
+    public void commitMultipartUpload(String remotePath, List<PartETag> eTags, String uploadId) throws DestinationOperationException {
         eTags.sort(Comparator.comparing(PartETag::getPartNumber));
         CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(
                 bucket,

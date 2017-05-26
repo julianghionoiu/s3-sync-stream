@@ -22,10 +22,10 @@ public class ByteHelperTest {
     }
 
     @Test
-    public void createInputStream() {
+    public void createInputStreamInitialisesOffsetToZero() {
         byte[] bytes = createRandomBytes(100);
-        Object object = ByteHelper.createInputStream(bytes);
-        assertThat(object, instanceOf(ByteArrayInputStream.class));
+        ByteArrayInputStream stream = ByteHelper.createInputStream(bytes);
+        assertThat(stream.read(), equalTo((int) bytes[0]));
     }
 
     @Test
@@ -52,9 +52,9 @@ public class ByteHelperTest {
         byte[] truncated = ByteHelper.truncate(bytes, requestedSize);
         assertEquals(truncated.length, requestedSize);
     }
-    
+
     @Test
-    public void getNextPartFromInputStream() throws FileNotFoundException, IOException {
+    public void getNextPartFromInputStream() throws IOException {
         File largeFile = Paths.get("src/test/resources/helpers/bytehelpertest/largefile.bin").toFile();
         InputStream stream = new FileInputStream(largeFile);
         String path = "src/test/resources/helpers/bytehelpertest/part2.bin";
@@ -64,41 +64,36 @@ public class ByteHelperTest {
     }
 
     @Test
-    public void getNextPartFromInputStreamShouldReadLastByte() throws FileNotFoundException, IOException {
+    public void getNextPartFromInputStreamShouldReadLastByte() throws IOException {
         File largeFile = Paths.get("src/test/resources/helpers/bytehelpertest/largefile.bin").toFile();
         InputStream stream = new FileInputStream(largeFile);
         String path = "src/test/resources/helpers/bytehelpertest/part3.bin";
         byte[] compareBytes = IOUtils.toByteArray(new FileInputStream(path));
-        long remainingLength = largeFile.length() -  10485760;
+        long remainingLength = largeFile.length() - 10485760;
         byte[] readBytes = ByteHelper.getNextPartFromInputStream(stream, 10485760, true);
         assertEquals(readBytes.length, remainingLength);
         assertThat(readBytes, equalTo(compareBytes));
     }
 
     @Test
-    public void skipOffsetInInputStream() {
+    public void skipOffsetInInputStreamSkipsBytes() throws IOException {
         byte[] bytes = createRandomBytes(100);
         ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
-        try {
-            ByteHelper.skipOffsetInInputStream(stream, 10);
-        } catch (IOException ex) {
-            throw new Error();
-        }
+        ByteHelper.skipOffsetInInputStream(stream, 10);
+        assertThat(stream.read(), equalTo((int) bytes[10]));
     }
 
-//    @Test
-//    public void skipOffsetInInputStreamShouldHandlePrematureStream() {
-//        int size = 100;
-//        byte[] bytes = createRandomBytes(size);
-//        ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
-//        try {
-//            ByteHelper.skipOffsetInInputStream(stream, size + 1);
-//        } catch (IOException ex) {
-//            throw new Error();
-//        }
-//    }
+    //TODO Make this test pass
+    @Test(timeout = 100, expected = IOException.class)
+    public void skipOffsetInInputStreamThrowsIOExceptionIfNotEnoughBytesWhereSkipped() throws IOException {
+        byte[] bytes = createRandomBytes(2);
+        ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
+        ByteHelper.skipOffsetInInputStream(stream, 10);
+    }
+
+
     @Test
-    public void readPart() throws IOException {
+    public void readPartLoadsBytesFromFile() throws IOException {
         File largeFile = Paths.get("src/test/resources/helpers/bytehelpertest/largefile.bin").toFile();
         for (int i = 1; i <= 2; i++) {
             byte[] readBytes = ByteHelper.readPart(i, largeFile);

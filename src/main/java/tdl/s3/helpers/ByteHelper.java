@@ -15,7 +15,7 @@ public  class ByteHelper {
         return new ByteArrayInputStream(bytes, 0, bytes.length);
     }
 
-    public static byte[] truncate(byte[] nextPartBytes, int partSize) {
+    static byte[] truncate(byte[] nextPartBytes, int partSize) {
         if (partSize >= nextPartBytes.length) {
             return nextPartBytes;
         }
@@ -43,7 +43,7 @@ public  class ByteHelper {
         return truncate(buffer, read);
     }
 
-    public static void skipOffsetInInputStream(InputStream stream, long offset) throws IOException {
+    static void skipOffsetInInputStream(InputStream stream, long offset) throws IOException {
         long skipped = 0;
         while (skipped < offset) {
             skipped += stream.skip(offset);
@@ -55,6 +55,7 @@ public  class ByteHelper {
             long offset = MINIMUM_PART_SIZE * (partNumber - 1);
             return getNextPartFromInputStream(inputStream, offset, false);
         } catch (IOException ioe) {
+            //TODO Read part should throw the IOException instead of killing the app with a RuntimeException
             throw new RuntimeException(ioe.getMessage(), ioe);
         }
     }
