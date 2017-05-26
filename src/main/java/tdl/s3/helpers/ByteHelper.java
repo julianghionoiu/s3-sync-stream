@@ -6,10 +6,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
-public class ByteHelper {
+public  class ByteHelper {
 
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
 
