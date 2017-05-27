@@ -1,5 +1,7 @@
 package tdl.s3.sync.destination;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.kms.model.NotFoundException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -18,7 +20,10 @@ import com.amazonaws.services.s3.model.UploadPartResult;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -27,17 +32,17 @@ import tdl.s3.upload.MultipartUploadResult;
 
 @Builder
 public class S3BucketDestination implements Destination {
+
     private final AmazonS3 awsClient;
     private final String bucket;
     private final String prefix;
 
     // ~~~~ Public methods
-
-
     @Override
     public boolean canUpload(String remotePath) throws DestinationOperationException {
+        String path = getFullPath(remotePath);
         try {
-            awsClient.getObjectMetadata(bucket, getFullPath(remotePath));
+            awsClient.getObjectMetadata(bucket, path);
             return true;
         } catch (NotFoundException ex) {
             return false;
@@ -45,16 +50,21 @@ public class S3BucketDestination implements Destination {
             if (ex.getStatusCode() == 404) {
                 return false;
             } else {
-                throw ex;
+                throw new DestinationOperationException("Fail to check remote path: " + path, ex);
             }
         }
     }
 
     @Override
     public String initUploading(String remotePath) throws DestinationOperationException {
-        InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(bucket, getFullPath(remotePath));
-        InitiateMultipartUploadResult result = awsClient.initiateMultipartUpload(request);
-        return result.getUploadId();
+        String path = getFullPath(remotePath);
+        try {
+            InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(bucket, path);
+            InitiateMultipartUploadResult result = awsClient.initiateMultipartUpload(request);
+            return result.getUploadId();
+        } catch (AmazonS3Exception ex) {
+            throw new DestinationOperationException("Fail to initialize uploading process: " + path, ex);
+        }
     }
 
     @Override
@@ -69,8 +79,12 @@ public class S3BucketDestination implements Destination {
 
     @Override
     public MultipartUploadResult uploadMultiPart(UploadPartRequest request) throws DestinationOperationException {
-        UploadPartResult result = awsClient.uploadPart(request);
-        return new MultipartUploadResult(request, result);
+        try {
+            UploadPartResult result = awsClient.uploadPart(request);
+            return new MultipartUploadResult(request, result);
+        } catch (AmazonS3Exception ex) {
+            throw new DestinationOperationException("Fail to upload multipart: " + request.getKey() + " #" + request.getPartNumber(), ex);
+        }
     }
 
     @Override
@@ -93,10 +107,12 @@ public class S3BucketDestination implements Destination {
     }
 
     // ~~~ MultiPart Helpers
-
-
-    private void completeMultipartUpload(CompleteMultipartUploadRequest request) {
-        awsClient.completeMultipartUpload(request);
+    private void completeMultipartUpload(CompleteMultipartUploadRequest request) throws DestinationOperationException {
+        try {
+            awsClient.completeMultipartUpload(request);
+        } catch (AmazonS3Exception ex) {
+            throw new DestinationOperationException("Failed to complete multipart request: " + request.getKey(), ex);
+        }
     }
 
     private ListMultipartUploadsRequest createListMultipartUploadsRequest() {
@@ -105,24 +121,33 @@ public class S3BucketDestination implements Destination {
         return uploadsRequest;
     }
 
-    private MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest request) {
-        return awsClient.listMultipartUploads(request);
+    private MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest request) throws DestinationOperationException {
+        try {
+            return awsClient.listMultipartUploads(request);
+        } catch (AmazonS3Exception ex) {
+            throw new DestinationOperationException("Failed to list upload request: " + request.getBucketName() + "/" + request.getPrefix(), ex);
+        }
     }
 
-
-    private List<MultipartUpload> getAlreadyStartedMultipartUploads() {
+    private List<MultipartUpload> getAlreadyStartedMultipartUploads() throws DestinationOperationException {
         ListMultipartUploadsRequest uploadsRequest = createListMultipartUploadsRequest();
         MultipartUploadListing multipartUploadListing = listMultipartUploads(uploadsRequest);
 
         Stream<MultipartUploadListing> stream = Stream.of(multipartUploadListing)
-                .flatMap(this::streamNextListing);
+                .flatMap(listing -> {
+                    try {
+                        return this.streamNextListing(listing);
+                    } catch (DestinationOperationException ex) {
+                        return null;
+                    }
+                }).filter(Objects::nonNull);
 
         return stream.map(MultipartUploadListing::getMultipartUploads)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }
 
-    private Stream<MultipartUploadListing> streamNextListing(MultipartUploadListing listing) {
+    private Stream<MultipartUploadListing> streamNextListing(MultipartUploadListing listing) throws DestinationOperationException {
         if (!listing.isTruncated()) {
             return Stream.of(listing);
         }
@@ -134,7 +159,7 @@ public class S3BucketDestination implements Destination {
         return Stream.concat(head, tail);
     }
 
-    private MultipartUploadListing getNextListing(MultipartUploadListing listing) {
+    private MultipartUploadListing getNextListing(MultipartUploadListing listing) throws DestinationOperationException {
         ListMultipartUploadsRequest uploadsRequest = createListMultipartUploadsRequest();
         uploadsRequest.setUploadIdMarker(listing.getNextUploadIdMarker());
         uploadsRequest.setKeyMarker(listing.getNextKeyMarker());
@@ -142,7 +167,7 @@ public class S3BucketDestination implements Destination {
         return listMultipartUploads(uploadsRequest);
     }
 
-    private MultipartUpload findOrNull(String remotePath) {
+    private MultipartUpload findOrNull(String remotePath) throws DestinationOperationException {
         List<MultipartUpload> uploads = getAlreadyStartedMultipartUploads();
         return uploads.stream()
                 .filter(upload -> upload.getKey().equals(getFullPath(remotePath)))
@@ -151,7 +176,6 @@ public class S3BucketDestination implements Destination {
     }
 
     // ~~~ Part Helpers
-
     private PartListing getPartListing(String remotePath, String uploadId) {
         ListPartsRequest request = new ListPartsRequest(bucket, getFullPath(remotePath), uploadId);
         return listParts(request);
@@ -162,7 +186,6 @@ public class S3BucketDestination implements Destination {
     }
 
     // ~~~ Path helpers
-
     private String getFullPath(String path) {
         return prefix + path;
     }
