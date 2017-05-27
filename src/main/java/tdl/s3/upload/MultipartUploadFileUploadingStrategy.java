@@ -65,7 +65,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     @Override
-    public void upload(File file, String remotePath) throws Exception {
+    public void upload(File file, String remotePath) throws DestinationOperationException, IOException {
         initStrategy(file, remotePath);
         listener.uploadFileStarted(file, uploadId);
         uploadRequiredParts(file, remotePath);

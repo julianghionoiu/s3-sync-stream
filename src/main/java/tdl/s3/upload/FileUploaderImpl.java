@@ -3,6 +3,7 @@ package tdl.s3.upload;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
+import java.io.IOException;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
 
@@ -41,7 +42,8 @@ public class FileUploaderImpl implements FileUploader {
             if (!exists(path)) {
                 uploadInternal(file, path);
             }
-        } catch (Exception e) {
+        } catch (IOException | DestinationOperationException e) {
+            //TODO: Might need to change to loop instead of recursive construct
             if (retry == 0) {
                 log.error("Error during uploading, can't upload file due to exception: " + e.getMessage());
                 throw new UploadingException("Can't upload file " + file + " due to error " + e.getMessage(), e);
@@ -54,7 +56,7 @@ public class FileUploaderImpl implements FileUploader {
         }
     }
 
-    private void uploadInternal(File file, String path) throws Exception {
+    private void uploadInternal(File file, String path) throws DestinationOperationException, IOException {
         uploadingStrategy.setDestination(destination);
         uploadingStrategy.upload(file, path);
     }
