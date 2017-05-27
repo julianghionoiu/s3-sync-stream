@@ -72,7 +72,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         listener.uploadFileFinished(file);
     }
 
-    private void initStrategy(File file, String remotePath) throws DestinationOperationException {
+    private void initStrategy(File file, String remotePath) throws DestinationOperationException, IOException {
         writingFinished = !FileHelper.lockFileExists(file);
 
         PartListing alreadyUploadedParts = destination.getAlreadyUploadedParts(remotePath);
@@ -101,17 +101,13 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         nextPartToUploadIndex = MultipartUploadHelper.getLastPartIndex(partListing) + 1;
     }
 
-    private void validateUploadedFileSize(File file) {
-        try {
-            if (Files.size(file.toPath()) < uploadedSize) {
-                throw new IllegalStateException(
-                        "Already uploaded size of file " + file.getName()
-                        + " is greater than actual file size. "
-                        + "Probably file was changed and can't be uploaded now."
-                );
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Can't read size of file to upload, " + file + ". " + e.getMessage(), e);
+    private void validateUploadedFileSize(File file) throws IOException {
+        if (Files.size(file.toPath()) < uploadedSize) {
+            throw new IllegalStateException(
+                    "Already uploaded size of file " + file.getName()
+                    + " is greater than actual file size. "
+                    + "Probably file was changed and can't be uploaded now."
+            );
         }
     }
 
@@ -175,7 +171,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         destination.commitMultipartUpload(remotePath, eTags, uploadId);
     }
 
-    private UploadPartRequest getUploadPartRequest(String remotePath, byte[] nextPart, boolean isLastPart, int partNumber) throws DestinationOperationException {
+    private UploadPartRequest getUploadPartRequest(String remotePath, byte[] nextPart, boolean isLastPart, int partNumber) throws DestinationOperationException, IOException {
         try (ByteArrayInputStream partInputStream = ByteHelper.createInputStream(nextPart)) {
             UploadPartRequest request = destination.createUploadPartRequest(remotePath)
                     .withPartNumber(partNumber)
@@ -189,8 +185,6 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                     -> listener.uploadFileProgress(request.getUploadId(), pe.getBytesTransferred()));
 
             return request;
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe.getMessage(), ioe);
         }
     }
 

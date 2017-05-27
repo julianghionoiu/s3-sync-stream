@@ -9,9 +9,9 @@ import tdl.s3.sync.destination.DestinationOperationException;
  */
 public interface FileUploader {
 
-    void upload(File file);
+    void upload(File file) throws UploadingException;
 
-    void upload(File file, String path);
+    void upload(File file, String path) throws UploadingException;
 
     boolean exists(String path) throws DestinationOperationException;
 }

@@ -22,12 +22,12 @@ public class FileUploaderImpl implements FileUploader {
     }
 
     @Override
-    public void upload(File file) {
+    public void upload(File file) throws UploadingException {
         upload(file, file.getName());
     }
 
     @Override
-    public void upload(File file, String path) {
+    public void upload(File file, String path) throws UploadingException {
         upload(file, path, RETRY_TIMES_COUNT);
     }
 
@@ -36,7 +36,7 @@ public class FileUploaderImpl implements FileUploader {
         return destination.canUpload(path);
     }
 
-    private void upload(File file, String path, int retry) {
+    private void upload(File file, String path, int retry) throws UploadingException {
         log.info("Uploading file " + file);
         try {
             if (!exists(path)) {
