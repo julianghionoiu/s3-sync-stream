@@ -51,8 +51,6 @@ public class ConcurrentMultipartUploader {
                 return destination.uploadMultiPart(request);
             } catch (DestinationOperationException e) {
                 throw e;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
         };
     }

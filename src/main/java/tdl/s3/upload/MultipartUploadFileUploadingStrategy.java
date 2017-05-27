@@ -11,9 +11,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import tdl.s3.helpers.ByteHelper;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
@@ -22,6 +21,7 @@ import tdl.s3.sync.destination.DestinationOperationException;
 import tdl.s3.sync.progress.DummyProgressListener;
 import tdl.s3.sync.progress.ProgressListener;
 
+@Slf4j
 public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     //Minimum part size is 5 MB
@@ -162,10 +162,11 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                     try {
                         return this.getUploadingResult(future);
                     } catch (DestinationOperationException ex) {
-                        return null; //TODO:
+                        log.error("Failed to upload", ex);
+                        return null;
                     }
                 })
-                .filter(Objects::nonNull) //TODO:
+                .filter(Objects::nonNull)
                 .map(e -> e.getResult().getPartETag())
                 .forEach(eTags::add);
     }
