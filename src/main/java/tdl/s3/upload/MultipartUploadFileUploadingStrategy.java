@@ -10,11 +10,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 import tdl.s3.helpers.ByteHelper;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
 import tdl.s3.sync.destination.Destination;
+import tdl.s3.sync.destination.DestinationOperationException;
 import tdl.s3.sync.progress.DummyProgressListener;
 import tdl.s3.sync.progress.ProgressListener;
 
@@ -68,10 +71,9 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         listener.uploadFileFinished(file);
     }
 
-    private void initStrategy(File file, String remotePath) {
+    private void initStrategy(File file, String remotePath) throws DestinationOperationException {
         writingFinished = !FileHelper.lockFileExists(file);
-        
-        
+
         PartListing alreadyUploadedParts = destination.getAlreadyUploadedParts(remotePath);
 
         boolean uploadingStarted = alreadyUploadedParts != null;
@@ -84,7 +86,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         validateUploadedFileSize(file);
     }
 
-    private void initAttributes(String remotePath) {
+    private void initAttributes(String remotePath) throws DestinationOperationException {
         uploadId = destination.initUploading(remotePath);
         uploadedSize = 0;
         failedMiddleParts = Collections.emptySet();
@@ -112,7 +114,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         }
     }
 
-    private void uploadRequiredParts(File file, String remotePath) throws IOException {
+    private void uploadRequiredParts(File file, String remotePath) throws IOException, DestinationOperationException {
         try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             submitUploadRequestStream(streamUploadForFailedParts(file, remotePath));
             submitUploadRequestStream(streamUploadForIncompleteParts(remotePath, inputStream, writingFinished));
@@ -128,9 +130,14 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     private Stream<UploadPartRequest> streamUploadForFailedParts(File file, String remotePath) {
         return failedMiddleParts.stream()
                 .map(partNumber -> {
-                    byte[] partData = ByteHelper.readPart(partNumber, file);
-                    uploadedSize += partData.length;
-                    return getUploadPartRequest(remotePath, partData, false, partNumber);
+                    try {
+                        byte[] partData = ByteHelper.readPart(partNumber, file);
+                        uploadedSize += partData.length;
+                        return getUploadPartRequest(remotePath, partData, false, partNumber);
+                    } catch (IOException ex) {
+                        //TODO:
+                        return null;
+                    }
                 });
     }
 
@@ -155,7 +162,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                 .forEach(eTags::add);
     }
 
-    private void commit(String remotePath) {
+    private void commit(String remotePath) throws DestinationOperationException {
         destination.commitMultipartUpload(remotePath, eTags, uploadId);
     }
 
@@ -169,8 +176,8 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                     .withUploadId(uploadId)
                     .withInputStream(partInputStream);
 
-            request.setGeneralProgressListener((com.amazonaws.event.ProgressEvent pe) ->
-                    listener.uploadFileProgress(request.getUploadId(), pe.getBytesTransferred()));
+            request.setGeneralProgressListener((com.amazonaws.event.ProgressEvent pe)
+                    -> listener.uploadFileProgress(request.getUploadId(), pe.getBytesTransferred()));
 
             return request;
         } catch (IOException ioe) {

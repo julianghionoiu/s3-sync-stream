@@ -45,19 +45,22 @@ public  class ByteHelper {
 
     static void skipOffsetInInputStream(InputStream stream, long offset) throws IOException {
         long skipped = 0;
-        while (skipped < offset) {
+        long trial = 0;
+        while (trial < 10) {
             skipped += stream.skip(offset);
+            if (skipped >= offset) {
+                return;
+            } else {
+                trial++;
+            }
         }
+        throw new IOException("Can not read more from the stream");
     }
 
-    public static byte[] readPart(Integer partNumber, File file) {
+    public static byte[] readPart(Integer partNumber, File file) throws IOException {
         try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             long offset = MINIMUM_PART_SIZE * (partNumber - 1);
             return getNextPartFromInputStream(inputStream, offset, false);
-        } catch (IOException ioe) {
-            //TODO Read part should throw the IOException instead of killing the app with a RuntimeException
-            throw new RuntimeException(ioe.getMessage(), ioe);
         }
     }
-
 }
