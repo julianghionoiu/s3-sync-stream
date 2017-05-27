@@ -3,7 +3,6 @@ package tdl.s3.helpers;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
@@ -22,10 +21,12 @@ public class ByteHelperTest {
     }
 
     @Test
-    public void createInputStreamInitialisesOffsetToZero() {
+    public void createInputStreamInitialisesOffsetToZero() throws IOException {
         byte[] bytes = createRandomBytes(100);
         ByteArrayInputStream stream = ByteHelper.createInputStream(bytes);
-        assertThat(stream.read(), equalTo((int) bytes[0]));
+        for (int i = 0; i < 5; i++) {
+            assertThat(stream.read(), equalTo(Byte.toUnsignedInt(bytes[i])));
+        }
     }
 
     @Test
