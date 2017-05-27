@@ -1,7 +1,5 @@
 package tdl.s3.sync.destination;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.SdkClientException;
 import com.amazonaws.services.kms.model.NotFoundException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -22,15 +20,15 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
 import tdl.s3.upload.MultipartUploadResult;
 
 @Builder
+@Slf4j
 public class S3BucketDestination implements Destination {
 
     private final AmazonS3 awsClient;
@@ -138,6 +136,7 @@ public class S3BucketDestination implements Destination {
                     try {
                         return this.streamNextListing(listing);
                     } catch (DestinationOperationException ex) {
+                        log.error("Failed to stream next listing " + listing.getUploadIdMarker(), ex);
                         return null;
                     }
                 }).filter(Objects::nonNull);
@@ -163,7 +162,6 @@ public class S3BucketDestination implements Destination {
         ListMultipartUploadsRequest uploadsRequest = createListMultipartUploadsRequest();
         uploadsRequest.setUploadIdMarker(listing.getNextUploadIdMarker());
         uploadsRequest.setKeyMarker(listing.getNextKeyMarker());
-
         return listMultipartUploads(uploadsRequest);
     }
 
