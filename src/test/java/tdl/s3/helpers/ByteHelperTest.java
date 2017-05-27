@@ -9,6 +9,8 @@ import java.nio.file.Paths;
 import java.util.Random;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
+
+import static org.mockito.Mockito.*;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
 
@@ -91,7 +93,13 @@ public class ByteHelperTest {
         ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
         ByteHelper.skipOffsetInInputStream(stream, 10);
     }
-
+    
+    @Test(expected = IOException.class)
+    public void skipOffsetInInputStreamThrowsIOExceptionIfSkippedLongerThanOffset() throws IOException {
+        InputStream stream = mock(InputStream.class);
+        doReturn((long) 11).when(stream).skip((long) 10);
+        ByteHelper.skipOffsetInInputStream(stream, 10);
+    }
 
     @Test
     public void readPartLoadsBytesFromFile() throws IOException {

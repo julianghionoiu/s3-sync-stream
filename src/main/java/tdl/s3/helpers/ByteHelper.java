@@ -48,8 +48,10 @@ public  class ByteHelper {
         long trial = 0;
         while (trial < 10) {
             skipped += stream.skip(offset);
-            if (skipped >= offset) {
+            if (skipped == offset) {
                 return;
+            } else if (skipped > offset) {
+                throw new IOException("Skipped longer than offset");
             } else {
                 trial++;
             }
