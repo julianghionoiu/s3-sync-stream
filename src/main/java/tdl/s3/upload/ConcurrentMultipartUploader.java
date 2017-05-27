@@ -7,6 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import tdl.s3.sync.destination.Destination;
+import tdl.s3.sync.destination.DestinationOperationException;
 
 public class ConcurrentMultipartUploader {
 
@@ -48,8 +49,9 @@ public class ConcurrentMultipartUploader {
         return () -> {
             try {
                 return destination.uploadMultiPart(request);
+            } catch (DestinationOperationException e) {
+                throw e;
             } catch (Exception e) {
-                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         };

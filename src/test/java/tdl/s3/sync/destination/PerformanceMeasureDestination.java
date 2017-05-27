@@ -54,7 +54,7 @@ public class PerformanceMeasureDestination implements Destination {
     }
 
     @Override
-    public UploadPartRequest createUploadPartRequest(String remotePath) {
+    public UploadPartRequest createUploadPartRequest(String remotePath) throws DestinationOperationException {
         performanceScore += 0;
         return destination.createUploadPartRequest(remotePath);
     }

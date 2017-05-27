@@ -86,7 +86,7 @@ public class S3BucketDestination implements Destination {
     }
 
     @Override
-    public UploadPartRequest createUploadPartRequest(String remotePath) {
+    public UploadPartRequest createUploadPartRequest(String remotePath) throws DestinationOperationException {
         return new UploadPartRequest()
                 .withBucketName(bucket)
                 .withKey(getFullPath(remotePath));

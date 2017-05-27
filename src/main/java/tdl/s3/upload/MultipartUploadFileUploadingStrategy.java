@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -132,16 +133,16 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                 .map(partNumber -> {
                     try {
                         byte[] partData = ByteHelper.readPart(partNumber, file);
+                        UploadPartRequest request = getUploadPartRequest(remotePath, partData, false, partNumber);
                         uploadedSize += partData.length;
-                        return getUploadPartRequest(remotePath, partData, false, partNumber);
-                    } catch (IOException ex) {
-                        //TODO:
+                        return request;
+                    } catch (IOException | DestinationOperationException ex) {
                         return null;
                     }
-                });
+                }).filter(Objects::nonNull);
     }
 
-    private Stream<UploadPartRequest> streamUploadForIncompleteParts(String remotePath, InputStream inputStream, boolean writingFinished) throws IOException {
+    private Stream<UploadPartRequest> streamUploadForIncompleteParts(String remotePath, InputStream inputStream, boolean writingFinished) throws IOException, DestinationOperationException {
         byte[] nextPart = ByteHelper.getNextPartFromInputStream(inputStream, uploadedSize, writingFinished);
         int partSize = nextPart.length;
         List<UploadPartRequest> requests = new ArrayList<>();
@@ -157,7 +158,14 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private void submitUploadRequestStream(Stream<UploadPartRequest> requestStream) {
         requestStream.map(concurrentUploader::submitTaskForPartUploading)
-                .map(this::getUploadingResult)
+                .map(future -> {
+                    try {
+                        return this.getUploadingResult(future);
+                    } catch (DestinationOperationException ex) {
+                        return null; //TODO:
+                    }
+                })
+                .filter(Objects::nonNull) //TODO:
                 .map(e -> e.getResult().getPartETag())
                 .forEach(eTags::add);
     }
@@ -166,7 +174,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         destination.commitMultipartUpload(remotePath, eTags, uploadId);
     }
 
-    private UploadPartRequest getUploadPartRequest(String remotePath, byte[] nextPart, boolean isLastPart, int partNumber) {
+    private UploadPartRequest getUploadPartRequest(String remotePath, byte[] nextPart, boolean isLastPart, int partNumber) throws DestinationOperationException {
         try (ByteArrayInputStream partInputStream = ByteHelper.createInputStream(nextPart)) {
             UploadPartRequest request = destination.createUploadPartRequest(remotePath)
                     .withPartNumber(partNumber)
@@ -185,10 +193,16 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         }
     }
 
-    private MultipartUploadResult getUploadingResult(Future<MultipartUploadResult> future) {
+    private MultipartUploadResult getUploadingResult(Future<MultipartUploadResult> future) throws DestinationOperationException {
         try {
             return future.get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Some part uploads was unsuccessful. " + e.getMessage(), e);
+        } catch (ExecutionException e) {
+            Throwable ex = e.getCause();
+            if (ex instanceof DestinationOperationException) {
+                throw (DestinationOperationException) ex;
+            }
             throw new RuntimeException("Some part uploads was unsuccessful. " + e.getMessage(), e);
         }
     }

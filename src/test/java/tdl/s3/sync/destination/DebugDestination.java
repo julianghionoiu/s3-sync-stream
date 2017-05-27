@@ -56,7 +56,7 @@ public class DebugDestination implements Destination {
     }
 
     @Override
-    public UploadPartRequest createUploadPartRequest(String remotePath) {
+    public UploadPartRequest createUploadPartRequest(String remotePath) throws DestinationOperationException {
         log.debug("createUploadPartRequest: START");
         UploadPartRequest r = destination.createUploadPartRequest(remotePath);
         log.debug("createUploadPartRequest: FINISH");
