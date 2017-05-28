@@ -7,7 +7,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class ByteHelper {
+public  class ByteHelper {
 
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
 
@@ -15,8 +15,8 @@ public class ByteHelper {
         return new ByteArrayInputStream(bytes, 0, bytes.length);
     }
 
-    public static byte[] truncate(byte[] nextPartBytes, int partSize) {
-        if (partSize == nextPartBytes.length) {
+    static byte[] truncate(byte[] nextPartBytes, int partSize) {
+        if (partSize >= nextPartBytes.length) {
             return nextPartBytes;
         }
         byte[] result = new byte[partSize];
@@ -43,20 +43,26 @@ public class ByteHelper {
         return truncate(buffer, read);
     }
 
-    public static void skipOffsetInInputStream(InputStream stream, long offset) throws IOException {
+    static void skipOffsetInInputStream(InputStream stream, long offset) throws IOException {
         long skipped = 0;
-        while (skipped < offset) {
+        long trial = 0;
+        while (trial < 10) {
             skipped += stream.skip(offset);
+            if (skipped == offset) {
+                return;
+            } else if (skipped > offset) {
+                throw new IOException("Skipped longer than offset");
+            } else {
+                trial++;
+            }
         }
+        throw new IOException("Can not read more from the stream");
     }
 
-    public static byte[] readPart(Integer partNumber, File file) {
+    public static byte[] readPart(Integer partNumber, File file) throws IOException {
         try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             long offset = MINIMUM_PART_SIZE * (partNumber - 1);
             return getNextPartFromInputStream(inputStream, offset, false);
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe.getMessage(), ioe);
         }
     }
-
 }

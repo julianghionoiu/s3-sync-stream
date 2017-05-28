@@ -17,7 +17,7 @@ public class DebugDestination implements Destination {
     }
 
     @Override
-    public boolean canUpload(String remotePath) {
+    public boolean canUpload(String remotePath) throws DestinationOperationException {
         log.debug("canUpload: START");
         boolean result =  destination.canUpload(remotePath);
         log.debug("canUpload: FINISH");
@@ -25,7 +25,7 @@ public class DebugDestination implements Destination {
     }
 
     @Override
-    public String initUploading(String remotePath) {
+    public String initUploading(String remotePath) throws DestinationOperationException {
         log.debug("initUploading: START");
         String result = destination.initUploading(remotePath);
         log.debug("initUploading: FINISH");
@@ -33,7 +33,7 @@ public class DebugDestination implements Destination {
     }
 
     @Override
-    public PartListing getAlreadyUploadedParts(String remotePath) {
+    public PartListing getAlreadyUploadedParts(String remotePath) throws DestinationOperationException {
         log.debug("getAlreadyUploadedParts: START");
         PartListing result = destination.getAlreadyUploadedParts(remotePath);
         log.debug("getAlreadyUploadedParts: FINISH");
@@ -41,7 +41,7 @@ public class DebugDestination implements Destination {
     }
 
     @Override
-    public MultipartUploadResult uploadMultiPart(UploadPartRequest request) {
+    public MultipartUploadResult uploadMultiPart(UploadPartRequest request) throws DestinationOperationException {
         log.debug("uploadMultiPart: START");
         MultipartUploadResult result = destination.uploadMultiPart(request);
         log.debug("uploadMultiPart: FINISH");
@@ -49,14 +49,14 @@ public class DebugDestination implements Destination {
     }
 
     @Override
-    public void commitMultipartUpload(String remotePath, List<PartETag> eTags, String uploadId) {
+    public void commitMultipartUpload(String remotePath, List<PartETag> eTags, String uploadId) throws DestinationOperationException {
         log.debug("commitMultipartUpload: START");
         destination.commitMultipartUpload(remotePath, eTags, uploadId);
         log.debug("commitMultipartUpload: FINISH");
     }
 
     @Override
-    public UploadPartRequest createUploadPartRequest(String remotePath) {
+    public UploadPartRequest createUploadPartRequest(String remotePath) throws DestinationOperationException {
         log.debug("createUploadPartRequest: START");
         UploadPartRequest r = destination.createUploadPartRequest(remotePath);
         log.debug("createUploadPartRequest: FINISH");

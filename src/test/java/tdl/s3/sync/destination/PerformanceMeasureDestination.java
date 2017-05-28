@@ -24,37 +24,37 @@ public class PerformanceMeasureDestination implements Destination {
     }
 
     @Override
-    public boolean canUpload(String remotePath) {
+    public boolean canUpload(String remotePath) throws DestinationOperationException {
         performanceScore += 1;
         return destination.canUpload(remotePath);
     }
 
     @Override
-    public String initUploading(String remotePath) {
+    public String initUploading(String remotePath) throws DestinationOperationException {
         performanceScore += 1;
         return destination.initUploading(remotePath);
     }
 
     @Override
-    public PartListing getAlreadyUploadedParts(String remotePath) {
+    public PartListing getAlreadyUploadedParts(String remotePath) throws DestinationOperationException {
         performanceScore += 1;
         return destination.getAlreadyUploadedParts(remotePath);
     }
 
     @Override
-    public MultipartUploadResult uploadMultiPart(UploadPartRequest request) {
+    public MultipartUploadResult uploadMultiPart(UploadPartRequest request) throws DestinationOperationException {
         performanceScore += 1000;
         return destination.uploadMultiPart(request);
     }
 
     @Override
-    public void commitMultipartUpload(String remotePath, List<PartETag> eTags, String uploadId) {
+    public void commitMultipartUpload(String remotePath, List<PartETag> eTags, String uploadId) throws DestinationOperationException {
         performanceScore += 1;
         destination.commitMultipartUpload(remotePath, eTags, uploadId);
     }
 
     @Override
-    public UploadPartRequest createUploadPartRequest(String remotePath) {
+    public UploadPartRequest createUploadPartRequest(String remotePath) throws DestinationOperationException {
         performanceScore += 0;
         return destination.createUploadPartRequest(remotePath);
     }

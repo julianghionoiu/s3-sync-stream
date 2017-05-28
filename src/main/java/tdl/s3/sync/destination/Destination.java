@@ -8,15 +8,16 @@ import tdl.s3.upload.MultipartUploadResult;
 import java.util.List;
 
 public interface Destination {
-    boolean canUpload(String remotePath);
 
-    String initUploading(String remotePath);
+    boolean canUpload(String remotePath) throws DestinationOperationException;
 
-    PartListing getAlreadyUploadedParts(String remotePath);
+    String initUploading(String remotePath) throws DestinationOperationException;
 
-    MultipartUploadResult uploadMultiPart(UploadPartRequest request);
+    PartListing getAlreadyUploadedParts(String remotePath) throws DestinationOperationException;
 
-    void commitMultipartUpload(String remotePath, List<PartETag> eTags, String uploadId);
+    MultipartUploadResult uploadMultiPart(UploadPartRequest request) throws DestinationOperationException;
 
-    UploadPartRequest createUploadPartRequest(String remotePath);
+    void commitMultipartUpload(String remotePath, List<PartETag> eTags, String uploadId) throws DestinationOperationException;
+
+    UploadPartRequest createUploadPartRequest(String remotePath) throws DestinationOperationException;
 }

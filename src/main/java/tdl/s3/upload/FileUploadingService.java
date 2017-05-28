@@ -1,6 +1,8 @@
 package tdl.s3.upload;
 
 import java.io.File;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.progress.DummyProgressListener;
 import tdl.s3.sync.progress.ProgressListener;
@@ -25,7 +27,11 @@ public class FileUploadingService {
 
     public void upload(File file, String remoteName) {
         FileUploader fileUploader = createFileUploader();
-        fileUploader.upload(file, remoteName);
+        try {
+            fileUploader.upload(file, remoteName);
+        } catch (UploadingException ex) {
+            Logger.getLogger(FileUploadingService.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     private FileUploader createFileUploader() {

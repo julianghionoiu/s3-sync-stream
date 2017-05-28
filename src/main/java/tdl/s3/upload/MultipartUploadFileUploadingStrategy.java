@@ -7,17 +7,21 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import tdl.s3.helpers.ByteHelper;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.helpers.MD5Digest;
 import tdl.s3.sync.destination.Destination;
+import tdl.s3.sync.destination.DestinationOperationException;
 import tdl.s3.sync.progress.DummyProgressListener;
 import tdl.s3.sync.progress.ProgressListener;
 
+@Slf4j
 public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     //Minimum part size is 5 MB
@@ -61,17 +65,16 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     @Override
-    public void upload(File file, String remotePath) throws Exception {
+    public void upload(File file, String remotePath) throws DestinationOperationException, IOException {
         initStrategy(file, remotePath);
         listener.uploadFileStarted(file, uploadId);
         uploadRequiredParts(file, remotePath);
         listener.uploadFileFinished(file);
     }
 
-    private void initStrategy(File file, String remotePath) {
+    private void initStrategy(File file, String remotePath) throws DestinationOperationException, IOException {
         writingFinished = !FileHelper.lockFileExists(file);
-        
-        
+
         PartListing alreadyUploadedParts = destination.getAlreadyUploadedParts(remotePath);
 
         boolean uploadingStarted = alreadyUploadedParts != null;
@@ -84,7 +87,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         validateUploadedFileSize(file);
     }
 
-    private void initAttributes(String remotePath) {
+    private void initAttributes(String remotePath) throws DestinationOperationException {
         uploadId = destination.initUploading(remotePath);
         uploadedSize = 0;
         failedMiddleParts = Collections.emptySet();
@@ -98,21 +101,17 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         nextPartToUploadIndex = MultipartUploadHelper.getLastPartIndex(partListing) + 1;
     }
 
-    private void validateUploadedFileSize(File file) {
-        try {
-            if (Files.size(file.toPath()) < uploadedSize) {
-                throw new IllegalStateException(
-                        "Already uploaded size of file " + file.getName()
-                        + " is greater than actual file size. "
-                        + "Probably file was changed and can't be uploaded now."
-                );
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Can't read size of file to upload, " + file + ". " + e.getMessage(), e);
+    private void validateUploadedFileSize(File file) throws IOException {
+        if (Files.size(file.toPath()) < uploadedSize) {
+            throw new IllegalStateException(
+                    "Already uploaded size of file " + file.getName()
+                    + " is greater than actual file size. "
+                    + "Probably file was changed and can't be uploaded now."
+            );
         }
     }
 
-    private void uploadRequiredParts(File file, String remotePath) throws IOException {
+    private void uploadRequiredParts(File file, String remotePath) throws IOException, DestinationOperationException {
         try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             submitUploadRequestStream(streamUploadForFailedParts(file, remotePath));
             submitUploadRequestStream(streamUploadForIncompleteParts(remotePath, inputStream, writingFinished));
@@ -128,13 +127,18 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     private Stream<UploadPartRequest> streamUploadForFailedParts(File file, String remotePath) {
         return failedMiddleParts.stream()
                 .map(partNumber -> {
-                    byte[] partData = ByteHelper.readPart(partNumber, file);
-                    uploadedSize += partData.length;
-                    return getUploadPartRequest(remotePath, partData, false, partNumber);
-                });
+                    try {
+                        byte[] partData = ByteHelper.readPart(partNumber, file);
+                        UploadPartRequest request = getUploadPartRequest(remotePath, partData, false, partNumber);
+                        uploadedSize += partData.length;
+                        return request;
+                    } catch (IOException | DestinationOperationException ex) {
+                        return null;
+                    }
+                }).filter(Objects::nonNull);
     }
 
-    private Stream<UploadPartRequest> streamUploadForIncompleteParts(String remotePath, InputStream inputStream, boolean writingFinished) throws IOException {
+    private Stream<UploadPartRequest> streamUploadForIncompleteParts(String remotePath, InputStream inputStream, boolean writingFinished) throws IOException, DestinationOperationException {
         byte[] nextPart = ByteHelper.getNextPartFromInputStream(inputStream, uploadedSize, writingFinished);
         int partSize = nextPart.length;
         List<UploadPartRequest> requests = new ArrayList<>();
@@ -150,16 +154,24 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
 
     private void submitUploadRequestStream(Stream<UploadPartRequest> requestStream) {
         requestStream.map(concurrentUploader::submitTaskForPartUploading)
-                .map(this::getUploadingResult)
+                .map(future -> {
+                    try {
+                        return this.getUploadingResult(future);
+                    } catch (DestinationOperationException ex) {
+                        log.error("Failed to upload", ex);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
                 .map(e -> e.getResult().getPartETag())
                 .forEach(eTags::add);
     }
 
-    private void commit(String remotePath) {
+    private void commit(String remotePath) throws DestinationOperationException {
         destination.commitMultipartUpload(remotePath, eTags, uploadId);
     }
 
-    private UploadPartRequest getUploadPartRequest(String remotePath, byte[] nextPart, boolean isLastPart, int partNumber) {
+    private UploadPartRequest getUploadPartRequest(String remotePath, byte[] nextPart, boolean isLastPart, int partNumber) throws DestinationOperationException, IOException {
         try (ByteArrayInputStream partInputStream = ByteHelper.createInputStream(nextPart)) {
             UploadPartRequest request = destination.createUploadPartRequest(remotePath)
                     .withPartNumber(partNumber)
@@ -169,19 +181,23 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                     .withUploadId(uploadId)
                     .withInputStream(partInputStream);
 
-            request.setGeneralProgressListener((com.amazonaws.event.ProgressEvent pe) ->
-                    listener.uploadFileProgress(request.getUploadId(), pe.getBytesTransferred()));
+            request.setGeneralProgressListener((com.amazonaws.event.ProgressEvent pe)
+                    -> listener.uploadFileProgress(request.getUploadId(), pe.getBytesTransferred()));
 
             return request;
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe.getMessage(), ioe);
         }
     }
 
-    private MultipartUploadResult getUploadingResult(Future<MultipartUploadResult> future) {
+    private MultipartUploadResult getUploadingResult(Future<MultipartUploadResult> future) throws DestinationOperationException {
         try {
             return future.get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Some part uploads was unsuccessful. " + e.getMessage(), e);
+        } catch (ExecutionException e) {
+            Throwable ex = e.getCause();
+            if (ex instanceof DestinationOperationException) {
+                throw (DestinationOperationException) ex;
+            }
             throw new RuntimeException("Some part uploads was unsuccessful. " + e.getMessage(), e);
         }
     }
