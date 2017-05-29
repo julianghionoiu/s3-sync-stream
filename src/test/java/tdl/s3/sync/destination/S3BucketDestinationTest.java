@@ -23,43 +23,6 @@ import static org.hamcrest.Matchers.*;
 
 public class S3BucketDestinationTest {
 
-    @Test
-    public void canUploadReturnsFalse() throws DestinationOperationException {
-        AmazonS3 awsClient = mock(AmazonS3.class);
-        doThrow(new NotFoundException("")).when(awsClient).getObjectMetadata(anyString(), anyString());
-        Destination destination = S3BucketDestination.builder()
-                .awsClient(awsClient)
-                .build();
-        boolean canUpload = destination.canUpload("");
-        assertFalse(canUpload);
-    }
-
-    @Test
-    public void canUploadReturnsFalseWhen404Thrown() throws DestinationOperationException {
-        AmazonS3 awsClient = mock(AmazonS3.class);
-        AmazonS3Exception exception = mock(AmazonS3Exception.class);
-        doReturn(404).when(exception).getStatusCode();
-        doThrow(exception).when(awsClient).getObjectMetadata(anyString(), anyString());
-        Destination destination = S3BucketDestination.builder()
-                .awsClient(awsClient)
-                .build();
-        destination.canUpload("");
-        boolean canUpload = destination.canUpload("");
-        assertFalse(canUpload);
-    }
-
-    @Test(expected = DestinationOperationException.class)
-    public void canUploadThrowsDestinationOperationException() throws DestinationOperationException {
-        AmazonS3 awsClient = mock(AmazonS3.class);
-        AmazonS3Exception exception = mock(AmazonS3Exception.class);
-        doReturn(400).when(exception).getStatusCode();
-        doThrow(exception).when(awsClient).getObjectMetadata(anyString(), anyString());
-        Destination destination = S3BucketDestination.builder()
-                .awsClient(awsClient)
-                .build();
-        destination.canUpload("");
-    }
-
     @Test(expected = DestinationOperationException.class)
     public void initUploadingThrowsDestinationOperationException() throws DestinationOperationException {
         AmazonS3 awsClient = mock(AmazonS3.class);

@@ -31,17 +31,10 @@ public class FileUploaderImpl implements FileUploader {
         upload(file, path, RETRY_TIMES_COUNT);
     }
 
-    @Override
-    public boolean exists(String path) throws DestinationOperationException {
-        return destination.canUpload(path);
-    }
-
     private void upload(File file, String path, int retry) throws UploadingException {
         log.info("Uploading file " + file);
         try {
-            if (!exists(path)) {
-                uploadInternal(file, path);
-            }
+            uploadInternal(file, path);
         } catch (IOException | DestinationOperationException e) {
             //TODO: Might need to change to loop instead of recursive construct
             if (retry == 0) {

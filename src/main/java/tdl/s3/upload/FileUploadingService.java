@@ -17,6 +17,10 @@ public class FileUploadingService {
         this.destination = destination;
     }
 
+    public Destination getDestination() {
+        return destination;
+    }
+
     public void setListener(ProgressListener listener) {
         this.listener = listener;
     }

@@ -1,10 +1,17 @@
 package tdl.s3.sync;
 
+import java.io.File;
 import tdl.s3.sync.progress.ProgressListener;
 import tdl.s3.upload.FileUploadingService;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import tdl.s3.sync.destination.Destination;
+import tdl.s3.sync.destination.DestinationOperationException;
 
 class FolderSynchronizer {
 
@@ -18,7 +25,22 @@ class FolderSynchronizer {
     }
 
     void synchronize(Path folder, boolean recursive) throws IOException {
-        folderScanner.traverseFolder(folder, fileUploadingService::upload, recursive);
+        List<String> paths = folderScanner.getUploadFilesRelativePathList(folder, recursive);
+        Destination destination = fileUploadingService.getDestination();
+        List<String> uploadable;
+        try {
+            uploadable = destination.filterUploadableFiles(paths);
+        } catch (DestinationOperationException ex) {
+            uploadable = new ArrayList<>();
+        }
+        if (uploadable.isEmpty()) {
+            return;
+        }
+        uploadable.stream()
+            .forEach(upload -> {
+                File uploadFile = new File(folder.toFile(), upload);
+                fileUploadingService.upload(uploadFile);
+            });
     }
 
     void setListener(ProgressListener listener) {

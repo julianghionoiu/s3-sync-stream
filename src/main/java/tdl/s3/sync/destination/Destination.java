@@ -12,8 +12,6 @@ public interface Destination {
     
     List<String> filterUploadableFiles(List<String> paths) throws DestinationOperationException;
 
-    boolean canUpload(String remotePath) throws DestinationOperationException;
-
     String initUploading(String remotePath) throws DestinationOperationException;
 
     PartListing getAlreadyUploadedParts(String remotePath) throws DestinationOperationException;

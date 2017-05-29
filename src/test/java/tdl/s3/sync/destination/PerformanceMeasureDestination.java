@@ -25,12 +25,6 @@ public class PerformanceMeasureDestination implements Destination {
     }
 
     @Override
-    public boolean canUpload(String remotePath) throws DestinationOperationException {
-        performanceScore += 1;
-        return destination.canUpload(remotePath);
-    }
-
-    @Override
     public String initUploading(String remotePath) throws DestinationOperationException {
         performanceScore += 1;
         return destination.initUploading(remotePath);
@@ -62,7 +56,7 @@ public class PerformanceMeasureDestination implements Destination {
 
     @Override
     public List<String> filterUploadableFiles(List<String> relativePaths) throws DestinationOperationException {
-        performanceScore += 0;
+        performanceScore += 1;
         return destination.filterUploadableFiles(relativePaths);
     }
 

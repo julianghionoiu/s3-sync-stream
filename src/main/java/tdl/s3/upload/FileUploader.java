@@ -12,6 +12,4 @@ public interface FileUploader {
     void upload(File file) throws UploadingException;
 
     void upload(File file, String path) throws UploadingException;
-
-    boolean exists(String path) throws DestinationOperationException;
 }

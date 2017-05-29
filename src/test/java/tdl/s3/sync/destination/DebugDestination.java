@@ -17,14 +17,6 @@ public class DebugDestination implements Destination {
     }
 
     @Override
-    public boolean canUpload(String remotePath) throws DestinationOperationException {
-        log.debug("canUpload: START");
-        boolean result =  destination.canUpload(remotePath);
-        log.debug("canUpload: FINISH");
-        return result;
-    }
-
-    @Override
     public String initUploading(String remotePath) throws DestinationOperationException {
         log.debug("initUploading: START");
         String result = destination.initUploading(remotePath);

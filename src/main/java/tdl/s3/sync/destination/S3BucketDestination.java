@@ -21,6 +21,7 @@ import java.util.ArrayList;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,30 +42,13 @@ public class S3BucketDestination implements Destination {
     private final String bucket;
     private final String prefix;
 
-    // ~~~~ Public methods
-    @Override
-    public boolean canUpload(String remotePath) throws DestinationOperationException {
-        String path = getFullPath(remotePath);
-        try {
-            awsClient.getObjectMetadata(bucket, path);
-            return true;
-        } catch (NotFoundException ex) {
-            return false;
-        } catch (AmazonS3Exception ex) {
-            if (ex.getStatusCode() == 404) {
-                return false;
-            } else {
-                throw new DestinationOperationException("Fail to check remote path: " + path, ex);
-            }
-        }
-    }
-
+    // ~~~~ Public methods    
     @Override
     public List<String> filterUploadableFiles(List<String> paths) throws DestinationOperationException {
         Set<String> existingItems = listAllObjects().stream()
                 .map(summary -> summary.getKey())
                 .collect(Collectors.toSet());
-
+        
         int trimLength = prefix.length();
         return paths.stream()
                 .map(path -> prefix + path)
@@ -73,12 +57,12 @@ public class S3BucketDestination implements Destination {
                 .collect(Collectors.toList());
     }
 
-    private List<S3ObjectSummary> listAllObjects() {
+    private Set<S3ObjectSummary> listAllObjects() {
         ListObjectsRequest request = new ListObjectsRequest()
                 .withBucketName(bucket)
                 .withPrefix(prefix);
         ObjectListing result;
-        List<S3ObjectSummary> summaries = new ArrayList<>();
+        Set<S3ObjectSummary> summaries = new HashSet<>();
         do {
             result = awsClient.listObjects(request);
             request.setMarker(result.getNextMarker());
