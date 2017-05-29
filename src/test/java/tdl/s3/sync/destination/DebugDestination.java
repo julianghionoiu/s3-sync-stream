@@ -17,14 +17,6 @@ public class DebugDestination implements Destination {
     }
 
     @Override
-    public boolean canUpload(String remotePath) throws DestinationOperationException {
-        log.debug("canUpload: START");
-        boolean result =  destination.canUpload(remotePath);
-        log.debug("canUpload: FINISH");
-        return result;
-    }
-
-    @Override
     public String initUploading(String remotePath) throws DestinationOperationException {
         log.debug("initUploading: START");
         String result = destination.initUploading(remotePath);
@@ -60,6 +52,14 @@ public class DebugDestination implements Destination {
         log.debug("createUploadPartRequest: START");
         UploadPartRequest r = destination.createUploadPartRequest(remotePath);
         log.debug("createUploadPartRequest: FINISH");
+        return r;
+    }
+
+    @Override
+    public List<String> filterUploadableFiles(List<String> relativePaths) throws DestinationOperationException {
+        log.debug("canUploadFiles: START");
+        List<String> r = destination.filterUploadableFiles(relativePaths);
+        log.debug("canUploadFiles: FINISH");
         return r;
     }
 

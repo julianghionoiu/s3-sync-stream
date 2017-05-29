@@ -83,7 +83,7 @@ public class ByteHelperTest {
         byte[] bytes = createRandomBytes(100);
         ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
         ByteHelper.skipOffsetInInputStream(stream, 10);
-        assertThat(stream.read(), equalTo((int) bytes[10]));
+        assertThat(stream.read(), equalTo(Byte.toUnsignedInt(bytes[10])));
     }
 
     //TODO Make this test pass

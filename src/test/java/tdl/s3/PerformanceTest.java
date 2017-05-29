@@ -56,7 +56,7 @@ public class PerformanceTest {
                 .create();
         RemoteSync sync = new RemoteSync(source, destination);
         sync.run();
-        assertEquals(destination.getPerformanceScore(), 8); //only call canUpload
+        assertEquals(destination.getPerformanceScore(), 1); //only call filterUploadable
     }
     
     @Test

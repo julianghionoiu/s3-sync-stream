@@ -7,19 +7,26 @@ import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ListPartsRequest;
 import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
+import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.PartListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
+import java.util.ArrayList;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -35,22 +42,33 @@ public class S3BucketDestination implements Destination {
     private final String bucket;
     private final String prefix;
 
-    // ~~~~ Public methods
+    // ~~~~ Public methods    
     @Override
-    public boolean canUpload(String remotePath) throws DestinationOperationException {
-        String path = getFullPath(remotePath);
-        try {
-            awsClient.getObjectMetadata(bucket, path);
-            return true;
-        } catch (NotFoundException ex) {
-            return false;
-        } catch (AmazonS3Exception ex) {
-            if (ex.getStatusCode() == 404) {
-                return false;
-            } else {
-                throw new DestinationOperationException("Fail to check remote path: " + path, ex);
-            }
-        }
+    public List<String> filterUploadableFiles(List<String> paths) throws DestinationOperationException {
+        Set<String> existingItems = listAllObjects().stream()
+                .map(summary -> summary.getKey())
+                .collect(Collectors.toSet());
+        
+        int trimLength = prefix.length();
+        return paths.stream()
+                .map(path -> prefix + path)
+                .filter(path -> !existingItems.contains(path))
+                .map(path -> path.substring(trimLength))
+                .collect(Collectors.toList());
+    }
+
+    private Set<S3ObjectSummary> listAllObjects() {
+        ListObjectsRequest request = new ListObjectsRequest()
+                .withBucketName(bucket)
+                .withPrefix(prefix);
+        ObjectListing result;
+        Set<S3ObjectSummary> summaries = new HashSet<>();
+        do {
+            result = awsClient.listObjects(request);
+            request.setMarker(result.getNextMarker());
+            summaries.addAll(result.getObjectSummaries());
+        } while (result.isTruncated());
+        return summaries;
     }
 
     @Override

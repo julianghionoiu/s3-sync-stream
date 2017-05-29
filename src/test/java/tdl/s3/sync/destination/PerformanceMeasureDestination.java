@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import tdl.s3.upload.MultipartUploadResult;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 public class PerformanceMeasureDestination implements Destination {
@@ -21,12 +22,6 @@ public class PerformanceMeasureDestination implements Destination {
 
     public int getPerformanceScore() {
         return performanceScore;
-    }
-
-    @Override
-    public boolean canUpload(String remotePath) throws DestinationOperationException {
-        performanceScore += 1;
-        return destination.canUpload(remotePath);
     }
 
     @Override
@@ -57,6 +52,12 @@ public class PerformanceMeasureDestination implements Destination {
     public UploadPartRequest createUploadPartRequest(String remotePath) throws DestinationOperationException {
         performanceScore += 0;
         return destination.createUploadPartRequest(remotePath);
+    }
+
+    @Override
+    public List<String> filterUploadableFiles(List<String> relativePaths) throws DestinationOperationException {
+        performanceScore += 1;
+        return destination.filterUploadableFiles(relativePaths);
     }
 
 }
