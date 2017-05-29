@@ -3,6 +3,7 @@ package tdl.s3.sync.destination;
 import com.amazonaws.services.kms.model.NotFoundException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.PartETag;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.junit.Test;
@@ -155,9 +157,11 @@ public class S3BucketDestinationTest {
         ObjectListing listing = mock(ObjectListing.class);
         List<S3ObjectSummary> summaries = new ArrayList<>();
         doReturn(summaries).when(listing).getObjectSummaries();
-
+        doReturn(false).when(listing).isTruncated();
+        doReturn(null).when(listing).getNextMarker();
+        
         AmazonS3 awsClient = mock(AmazonS3.class);
-        doReturn(listing).when(awsClient).listObjects(anyString(), anyString());
+        doReturn(listing).when(awsClient).listObjects((ListObjectsRequest) any());
 
         Destination destination = S3BucketDestination.builder()
                 .awsClient(awsClient)
@@ -204,9 +208,11 @@ public class S3BucketDestinationTest {
                 }).collect(Collectors.toList());
 
         doReturn(summaries).when(listing).getObjectSummaries();
-
+        doReturn(false).when(listing).isTruncated();
+        doReturn(null).when(listing).getNextMarker();
+        
         AmazonS3 awsClient = mock(AmazonS3.class);
-        doReturn(listing).when(awsClient).listObjects(anyString(), anyString());
+        doReturn(listing).when(awsClient).listObjects((ListObjectsRequest) any());
 
         Destination destination = S3BucketDestination.builder()
                 .awsClient(awsClient)
