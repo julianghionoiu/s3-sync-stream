@@ -6,8 +6,11 @@ import com.amazonaws.services.s3.model.UploadPartRequest;
 import tdl.s3.upload.MultipartUploadResult;
 
 import java.util.List;
+import java.util.Map;
 
 public interface Destination {
+    
+    List<String> filterUploadableFiles(List<String> paths) throws DestinationOperationException;
 
     boolean canUpload(String remotePath) throws DestinationOperationException;
 

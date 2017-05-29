@@ -10,16 +10,20 @@ import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
 import com.amazonaws.services.s3.model.ListPartsRequest;
 import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
+import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.PartListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
 
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -51,6 +55,21 @@ public class S3BucketDestination implements Destination {
                 throw new DestinationOperationException("Fail to check remote path: " + path, ex);
             }
         }
+    }
+
+    @Override
+    public List<String> filterUploadableFiles(List<String> paths) throws DestinationOperationException {
+        //TODO: handle a lot of files
+        ObjectListing listing = awsClient.listObjects(bucket, prefix);
+        Set<String> existingItems = listing.getObjectSummaries().stream()
+                .map(summary -> summary.getKey())
+                .collect(Collectors.toSet());
+        int trimLength = prefix.length();
+        return paths.stream()
+                .map(path -> prefix + path)
+                .filter(path -> !existingItems.contains(path))
+                .map(path -> path.substring(trimLength))
+                .collect(Collectors.toList());
     }
 
     @Override

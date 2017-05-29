@@ -11,6 +11,9 @@ import java.util.function.BiConsumer;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 class FolderScanner {
@@ -26,10 +29,12 @@ class FolderScanner {
             throw new IllegalArgumentException("Path should represent directory.");
         }
         int scanDepth = recursive ? Integer.MAX_VALUE : 1;
-        Files.walkFileTree(folderPath,
+        Files.walkFileTree(
+                folderPath,
                 Collections.singleton(FileVisitOption.FOLLOW_LINKS),
                 scanDepth,
-                getVisitor(fileConsumer, recursive, folderPath));
+                getVisitor(fileConsumer, recursive, folderPath)
+        );
     }
 
     private FileVisitor<? super Path> getVisitor(BiConsumer<File, String> fileConsumer, boolean recursive, Path currentDir) {
@@ -60,5 +65,22 @@ class FolderScanner {
         };
     }
 
-
+    public List<String> getUploadFilesRelativePathList(Path folderPath) {
+        try {
+            //TODO: Handle non-recursive
+            File base = folderPath.toFile();
+            return Files.find(
+                    folderPath,
+                    Integer.MAX_VALUE,
+                    (filePath, fileAttr) -> {
+                        return fileAttr.isRegularFile() && filters.accept(filePath);
+                    }
+            ).map(path -> {
+                return base.toURI().relativize(path.toFile().toURI()).getPath();
+            })
+            .collect(Collectors.toList());
+        } catch (IOException ex) {
+            return new ArrayList<>();
+        }
+    }
 }

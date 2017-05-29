@@ -63,4 +63,12 @@ public class DebugDestination implements Destination {
         return r;
     }
 
+    @Override
+    public List<String> filterUploadableFiles(List<String> relativePaths) throws DestinationOperationException {
+        log.debug("canUploadFiles: START");
+        List<String> r = destination.filterUploadableFiles(relativePaths);
+        log.debug("canUploadFiles: FINISH");
+        return r;
+    }
+
 }
