@@ -8,11 +8,11 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import lombok.extern.slf4j.Slf4j;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
 
+@Slf4j
 class FolderSynchronizer {
 
     private final FolderScanner folderScanner;
@@ -39,7 +39,7 @@ class FolderSynchronizer {
         uploadable.stream()
             .forEach(upload -> {
                 File uploadFile = new File(folder.toFile(), upload);
-                fileUploadingService.upload(uploadFile);
+                fileUploadingService.upload(uploadFile, upload);
             });
     }
 
