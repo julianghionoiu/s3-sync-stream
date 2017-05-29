@@ -84,15 +84,27 @@ public class FolderScannerTest {
 
     @Test
     public void getUploadFilesRelativePathListShouldReturnEmptyList() {
-        List<String> pathList = folderScanner.getUploadFilesRelativePathList(emptyDirPath);
+        List<String> pathList = folderScanner.getUploadFilesRelativePathList(emptyDirPath, true);
         assertTrue(pathList.isEmpty());
     }
 
     @Test
     public void getUploadFilesRelativePathListShouldReturnNotEmptyList() {
-        List<String> pathList = folderScanner.getUploadFilesRelativePathList(notEmptyDirPath);
+        List<String> pathList = folderScanner.getUploadFilesRelativePathList(notEmptyDirPath, true);
         List<String> expected = Arrays.asList(
                 "subdir/sub_test_file_1.txt",
+                "test_file_1.txt",
+                "test_file_2.txt"
+        );
+        Collections.sort(pathList);
+        Collections.sort(expected);
+        assertEquals(pathList, expected);
+    }
+    
+    @Test
+    public void getUploadFilesRelativePathListShouldReturnNonRecursive() {
+        List<String> pathList = folderScanner.getUploadFilesRelativePathList(notEmptyDirPath, false);
+        List<String> expected = Arrays.asList(
                 "test_file_1.txt",
                 "test_file_2.txt"
         );

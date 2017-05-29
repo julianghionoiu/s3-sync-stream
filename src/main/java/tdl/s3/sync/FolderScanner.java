@@ -65,13 +65,14 @@ class FolderScanner {
         };
     }
 
-    public List<String> getUploadFilesRelativePathList(Path folderPath) {
+    public List<String> getUploadFilesRelativePathList(Path folderPath, boolean recursive) {
         try {
             //TODO: Handle non-recursive
+            int maxDepth = recursive ? Integer.MAX_VALUE : 1;
             File base = folderPath.toFile();
             return Files.find(
                     folderPath,
-                    Integer.MAX_VALUE,
+                    maxDepth,
                     (filePath, fileAttr) -> {
                         return fileAttr.isRegularFile() && filters.accept(filePath);
                     }
