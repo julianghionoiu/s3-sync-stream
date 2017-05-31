@@ -14,11 +14,11 @@ public class FileUploaderImpl implements FileUploader {
 
     private final Destination destination;
 
-    private final UploadingStrategy uploadingStrategy;
+    private final FileUploadingStrategy uploadingStrategy;
 
-    FileUploaderImpl(final Destination destination, UploadingStrategy uploadingStrategy) {
+    FileUploaderImpl(final Destination destination) {
         this.destination = destination;
-        this.uploadingStrategy = uploadingStrategy;
+        this.uploadingStrategy = destination.createUploadingStrategy();
     }
 
     @Override
@@ -49,8 +49,15 @@ public class FileUploaderImpl implements FileUploader {
         }
     }
 
+    public FileUploadingStrategy getUploadingStrategy() {
+        return uploadingStrategy;
+    }
+
+    public Destination getDestination() {
+        return destination;
+    }
+
     private void uploadInternal(File file, String path) throws DestinationOperationException, IOException {
-        uploadingStrategy.setDestination(destination);
         uploadingStrategy.upload(file, path);
     }
 
