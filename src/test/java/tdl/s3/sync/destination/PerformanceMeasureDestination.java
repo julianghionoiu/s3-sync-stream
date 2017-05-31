@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import tdl.s3.upload.MultipartUploadResult;
 
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 public class PerformanceMeasureDestination implements Destination {
@@ -22,6 +21,12 @@ public class PerformanceMeasureDestination implements Destination {
 
     public int getPerformanceScore() {
         return performanceScore;
+    }
+
+    @Override
+    public void testUploadPermissions() throws DestinationOperationException {
+        performanceScore += 2;
+        destination.testUploadPermissions();
     }
 
     @Override

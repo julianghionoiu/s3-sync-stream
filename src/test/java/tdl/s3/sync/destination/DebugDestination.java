@@ -17,6 +17,13 @@ public class DebugDestination implements Destination {
     }
 
     @Override
+    public void testUploadPermissions() throws DestinationOperationException {
+        log.debug("testUploadPermissions: START");
+        destination.testUploadPermissions();
+        log.debug("testUploadPermissions: FINISH");
+    }
+
+    @Override
     public String initUploading(String remotePath) throws DestinationOperationException {
         log.debug("initUploading: START");
         String result = destination.initUploading(remotePath);
