@@ -34,6 +34,7 @@ import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import tdl.s3.upload.MultipartUploadResult;
 import tdl.s3.upload.FileUploadingStrategy;
+import tdl.s3.upload.MultipartUploadFileUploadingStrategy;
 
 @Builder
 @Slf4j
@@ -73,9 +74,25 @@ public class S3BucketDestination implements Destination {
         return summaries;
     }
 
+    public AmazonS3 getAwsClient() {
+        return awsClient;
+    }
+
+    public String getPrefix() {
+        return prefix;
+    }
+
+    public String getBucket() {
+        return bucket;
+    }
+
+    public String getFullPath(String path) {
+        return prefix + path;
+    }
+
     @Override
     public FileUploadingStrategy createUploadingStrategy() {
-        
+        return new MultipartUploadFileUploadingStrategy(this);
     }
 
 }
