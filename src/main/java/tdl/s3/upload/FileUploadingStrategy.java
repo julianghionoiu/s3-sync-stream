@@ -7,7 +7,7 @@ import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
 import tdl.s3.sync.progress.ProgressListener;
 
-public interface UploadingStrategy {
+public interface FileUploadingStrategy {
     
     void setDestination(Destination destination);
 

@@ -14,9 +14,9 @@ public class FileUploaderImpl implements FileUploader {
 
     private final Destination destination;
 
-    private final UploadingStrategy uploadingStrategy;
+    private final FileUploadingStrategy uploadingStrategy;
 
-    FileUploaderImpl(final Destination destination, UploadingStrategy uploadingStrategy) {
+    FileUploaderImpl(final Destination destination, FileUploadingStrategy uploadingStrategy) {
         this.destination = destination;
         this.uploadingStrategy = uploadingStrategy;
     }

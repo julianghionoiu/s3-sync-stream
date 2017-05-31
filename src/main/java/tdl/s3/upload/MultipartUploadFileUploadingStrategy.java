@@ -22,7 +22,7 @@ import tdl.s3.sync.progress.DummyProgressListener;
 import tdl.s3.sync.progress.ProgressListener;
 
 @Slf4j
-public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
+public class MultipartUploadFileUploadingStrategy implements FileUploadingStrategy {
 
     //Minimum part size is 5 MB
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;

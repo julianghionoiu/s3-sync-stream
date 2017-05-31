@@ -39,7 +39,7 @@ public class FileUploadingService {
     }
 
     private FileUploader createFileUploader() {
-        UploadingStrategy strategy = new MultipartUploadFileUploadingStrategy(destination);
+        FileUploadingStrategy strategy = new MultipartUploadFileUploadingStrategy(destination);
         strategy.setListener(listener);
         return new FileUploaderImpl(destination, strategy);
     }
