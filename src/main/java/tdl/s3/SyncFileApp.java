@@ -9,6 +9,7 @@ import tdl.s3.sync.RemoteSync;
 import tdl.s3.sync.RemoteSyncException;
 import tdl.s3.sync.Source;
 import tdl.s3.sync.destination.Destination;
+import tdl.s3.sync.destination.DestinationOperationException;
 import tdl.s3.sync.destination.S3BucketDestination;
 import tdl.s3.sync.progress.UploadStatsProgressListener;
 
@@ -41,7 +42,7 @@ public class SyncFileApp {
         uploadSpeedFormatter.setMinimumFractionDigits(1);
     }
 
-    public static void main(String[] args) throws RemoteSyncException {
+    public static void main(String[] args) throws RemoteSyncException, DestinationOperationException {
         SyncFileApp app = new SyncFileApp();
         JCommander jCommander = new JCommander(app);
         jCommander.parse(args);
@@ -49,11 +50,14 @@ public class SyncFileApp {
         app.run();
     }
 
-    private void run() throws RemoteSyncException {
+    private void run() throws RemoteSyncException, DestinationOperationException {
         // Prepare
         Source source = buildSource();
         Destination destination = buildDestination();
         RemoteSync sync = new RemoteSync(source, destination);
+
+        // Check destination
+        destination.testUploadPermissions();
 
         // Configure progress listener
         UploadStatsProgressListener uploadStatsProgressListener = new UploadStatsProgressListener();
