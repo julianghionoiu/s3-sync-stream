@@ -3,7 +3,7 @@ package tdl.s3;
 import com.amazonaws.services.s3.model.*;
 import org.junit.Rule;
 import org.junit.Test;
-import tdl.s3.rules.RemoteTestBucket;
+import tdl.s3.rules.LocalTestBucket;
 import tdl.s3.rules.TemporarySyncFolder;
 
 import java.nio.file.Files;
@@ -12,10 +12,12 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 import org.junit.Before;
+import org.junit.ClassRule;
 import static tdl.s3.rules.TemporarySyncFolder.ONE_MEGABYTE;
 import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
 
@@ -26,12 +28,13 @@ import tdl.s3.sync.Source;
 import tdl.s3.sync.destination.DebugDestination;
 import tdl.s3.sync.destination.S3BucketDestination;
 
+@Slf4j
 public class C_OnDemand_IncompleteFileUpload_AccTest {
 
     private Filters defaultFilters;
 
     @Rule
-    public RemoteTestBucket remoteTestBucket = new RemoteTestBucket();
+    public LocalTestBucket localTestBucket = new LocalTestBucket();
 
     @Rule
     public TemporarySyncFolder targetSyncFolder = new TemporarySyncFolder();
@@ -57,19 +60,19 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
                 .setRecursive(true)
                 .create();
         
-        RemoteSync directorySync = new RemoteSync(directorySource, remoteTestBucket.asDestination());
+        RemoteSync directorySync = new RemoteSync(directorySource, localTestBucket.asDestination());
         directorySync.run();
 
         //Check that the file still not exists on the server
-        assertThat(remoteTestBucket.doesObjectExists(fileName), is(false));
+        assertThat(localTestBucket.doesObjectExists(fileName), is(false));
 
         //Check multipart upload exists
-        MultipartUpload multipartUpload = remoteTestBucket.getMultipartUploadFor(fileName)
+        MultipartUpload multipartUpload = localTestBucket.getMultipartUploadFor(fileName)
                 .orElseThrow(() -> new AssertionError("Found no multipart upload for: "+fileName));
 
         //and the parts have the expected ETag
         Map<Integer, String> hashes = targetSyncFolder.getPartsHashes(fileName);
-        remoteTestBucket.getPartsFor(multipartUpload).forEach(partSummary -> comparePart(partSummary, hashes));
+        localTestBucket.getPartsFor(multipartUpload).forEach(partSummary -> comparePart(partSummary, hashes));
     }
 
     private void comparePart(PartSummary partSummary, Map<Integer, String> hashes) {
@@ -83,8 +86,8 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         targetSyncFolder.addFileFromResources(fileName);
         targetSyncFolder.lock(fileName);
 
-        String bucket = remoteTestBucket.getBucketName();
-        String uploadId = remoteTestBucket.initiateMultipartUpload(fileName);
+        String bucket = localTestBucket.getBucketName();
+        String uploadId = localTestBucket.initiateMultipartUpload(fileName);
         
         //write third part of data
         targetSyncFolder.writeBytesToFile(fileName, PART_SIZE_IN_BYTES);
@@ -95,8 +98,8 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         byte[] thirdPart = new byte[PART_SIZE_IN_BYTES];
         System.arraycopy(fileContent, 0, firstPart, 0, PART_SIZE_IN_BYTES);
         System.arraycopy(fileContent, PART_SIZE_IN_BYTES * 2, thirdPart, 0, PART_SIZE_IN_BYTES);
-        remoteTestBucket.uploadPart(fileName, uploadId, firstPart, 1);
-        remoteTestBucket.uploadPart(fileName, uploadId, thirdPart, 3);
+        localTestBucket.uploadPart(fileName, uploadId, firstPart, 1);
+        localTestBucket.uploadPart(fileName, uploadId, thirdPart, 3);
 
         //write additional data and delete lock file
         targetSyncFolder.writeBytesToFile(fileName, ONE_MEGABYTE);
@@ -109,17 +112,17 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
                 .setRecursive(true)
                 .create();
         
-        RemoteSync directorySync = new RemoteSync(directorySource, remoteTestBucket.asDestination());
+        RemoteSync directorySync = new RemoteSync(directorySource, localTestBucket.asDestination());
         directorySync.run();
 
         //Check that the file exists on the server
-        assertThat(remoteTestBucket.doesObjectExists(fileName), is(true));
+        assertThat(localTestBucket.doesObjectExists(fileName), is(true));
 
         //Check that multipart upload completed and not exists anymore
-        assertThat(remoteTestBucket.getMultipartUploadFor(fileName), is(Optional.empty()));
+        assertThat(localTestBucket.getMultipartUploadFor(fileName), is(Optional.empty()));
 
         //check complete file hash. ETag of complete file consists from complete file MD5 hash and parts count after "-" sign
-        assertTrue(remoteTestBucket.getObjectMetadata(fileName)
+        assertTrue(localTestBucket.getObjectMetadata(fileName)
                 .getETag().startsWith(targetSyncFolder.getCompleteFileMD5(fileName)));
     }
 
@@ -138,11 +141,11 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
                 .setRecursive(true)
                 .create();
         
-        RemoteSync directorySync = new RemoteSync(directorySource, remoteTestBucket.asDestination());
+        RemoteSync directorySync = new RemoteSync(directorySource, localTestBucket.asDestination());
         directorySync.run();
         
-        assertThat(remoteTestBucket.doesObjectExists(fileName), is(false));
-        List<PartSummary> list1 = remoteTestBucket.getPartsForKey(fileName);
+        assertThat(localTestBucket.doesObjectExists(fileName), is(false));
+        List<PartSummary> list1 = localTestBucket.getPartsForKey(fileName);
         assertNotNull(list1);
         assertTrue(list1.isEmpty());
         
@@ -151,8 +154,8 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         //Upload incomplete file file
         directorySync.run();
         
-        assertThat(remoteTestBucket.doesObjectExists(fileName), is(false));
-        List<PartSummary> list2 = remoteTestBucket.getPartsForKey(fileName);
+        assertThat(localTestBucket.doesObjectExists(fileName), is(false));
+        List<PartSummary> list2 = localTestBucket.getPartsForKey(fileName);
         assertNotNull(list2);
         assertFalse(list2.isEmpty());
         
@@ -162,11 +165,11 @@ public class C_OnDemand_IncompleteFileUpload_AccTest {
         //Finalize
         directorySync.run();
         
-        assertThat(remoteTestBucket.doesObjectExists(fileName), is(true));
+        assertThat(localTestBucket.doesObjectExists(fileName), is(true));
         
-        assertThat(remoteTestBucket.getMultipartUploadFor(fileName), is(Optional.empty()));
+        assertThat(localTestBucket.getMultipartUploadFor(fileName), is(Optional.empty()));
         
-        assertTrue(remoteTestBucket.getObjectMetadata(fileName)
+        assertTrue(localTestBucket.getObjectMetadata(fileName)
                 .getETag().startsWith(targetSyncFolder.getCompleteFileMD5(fileName)));
     }
 }

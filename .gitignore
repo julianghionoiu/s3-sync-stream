@@ -4,3 +4,6 @@
 .private
 build
 .nb-gradle
+.tmp
+minio
+tmp

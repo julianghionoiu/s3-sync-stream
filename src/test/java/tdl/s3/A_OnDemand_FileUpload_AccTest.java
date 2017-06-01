@@ -12,7 +12,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import org.junit.ClassRule;
-import tdl.s3.rules.LocalS3Server;
 import tdl.s3.rules.LocalTestBucket;
 import tdl.s3.sync.RemoteSync;
 import tdl.s3.sync.Filters;
@@ -20,9 +19,6 @@ import tdl.s3.sync.Source;
 
 public class A_OnDemand_FileUpload_AccTest {
 
-    @ClassRule
-    public static LocalS3Server localS3Server = new LocalS3Server();
-    
     @Rule
     public LocalTestBucket localTestBucket = new LocalTestBucket();
 
