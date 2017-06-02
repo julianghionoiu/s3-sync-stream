@@ -1,4 +1,4 @@
-package tdl.s3.rules;
+package tdl.s3.testframework.rules;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
@@ -13,8 +13,8 @@ import com.amazonaws.services.s3.model.PartSummary;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -22,16 +22,16 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import org.junit.rules.ExternalResource;
-import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
+import static tdl.s3.testframework.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
 import tdl.s3.sync.destination.DebugDestination;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.S3BucketDestination;
 
 abstract public class TestBucket extends ExternalResource {
 
-    protected AmazonS3 amazonS3;
-    protected String bucketName;
-    protected String uploadPrefix;
+    AmazonS3 amazonS3;
+    String bucketName;
+    String uploadPrefix;
 
     //~~~~ Getters
     public Destination asDestination() {
@@ -120,8 +120,12 @@ abstract public class TestBucket extends ExternalResource {
     }
 
     public void uploadFilesInsideDir(Path dir) {
+        if (dir == null) {
+            return;
+        }
+
         Arrays.stream(dir.toFile().listFiles())
-                .filter(file -> file.isFile())
+                .filter(File::isFile)
                 .forEach(file -> upload(file.getName(), file.toPath()));
     }
 

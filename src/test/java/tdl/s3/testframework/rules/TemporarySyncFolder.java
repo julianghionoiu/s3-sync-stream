@@ -1,4 +1,4 @@
-package tdl.s3.rules;
+package tdl.s3.testframework.rules;
 
 import ch.qos.logback.core.encoder.ByteArrayUtil;
 import org.apache.commons.codec.binary.Hex;

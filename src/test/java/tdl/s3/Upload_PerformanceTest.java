@@ -1,7 +1,6 @@
 package tdl.s3;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,18 +10,18 @@ import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import tdl.s3.rules.RemoteTestBucket;
+import tdl.s3.testframework.rules.LocalTestBucket;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.RemoteSync;
 import tdl.s3.sync.RemoteSyncException;
 import tdl.s3.sync.Source;
 
 import static org.junit.Assert.*;
-import tdl.s3.rules.TemporarySyncFolder;
-import static tdl.s3.rules.TemporarySyncFolder.ONE_MEGABYTE;
+import tdl.s3.testframework.rules.TemporarySyncFolder;
+import static tdl.s3.testframework.rules.TemporarySyncFolder.ONE_MEGABYTE;
 import tdl.s3.sync.destination.PerformanceMeasureDestination;
 
-public class PerformanceTest {
+public class Upload_PerformanceTest {
 
     private static int PART_SIZE = 5 * 1024 * 1024;
 
@@ -31,14 +30,14 @@ public class PerformanceTest {
     private Filters defaultFilters;
 
     @Rule
-    public RemoteTestBucket remoteTestBucket = new RemoteTestBucket();
+    public LocalTestBucket testBucket = new LocalTestBucket();
     
     @Rule
     public TemporarySyncFolder targetSyncFolder = new TemporarySyncFolder();
 
     @Before
     public void setUp() {
-        destination = new PerformanceMeasureDestination(remoteTestBucket.asDestination());
+        destination = new PerformanceMeasureDestination(testBucket.asDestination());
         defaultFilters = Filters.getBuilder()
                 .include(Filters.endsWith("txt"))
                 .include(Filters.endsWith("bin"))
@@ -49,7 +48,7 @@ public class PerformanceTest {
     public void uploadAlreadyUploadedFiles() throws RemoteSyncException {
         //8 files inside
         Path path = Paths.get("src/test/resources/performance_test/already_uploaded/");
-        remoteTestBucket.uploadFilesInsideDir(path);
+        testBucket.uploadFilesInsideDir(path);
 
         Source source = Source.getBuilder(path)
                 .setFilters(defaultFilters)

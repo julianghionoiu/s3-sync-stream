@@ -124,6 +124,24 @@ The values are:
 * `s3_bucket` the bucket that will store the uploaded files.
 * `s3_prefix` S3 prefix that will be added before all files
 
+### Run tests
+
+Download and install Minio from https://www.minio.io/downloads/#minio-server
+
+Configure minio:
+```bash
+export MINIO_ACCESS_KEY=minio_access_key
+export MINIO_SECRET_KEY=minio_secret_key
+export MINIO_BROWSER=off
+```
+or set these values in `~/.minio/config.json`
+
+Start minio server:
+```bash
+mkdir -p /tmp/minio-backend; minio server /tmp/minio-backend
+```
+
+
 ### Build and run as command-line app
 ```bash
 ./gradlew shadowJar

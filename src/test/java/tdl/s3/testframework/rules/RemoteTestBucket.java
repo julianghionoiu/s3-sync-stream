@@ -1,4 +1,4 @@
-package tdl.s3.rules;
+package tdl.s3.testframework.rules;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
