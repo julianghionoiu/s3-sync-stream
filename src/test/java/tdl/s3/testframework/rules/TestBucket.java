@@ -1,43 +1,39 @@
-package tdl.s3.rules;
+package tdl.s3.testframework.rules;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
+import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
+import com.amazonaws.services.s3.model.ListPartsRequest;
+import com.amazonaws.services.s3.model.MultipartUpload;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PartSummary;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.UploadPartRequest;
 import java.io.ByteArrayInputStream;
-import org.junit.rules.ExternalResource;
-
+import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Optional;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
-import tdl.s3.credentials.AWSSecretProperties;
-
-import static tdl.s3.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
+import java.util.List;
+import java.util.Optional;
+import org.junit.rules.ExternalResource;
+import static tdl.s3.testframework.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
 import tdl.s3.sync.destination.DebugDestination;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.S3BucketDestination;
 
-public class RemoteTestBucket extends ExternalResource {
+abstract public class TestBucket extends ExternalResource {
 
-    private final AmazonS3 amazonS3;
-    private final String bucketName;
-    private final String uploadPrefix;
-
-    //~~~~ Construct
-    public RemoteTestBucket() {
-        Path privatePropertiesFile = Paths.get(".private", "aws-test-secrets");
-        AWSSecretProperties secretsProvider = AWSSecretProperties.fromPlainTextFile(privatePropertiesFile);
-
-        amazonS3 = secretsProvider.createClient();
-        bucketName = secretsProvider.getS3Bucket();
-        uploadPrefix = secretsProvider.getS3Prefix();
-    }
+    AmazonS3 amazonS3;
+    String bucketName;
+    String uploadPrefix;
 
     //~~~~ Getters
-
     public Destination asDestination() {
         S3BucketDestination remoteDestination = S3BucketDestination.builder()
                 .awsClient(amazonS3)
@@ -52,6 +48,10 @@ public class RemoteTestBucket extends ExternalResource {
     protected void before() {
         abortAllMultipartUploads();
         removeAllObjects();
+    }
+
+    public AmazonS3 getAmazonS3() {
+        return amazonS3;
     }
 
     private void removeAllObjects() {
@@ -92,7 +92,6 @@ public class RemoteTestBucket extends ExternalResource {
                 .findAny();
     }
 
-
     public List<PartSummary> getPartsForKey(String key) {
         ListMultipartUploadsRequest multipartUploadsRequest = new ListMultipartUploadsRequest(bucketName);
         multipartUploadsRequest.setPrefix(uploadPrefix);
@@ -121,8 +120,12 @@ public class RemoteTestBucket extends ExternalResource {
     }
 
     public void uploadFilesInsideDir(Path dir) {
+        if (dir == null) {
+            return;
+        }
+
         Arrays.stream(dir.toFile().listFiles())
-                .filter(file -> file.isFile())
+                .filter(File::isFile)
                 .forEach(file -> upload(file.getName(), file.toPath()));
     }
 
@@ -136,7 +139,7 @@ public class RemoteTestBucket extends ExternalResource {
     public String getBucketName() {
         return bucketName;
     }
-    
+
     public void uploadPart(String name, String uploadId, byte[] partData, int partNumber) throws NoSuchAlgorithmException {
         UploadPartRequest request = new UploadPartRequest()
                 .withBucketName(bucketName)
