@@ -13,7 +13,7 @@ mkdir -p tmp
 sleep 3
 
 echo "Running test"
-./gradlew --rerun-tasks --info test jacocoTestReport
+./gradlew --rerun-tasks test jacocoTestReport coveralls --info
 
 echo "Killing server"
 ps ax | grep minio | awk '{print $1}' | head -n 1 | xargs kill
