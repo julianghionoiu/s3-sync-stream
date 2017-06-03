@@ -13,7 +13,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-class MultipartUploadHelper {
+public final class MultipartUploadHelper {
+
+    private MultipartUploadHelper() {
+    }
 
     static List<PartETag> getPartETagsFromPartListing(PartListing listing) {
         Stream<PartSummary> partSummaryStream = Optional.ofNullable(listing)
@@ -38,7 +41,7 @@ class MultipartUploadHelper {
                 .max()
                 .orElse(0);
     }
-    
+
     static Set<Integer> getFailedMiddlePartNumbers(PartListing partListing) {
         AtomicInteger lastPartNumber = new AtomicInteger(0);
         Set<Integer> uploadedParts = partListing.getParts().stream()
