@@ -22,6 +22,11 @@ public class FileUploaderImpl implements FileUploader {
     }
 
     @Override
+    public void upload(File file) throws UploadingException {
+        upload(file, file.getName());
+    }
+
+    @Override
     public void upload(File file, String path) throws UploadingException {
         upload(file, path, RETRY_TIMES_COUNT);
     }

@@ -8,5 +8,7 @@ import java.io.File;
  */
 public interface FileUploader {
 
+    void upload(File file) throws UploadingException;
+
     void upload(File file, String path) throws UploadingException;
 }

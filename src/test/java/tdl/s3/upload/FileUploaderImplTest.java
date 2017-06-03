@@ -23,8 +23,8 @@ public class FileUploaderImplTest {
 
         FileUploader uploader = new FileUploaderImpl(destination, strategy);
         File file = mock(File.class);
-        String path = "path";
-        uploader.upload(file, path);
+        when(file.getName()).thenReturn("path");
+        uploader.upload(file);
     }
 
     @Test(expected = UploadingException.class)
@@ -38,7 +38,7 @@ public class FileUploaderImplTest {
 
         FileUploader uploader = new FileUploaderImpl(destination, strategy);
         File file = mock(File.class);
-        String path = "path";
-        uploader.upload(file, path);
+        when(file.getName()).thenReturn("path");
+        uploader.upload(file);
     }
 }
