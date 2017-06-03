@@ -10,7 +10,7 @@ import tdl.s3.sync.destination.DestinationOperationException;
 @Slf4j
 public class FileUploaderImpl implements FileUploader {
 
-    private static int RETRY_TIMES_COUNT = 2;
+    private static final int RETRY_TIMES_COUNT = 2;
 
     private final Destination destination;
 
@@ -19,11 +19,6 @@ public class FileUploaderImpl implements FileUploader {
     FileUploaderImpl(final Destination destination, UploadingStrategy uploadingStrategy) {
         this.destination = destination;
         this.uploadingStrategy = uploadingStrategy;
-    }
-
-    @Override
-    public void upload(File file) throws UploadingException {
-        upload(file, file.getName());
     }
 
     @Override
