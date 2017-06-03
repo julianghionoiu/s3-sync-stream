@@ -8,6 +8,11 @@ import java.nio.file.Paths;
 import static org.junit.Assert.*;
 
 public class FileHelperTest {
+    
+    @Test
+    public void testConstructor() {
+        FileHelper helper = new FileHelper();
+    }
  
     @Test
     public void getLockFilePath_returnsCorrect() throws Exception {

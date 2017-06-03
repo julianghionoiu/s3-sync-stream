@@ -21,6 +21,11 @@ public class ByteHelperTest {
         (new Random()).nextBytes(bytes);
         return bytes;
     }
+    
+    @Test
+    public void testConstructor() {
+        ByteHelper helper = new ByteHelper();
+    }
 
     @Test
     public void createInputStreamInitialisesOffsetToZero() throws IOException {
