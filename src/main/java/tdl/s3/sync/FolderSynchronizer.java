@@ -24,7 +24,7 @@ class FolderSynchronizer {
         this.fileUploadingService = fileUploadingService;
     }
 
-    void synchronize(Path folder, boolean recursive) throws IOException {
+    void synchronize(Path folder, boolean recursive) {
         List<String> paths = folderScanner.getUploadFilesRelativePathList(folder, recursive);
         Destination destination = fileUploadingService.getDestination();
         List<String> uploadable;
@@ -37,10 +37,10 @@ class FolderSynchronizer {
             return;
         }
         uploadable.stream()
-            .forEach(upload -> {
-                File uploadFile = new File(folder.toFile(), upload);
-                fileUploadingService.upload(uploadFile, upload);
-            });
+                .forEach(upload -> {
+                    File uploadFile = new File(folder.toFile(), upload);
+                    fileUploadingService.upload(uploadFile, upload);
+                });
     }
 
     void setListener(ProgressListener listener) {

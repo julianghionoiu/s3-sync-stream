@@ -32,15 +32,11 @@ public class RemoteSync {
         this.listener = listener;
     }
 
-    public void run() throws RemoteSyncException {
+    public void run() {
         buildUploadingService();
         buildFolderSynchronizer();
         folderSynchronizer.setListener(listener);
-        try {
-            folderSynchronizer.synchronize(source.getPath(), source.isRecursive());
-        } catch (IOException e) {
-            throw new RemoteSyncException("Failed to sync folder "+source.getPath(), e);
-        }
+        folderSynchronizer.synchronize(source.getPath(), source.isRecursive());
     }
 
     private void buildUploadingService() {
