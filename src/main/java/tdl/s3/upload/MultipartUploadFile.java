@@ -134,16 +134,20 @@ public class MultipartUploadFile {
                 .stream()
                 .map(partNumber -> {
                     try {
-                        byte[] partData = ByteHelper.readPart(partNumber, file);
+                        byte[] partData = readPart(partNumber);
                         UploadPartRequest request = getUploadPartRequestForData(partData, false, partNumber);
                         incrementUploadedSize(partData.length);
                         return request;
                     } catch (IOException | DestinationOperationException ex) {
-                        log.error("Exception thrown.", ex);
+                        System.out.println(partNumber);
                         return null;
                     }
                 })
                 .filter(Objects::nonNull);
+    }
+
+    public byte[] readPart(int partNumber) throws IOException {
+        return ByteHelper.readPart(partNumber, file);
     }
 
     public Stream<UploadPartRequest> streamUploadPartRequestForIncompleteParts() throws IOException, DestinationOperationException {
