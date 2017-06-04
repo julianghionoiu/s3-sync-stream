@@ -1,6 +1,5 @@
 package tdl.s3.sync;
 
-import java.io.IOException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

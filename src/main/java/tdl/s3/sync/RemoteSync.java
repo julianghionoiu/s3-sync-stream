@@ -5,7 +5,6 @@ import tdl.s3.sync.progress.DummyProgressListener;
 import tdl.s3.sync.progress.ProgressListener;
 import tdl.s3.upload.FileUploadingService;
 
-import java.io.IOException;
 
 public class RemoteSync {
 

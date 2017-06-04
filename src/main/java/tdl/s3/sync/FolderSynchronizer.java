@@ -4,7 +4,6 @@ import java.io.File;
 import tdl.s3.sync.progress.ProgressListener;
 import tdl.s3.upload.FileUploadingService;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;

@@ -2,9 +2,7 @@ package tdl.s3.upload;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;

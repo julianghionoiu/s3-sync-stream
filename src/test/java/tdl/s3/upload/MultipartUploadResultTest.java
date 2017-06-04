@@ -15,5 +15,5 @@ public class MultipartUploadResultTest {
         MultipartUploadResult res = new MultipartUploadResult(request, result);
         assertEquals(res.getRequest(), request);
         assertEquals(res.getResult(), result);
-    }
+    }   
 }
