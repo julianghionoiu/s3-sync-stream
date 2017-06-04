@@ -1,7 +1,14 @@
 package tdl.s3.sync;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
 
 public class Source {
 
@@ -13,7 +20,7 @@ public class Source {
 
     public static class Builder {
 
-        private Source source = new Source();
+        private final Source source = new Source();
 
         public Builder(Path path) {
             source.path = path;
@@ -60,5 +67,22 @@ public class Source {
     public boolean isValidPath() {
         File file = path.toFile();
         return file.isDirectory();
+    }
+
+    public List<String> getUploadFilesRelativePathList() {
+        try {
+            int maxDepth = isRecursive ? Integer.MAX_VALUE : 1;
+            File base = path.toFile();
+            BiPredicate<Path, BasicFileAttributes> matcher = (filePath, fileAttr) -> {
+                return fileAttr.isRegularFile() && filters.accept(filePath);
+            };
+            return Files.find(path, maxDepth, matcher)
+                    .map(filePath -> {
+                        return base.toURI().relativize(filePath.toFile().toURI()).getPath();
+                    })
+                    .collect(Collectors.toList());
+        } catch (IOException ex) {
+            return new ArrayList<>();
+        }
     }
 }

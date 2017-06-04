@@ -36,7 +36,7 @@ public class RemoteSync {
         buildUploadingService();
         buildFolderSynchronizer();
         folderSynchronizer.setListener(listener);
-        folderSynchronizer.synchronize(source.getPath(), source.isRecursive());
+        folderSynchronizer.synchronize();
     }
 
     private void buildUploadingService() {
@@ -45,7 +45,6 @@ public class RemoteSync {
 
     private void buildFolderSynchronizer() {
         Filters filters = source.getFilters();
-        FolderScanner folderScanner = new FolderScanner(filters);
-        folderSynchronizer = new FolderSynchronizer(folderScanner, fileUploadingService);
+        folderSynchronizer = new FolderSynchronizer(source, fileUploadingService);
     }
 }

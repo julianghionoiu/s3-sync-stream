@@ -15,17 +15,18 @@ import tdl.s3.sync.destination.DestinationOperationException;
 @Slf4j
 class FolderSynchronizer {
 
-    private final FolderScanner folderScanner;
+    private final Source source;
 
     private final FileUploadingService fileUploadingService;
 
-    FolderSynchronizer(FolderScanner folderScanner, FileUploadingService fileUploadingService) {
-        this.folderScanner = folderScanner;
+    FolderSynchronizer(Source source, FileUploadingService fileUploadingService) {
+        this.source = source;
         this.fileUploadingService = fileUploadingService;
     }
 
-    void synchronize(Path folder, boolean recursive) {
-        List<String> paths = folderScanner.getUploadFilesRelativePathList(folder, recursive);
+    void synchronize() {
+        Path folder = source.getPath();
+        List<String> paths = source.getUploadFilesRelativePathList();
         Destination destination = fileUploadingService.getDestination();
         List<String> uploadable;
         try {

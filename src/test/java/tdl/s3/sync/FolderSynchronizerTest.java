@@ -12,21 +12,25 @@ public class FolderSynchronizerTest {
 
     @Test
     public void synchronizeShouldHandleEmptyStringIfExceptionThrown() throws DestinationOperationException {
-        FolderScanner folderScanner = mock(FolderScanner.class);
+
+        Source source = mock(Source.class);
+        when(source.isRecursive()).thenReturn(true);
+
+        Path path = mock(Path.class);
+        when(path.toFile()).thenReturn(mock(File.class));
+        when(source.getPath()).thenReturn(path);
+
         FileUploadingService fileUploadingService = mock(FileUploadingService.class);
         doNothing().when(fileUploadingService).upload(any(), anyString());
-        
+
         Destination destination = mock(Destination.class);
         doThrow(new DestinationOperationException("Message"))
                 .when(destination)
                 .filterUploadableFiles(anyList());
-        
+
         when(fileUploadingService.getDestination()).thenReturn(destination);
-        
-        FolderSynchronizer synchronizer = new FolderSynchronizer(folderScanner, fileUploadingService);
-        
-        Path path = mock(Path.class);
-        when(path.toFile()).thenReturn(mock(File.class));
-        synchronizer.synchronize(path, true);
+
+        FolderSynchronizer synchronizer = new FolderSynchronizer(source, fileUploadingService);
+        synchronizer.synchronize();
     }
 }
