@@ -1,7 +1,7 @@
 [![Java Version](http://img.shields.io/badge/Java-1.8-blue.svg)](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
 [![Download](https://api.bintray.com/packages/julianghionoiu/maven/s3-sync-stream/images/download.svg)](https://bintray.com/julianghionoiu/maven/s3-sync-stream/_latestVersion)
 [![Codeship Status for julianghionoiu/s3-sync-stream](https://img.shields.io/codeship/b617e390-006f-0135-fe1b-4ee982914aba/master.svg)](https://codeship.com/projects/212588)
-[![Coverage Status](https://coveralls.io/repos/github/julianghionoiu/s3-sync-stream/badge.svg?branch=master)](https://coveralls.io/github/julianghionoiu/s3-sync?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/julianghionoiu/s3-sync-stream/badge.svg?branch=master)](https://coveralls.io/github/julianghionoiu/s3-sync-stream?branch=master)
 
 `s3-sync-stream` is library that continuously syncs the contents of a folder to an S3 bucket. Optimised for streaming file formats (video, logs).
 
