@@ -73,9 +73,8 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     }
 
     private void initStrategy(File file, String remotePath) throws DestinationOperationException, IOException {
-        writingFinished = !FileHelper.lockFileExists(file);
-
         PartListing alreadyUploadedParts = destination.getAlreadyUploadedParts(remotePath);
+        writingFinished = !FileHelper.lockFileExists(file);
 
         boolean uploadingStarted = alreadyUploadedParts != null;
         if (!uploadingStarted) {
