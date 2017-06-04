@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import tdl.s3.helpers.ByteHelper;
 import tdl.s3.helpers.FileHelper;
-import tdl.s3.helpers.MD5Digest;
+import tdl.s3.helpers.ChecksumHelper;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
 import tdl.s3.sync.progress.DummyProgressListener;
@@ -174,7 +174,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         try (ByteArrayInputStream partInputStream = ByteHelper.createInputStream(nextPart)) {
             UploadPartRequest request = destination.createUploadPartRequest(remotePath)
                     .withPartNumber(partNumber)
-                    .withMD5Digest(MD5Digest.digest(nextPart))
+                    .withMD5Digest(ChecksumHelper.digest(nextPart, "MD5"))
                     .withLastPart(isLastPart)
                     .withPartSize(nextPart.length)
                     .withUploadId(uploadId)
