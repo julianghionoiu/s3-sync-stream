@@ -8,7 +8,7 @@ import tdl.s3.sync.destination.DestinationOperationException;
 
 public class MultipartUploadFileUploadingStrategyTest {
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = DestinationOperationException.class)
     public void getUploadingResultShouldHandleInterruptedException() throws DestinationOperationException, InterruptedException, ExecutionException {
         Future future = mock(Future.class);
         when(future.get()).thenThrow(new InterruptedException());
@@ -24,7 +24,7 @@ public class MultipartUploadFileUploadingStrategyTest {
         MultipartUploadFileUploadingStrategy.getUploadingResult(future);
     }
     
-    @Test(expected = RuntimeException.class)
+    @Test(expected = DestinationOperationException.class)
     public void getUploadingResultShouldHandleExecutionException() throws DestinationOperationException, InterruptedException, ExecutionException {
         Future future = mock(Future.class);
         ExecutionException ex = mock(ExecutionException.class);

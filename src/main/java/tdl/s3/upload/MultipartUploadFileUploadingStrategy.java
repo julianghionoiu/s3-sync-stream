@@ -98,13 +98,13 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         try {
             return future.get();
         } catch (InterruptedException e) {
-            throw new RuntimeException("Some part uploads was unsuccessful. " + e.getMessage(), e);
+            throw new DestinationOperationException("Some part uploads was unsuccessful. " + e.getMessage(), e);
         } catch (ExecutionException e) {
             Throwable ex = e.getCause();
             if (ex instanceof DestinationOperationException) {
                 throw (DestinationOperationException) ex;
             }
-            throw new RuntimeException("Some part uploads was unsuccessful. " + e.getMessage(), e);
+            throw new DestinationOperationException("Some part uploads was unsuccessful. " + e.getMessage(), e);
         }
     }
 
