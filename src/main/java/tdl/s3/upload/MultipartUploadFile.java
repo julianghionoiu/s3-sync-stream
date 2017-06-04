@@ -22,6 +22,7 @@ import tdl.s3.helpers.ChecksumHelper;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
+import tdl.s3.sync.progress.ProgressListener;
 
 @Slf4j
 public class MultipartUploadFile {
@@ -148,6 +149,14 @@ public class MultipartUploadFile {
 
     public byte[] readPart(int partNumber) throws IOException {
         return ByteHelper.readPart(partNumber, file);
+    }
+
+    public void notifyStart(ProgressListener listener) {
+        listener.uploadFileStarted(file, uploadId);
+    }
+    
+    public void notifyFinish(ProgressListener listener) {
+        listener.uploadFileFinished(file);
     }
 
     public Stream<UploadPartRequest> streamUploadPartRequestForIncompleteParts() throws IOException, DestinationOperationException {

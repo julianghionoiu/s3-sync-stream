@@ -46,9 +46,9 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
     public void upload(File file, String remotePath) throws DestinationOperationException, IOException {
         MultipartUploadFile multipartUploadFile = new MultipartUploadFile(file, remotePath, destination);
         multipartUploadFile.validateUploadedFileSize();
-        listener.uploadFileStarted(multipartUploadFile.getFile(), multipartUploadFile.getUploadId());
+        multipartUploadFile.notifyStart(listener);
         uploadRequiredParts(multipartUploadFile);
-        listener.uploadFileFinished(multipartUploadFile.getFile());
+        multipartUploadFile.notifyFinish(listener);
     }
 
     private void uploadRequiredParts(MultipartUploadFile multipartUploadFile) throws IOException, DestinationOperationException {
@@ -77,7 +77,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                 .map(concurrentUploader::submitTaskForPartUploading)
                 .map(future -> {
                     try {
-                        return this.getUploadingResult(future);
+                        return getUploadingResult(future);
                     } catch (DestinationOperationException ex) {
                         log.error("Failed to upload", ex);
                         return null;
@@ -94,7 +94,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         return request;
     }
 
-    private MultipartUploadResult getUploadingResult(Future<MultipartUploadResult> future) throws DestinationOperationException {
+    public static MultipartUploadResult getUploadingResult(Future<MultipartUploadResult> future) throws DestinationOperationException {
         try {
             return future.get();
         } catch (InterruptedException e) {
