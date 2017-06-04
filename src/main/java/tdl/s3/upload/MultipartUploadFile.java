@@ -65,10 +65,6 @@ public class MultipartUploadFile {
         return uploadId;
     }
 
-    public void incrementUploadedSize(long size) {
-        uploadedSize += size;
-    }
-
     public List<PartETag> getPartETags() {
         return partETags;
     }
@@ -137,10 +133,10 @@ public class MultipartUploadFile {
                     try {
                         byte[] partData = readPart(partNumber);
                         UploadPartRequest request = getUploadPartRequestForData(partData, false, partNumber);
-                        incrementUploadedSize(partData.length);
+                        uploadedSize += partData.length;
                         return request;
                     } catch (IOException | DestinationOperationException ex) {
-                        System.out.println(partNumber);
+                        log.error("Cannot upload part " + partNumber, ex);
                         return null;
                     }
                 })
@@ -154,7 +150,7 @@ public class MultipartUploadFile {
     public void notifyStart(ProgressListener listener) {
         listener.uploadFileStarted(file, uploadId);
     }
-    
+
     public void notifyFinish(ProgressListener listener) {
         listener.uploadFileFinished(file);
     }

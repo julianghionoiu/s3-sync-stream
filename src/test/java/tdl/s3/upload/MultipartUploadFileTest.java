@@ -46,6 +46,8 @@ public class MultipartUploadFileTest {
     public void validateUploadedFileSizeShouldThrowException() throws DestinationOperationException {
         when(mockFile.length()).thenReturn(new Long(-1));
         MultipartUploadFile multipartUploadFile = new MultipartUploadFile(mockFile, mockRemotePath, mockDestination);
+        multipartUploadFile.getFile();
+        multipartUploadFile.getUploadId();
         multipartUploadFile.validateUploadedFileSize();
     }
 
