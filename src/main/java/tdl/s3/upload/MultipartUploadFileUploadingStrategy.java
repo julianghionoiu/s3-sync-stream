@@ -62,12 +62,8 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
                 .streamUploadPartRequestForIncompleteParts();
         submitUploadRequestStream(incompletePartRequestStream, eTags);
 
-        try {
-            concurrentUploader.shutdownAndAwaitTermination();
-        } catch (InterruptedException ex) {
-            String message = "File uploading for " + multipartUploadFile.getFile().getName() + " was terminated.";
-            throw new DestinationOperationException(message, ex);
-        }
+        concurrentUploader.shutdownAndAwaitTermination();
+
         multipartUploadFile.commitIfFinishedWriting();
     }
 
@@ -75,14 +71,7 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         requestStream
                 .map(this::attachListenerToRequest)
                 .map(concurrentUploader::submitTaskForPartUploading)
-                .map(future -> {
-                    try {
-                        return getUploadingResult(future);
-                    } catch (DestinationOperationException ex) {
-                        log.error("Failed to upload", ex);
-                        return null;
-                    }
-                })
+                .map(MultipartUploadFileUploadingStrategy::getUploadingResult)
                 .filter(Objects::nonNull)
                 .map(e -> e.getResult().getPartETag())
                 .forEach(partETags::add);
@@ -94,17 +83,19 @@ public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
         return request;
     }
 
-    public static MultipartUploadResult getUploadingResult(Future<MultipartUploadResult> future) throws DestinationOperationException {
+    public static MultipartUploadResult getUploadingResult(Future<MultipartUploadResult> future) {
         try {
             return future.get();
         } catch (InterruptedException e) {
-            throw new DestinationOperationException("Some part uploads was unsuccessful. " + e.getMessage(), e);
+            log.error("Some part uploads was unsuccessful.", e);
+            return null;
         } catch (ExecutionException e) {
             Throwable ex = e.getCause();
             if (ex instanceof DestinationOperationException) {
-                throw (DestinationOperationException) ex;
+                log.error("Some part uploads was unsuccessful.", ex);
             }
-            throw new DestinationOperationException("Some part uploads was unsuccessful. " + e.getMessage(), e);
+            log.error("Some part uploads was unsuccessful.", e);
+            return null;
         }
     }
 

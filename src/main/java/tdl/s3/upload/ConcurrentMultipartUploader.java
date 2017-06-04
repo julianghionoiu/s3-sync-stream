@@ -6,6 +6,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
 
@@ -35,9 +37,13 @@ public class ConcurrentMultipartUploader {
         return executorService;
     }
 
-    void shutdownAndAwaitTermination() throws InterruptedException {
-        executorService.shutdown();
-        executorService.awaitTermination(MAX_UPLOADING_TIME, TimeUnit.SECONDS);
+    void shutdownAndAwaitTermination() throws DestinationOperationException {
+        try {
+            executorService.shutdown();
+            executorService.awaitTermination(MAX_UPLOADING_TIME, TimeUnit.SECONDS);
+        } catch (InterruptedException ex) {
+            throw new DestinationOperationException("Cannot finish uploading", ex);
+        }
     }
 
     Future<MultipartUploadResult> submitTaskForPartUploading(UploadPartRequest request) {
