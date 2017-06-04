@@ -26,7 +26,7 @@ class FolderSynchronizer {
 
     void synchronize() {
         Path folder = source.getPath();
-        List<String> paths = source.getUploadFilesRelativePathList();
+        List<String> paths = source.getFilesToUpload();
         Destination destination = fileUploadingService.getDestination();
         List<String> uploadable;
         try {

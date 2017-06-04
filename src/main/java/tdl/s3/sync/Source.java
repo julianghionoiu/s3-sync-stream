@@ -69,7 +69,7 @@ public class Source {
         return file.isDirectory();
     }
 
-    public List<String> getUploadFilesRelativePathList() {
+    public List<String> getFilesToUpload() {
         try {
             int maxDepth = isRecursive ? Integer.MAX_VALUE : 1;
             File base = path.toFile();

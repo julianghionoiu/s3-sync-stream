@@ -62,7 +62,7 @@ public class SourceTest {
                 .setRecursive(true)
                 .setFilters(filters)
                 .create();
-        List<String> pathList = source.getUploadFilesRelativePathList();
+        List<String> pathList = source.getFilesToUpload();
         assertTrue(pathList.isEmpty());
     }
 
@@ -72,7 +72,7 @@ public class SourceTest {
                 .setRecursive(true)
                 .setFilters(filters)
                 .create();
-        List<String> pathList = source.getUploadFilesRelativePathList();
+        List<String> pathList = source.getFilesToUpload();
         List<String> expected = Arrays.asList(
                 "subdir/sub_test_file_1.txt",
                 "test_file_1.txt",
@@ -89,7 +89,7 @@ public class SourceTest {
                 .setRecursive(false)
                 .setFilters(filters)
                 .create();
-        List<String> pathList = source.getUploadFilesRelativePathList();
+        List<String> pathList = source.getFilesToUpload();
         List<String> expected = Arrays.asList(
                 "test_file_1.txt",
                 "test_file_2.txt"
