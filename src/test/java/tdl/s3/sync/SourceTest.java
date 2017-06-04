@@ -57,7 +57,7 @@ public class SourceTest {
     }
 
     @Test
-    public void getUploadFilesRelativePathListShouldReturnEmptyList() {
+    public void getFilesToUploadShouldReturnEmptyList() {
         Source source = Source.getBuilder(emptyDirPath)
                 .setRecursive(true)
                 .setFilters(filters)
@@ -67,7 +67,7 @@ public class SourceTest {
     }
 
     @Test
-    public void getUploadFilesRelativePathListShouldReturnNotEmptyList() {
+    public void getFilesToUploadShouldReturnNotEmptyList() {
         Source source = Source.getBuilder(notEmptyDirPath)
                 .setRecursive(true)
                 .setFilters(filters)
@@ -84,7 +84,7 @@ public class SourceTest {
     }
 
     @Test
-    public void getUploadFilesRelativePathListShouldReturnNonRecursive() {
+    public void getFilesToUploadShouldReturnNonRecursive() {
         Source source = Source.getBuilder(notEmptyDirPath)
                 .setRecursive(false)
                 .setFilters(filters)
@@ -97,5 +97,16 @@ public class SourceTest {
         Collections.sort(pathList);
         Collections.sort(expected);
         assertEquals(pathList, expected);
+    }
+
+    @Test
+    public void getFilesToUploadShouldReturnEmptyListOnIOException() {
+        Path nonExistentPath = Paths.get("src/directory_that_doesnot_exist");
+        Source source = Source.getBuilder(nonExistentPath)
+                .setRecursive(false)
+                .setFilters(filters)
+                .create();
+        List<String> pathList = source.getFilesToUpload();
+        assertTrue(pathList.isEmpty());
     }
 }
