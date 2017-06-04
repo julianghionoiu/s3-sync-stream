@@ -6,18 +6,27 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
 
 public class ConcurrentMultipartUploaderTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test(expected = IllegalArgumentException.class)
     public void constructorShouldThrowExceptionOnInvalidThreadCount() throws IllegalArgumentException {
@@ -61,6 +70,22 @@ public class ConcurrentMultipartUploaderTest {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         assertEquals(streamResult.size(), 1);
+        uploader.shutdownAndAwaitTermination();
+    }
+
+    @Test
+    public void executionShouldHandleInterruption() throws DestinationOperationException, InterruptedException, ExecutionException, TimeoutException {
+        expectedException.expect(DestinationOperationException.class);
+        expectedException.expectMessage("Cannot finish uploading");
+        ConcurrentMultipartUploader uploader = mock(ConcurrentMultipartUploader.class);
+        ExecutorService service = mock(ExecutorService.class);
+        when(service.awaitTermination(anyLong(), any()))
+                .thenThrow(mock(InterruptedException.class));
+        when(uploader.getExecutorService()).thenReturn(service);
+
+        doCallRealMethod().when(uploader)
+                .shutdownAndAwaitTermination();
+
         uploader.shutdownAndAwaitTermination();
     }
 }

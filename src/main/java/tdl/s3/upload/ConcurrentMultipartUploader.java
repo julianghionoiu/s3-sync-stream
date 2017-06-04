@@ -38,9 +38,10 @@ public class ConcurrentMultipartUploader {
     }
 
     void shutdownAndAwaitTermination() throws DestinationOperationException {
+        ExecutorService service = getExecutorService();
+        service.shutdown();
         try {
-            executorService.shutdown();
-            executorService.awaitTermination(MAX_UPLOADING_TIME, TimeUnit.SECONDS);
+            service.awaitTermination(MAX_UPLOADING_TIME, TimeUnit.SECONDS);
         } catch (InterruptedException ex) {
             throw new DestinationOperationException("Cannot finish uploading", ex);
         }
@@ -48,7 +49,7 @@ public class ConcurrentMultipartUploader {
 
     Future<MultipartUploadResult> submitTaskForPartUploading(UploadPartRequest request) {
         Callable<MultipartUploadResult> task = createCallableForPartUploadingAndReturnETag(request);
-        return executorService.submit(task);
+        return getExecutorService().submit(task);
     }
 
     private Callable<MultipartUploadResult> createCallableForPartUploadingAndReturnETag(UploadPartRequest request) {
