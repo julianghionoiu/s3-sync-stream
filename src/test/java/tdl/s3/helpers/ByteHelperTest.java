@@ -13,6 +13,7 @@ import org.junit.Test;
 import static org.mockito.Mockito.*;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
+import static net.trajano.commons.testing.UtilityClassTestUtil.assertUtilityClassWellDefined;
 
 public class ByteHelperTest {
 
@@ -20,6 +21,11 @@ public class ByteHelperTest {
         byte[] bytes = new byte[size];
         (new Random()).nextBytes(bytes);
         return bytes;
+    }
+
+    @Test
+    public void shouldSatisfyContractForUtilityClass() throws Exception {
+        assertUtilityClassWellDefined(ByteHelper.class);
     }
 
     @Test
@@ -93,7 +99,7 @@ public class ByteHelperTest {
         ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
         ByteHelper.skipOffsetInInputStream(stream, 10);
     }
-    
+
     @Test(expected = IOException.class)
     public void skipOffsetInInputStreamThrowsIOExceptionIfSkippedLongerThanOffset() throws IOException {
         InputStream stream = mock(InputStream.class);

@@ -38,7 +38,6 @@ public class S3BucketDestinationTest {
         destination.testUploadPermissions();
     }
 
-
     @Test(expected = DestinationOperationException.class)
     public void initUploadingThrowsDestinationOperationException() throws DestinationOperationException {
         doThrow(exception).when(awsClient).initiateMultipartUpload(any());
@@ -101,7 +100,7 @@ public class S3BucketDestinationTest {
         doReturn(summaries).when(listing).getObjectSummaries();
         doReturn(false).when(listing).isTruncated();
         doReturn(null).when(listing).getNextMarker();
-        
+
         doReturn(listing).when(awsClient).listObjects((ListObjectsRequest) any());
 
         List<String> paths = Arrays.asList(
@@ -132,9 +131,9 @@ public class S3BucketDestinationTest {
         ObjectListing listing = mock(ObjectListing.class);
 
         List<String> existingPaths = Arrays.asList(
-                PREFIX+"file1.txt",
-                PREFIX+"subdir/file2.txt",
-                PREFIX+"file6.txt"
+                PREFIX + "file1.txt",
+                PREFIX + "subdir/file2.txt",
+                PREFIX + "file6.txt"
         );
 
         List<S3ObjectSummary> summaries = existingPaths.stream()
@@ -147,7 +146,7 @@ public class S3BucketDestinationTest {
         doReturn(summaries).when(listing).getObjectSummaries();
         doReturn(false).when(listing).isTruncated();
         doReturn(null).when(listing).getNextMarker();
-        
+
         doReturn(listing).when(awsClient).listObjects((ListObjectsRequest) any());
 
         List<String> paths = Arrays.asList(
@@ -163,6 +162,72 @@ public class S3BucketDestinationTest {
                 "file3.txt",
                 "subdir/file4.txt",
                 "file5.txt"
+        );
+        Collections.sort(result);
+        Collections.sort(expected);
+        assertEquals(result, expected);
+    }
+
+    @Test
+    public void filterUploadableFilesShouldHandleMultipleMarkers() throws DestinationOperationException {
+
+        ObjectListing listing = mock(ObjectListing.class);
+
+        List<String> existingPaths = Arrays.asList(
+                PREFIX + "file1.txt",
+                PREFIX + "subdir/file2.txt",
+                PREFIX + "file6.txt",
+                PREFIX + "file7.txt",
+                PREFIX + "file8.txt",
+                PREFIX + "file9.txt"
+        );
+
+        List<S3ObjectSummary> summaries = existingPaths.stream()
+                .map(path -> {
+                    S3ObjectSummary summary = mock(S3ObjectSummary.class);
+                    doReturn(path).when(summary).getKey();
+                    return summary;
+                }).collect(Collectors.toList());
+
+        List<S3ObjectSummary> summaries1 = summaries.subList(0, 3);
+        List<S3ObjectSummary> summaries2 = summaries.subList(3, 6);
+
+        when(listing.getObjectSummaries())
+                .thenReturn(summaries1)
+                .thenReturn(summaries2);
+
+        when(listing.isTruncated())
+                .thenReturn(true)
+                .thenReturn(false);
+
+        when(listing.getNextMarker())
+                .thenReturn("1")
+                .thenReturn(null);
+
+        doReturn(listing)
+                .when(awsClient)
+                .listObjects((ListObjectsRequest) any());
+
+        List<String> paths = Arrays.asList(
+                "file1.txt",
+                "subdir/file2.txt",
+                "file3.txt",
+                "subdir/file4.txt",
+                "file5.txt",
+                "file6.txt",
+                "file7.txt",
+                "file8.txt",
+                "file9.txt",
+                "file10.txt",
+                "file11.txt"
+        );
+        List<String> result = destination.filterUploadableFiles(paths);
+        List<String> expected = Arrays.asList(
+                "file3.txt",
+                "subdir/file4.txt",
+                "file5.txt",
+                "file10.txt",
+                "file11.txt"    
         );
         Collections.sort(result);
         Collections.sort(expected);

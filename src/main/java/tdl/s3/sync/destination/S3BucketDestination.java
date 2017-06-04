@@ -8,7 +8,7 @@ import tdl.s3.upload.MultipartUploadResult;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import tdl.s3.upload.MultipartUploadFinder;
 
 @Builder
 @Slf4j
@@ -19,12 +19,11 @@ public class S3BucketDestination implements Destination {
     private final String prefix;
 
     // ~~~~ Public methods
-
     @Override
     public void testUploadPermissions() throws DestinationOperationException {
-        try{
+        try {
             // Upload a file to S3 to prove that the user if not expired and has write permissions to the bucket + prefix
-            awsClient.putObject(bucket, prefix + "last_sync_start.txt", "timestamp: "+System.currentTimeMillis());
+            awsClient.putObject(bucket, prefix + "last_sync_start.txt", "timestamp: " + System.currentTimeMillis());
         } catch (AmazonS3Exception ex) {
             throw new DestinationOperationException(ex.getMessage(), ex);
         }
@@ -35,7 +34,7 @@ public class S3BucketDestination implements Destination {
         Set<String> existingItems = listAllObjects().stream()
                 .map(S3ObjectSummary::getKey)
                 .collect(Collectors.toSet());
-        
+
         int trimLength = prefix.length();
         return paths.stream()
                 .map(path -> prefix + path)
@@ -118,60 +117,9 @@ public class S3BucketDestination implements Destination {
         }
     }
 
-    private ListMultipartUploadsRequest createListMultipartUploadsRequest() {
-        ListMultipartUploadsRequest uploadsRequest = new ListMultipartUploadsRequest(bucket);
-        uploadsRequest.setPrefix(prefix);
-        return uploadsRequest;
-    }
-
-    private MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest request) throws DestinationOperationException {
-        try {
-            return awsClient.listMultipartUploads(request);
-        } catch (AmazonS3Exception ex) {
-            throw new DestinationOperationException("Failed to list upload request: " + request.getBucketName() + "/" + request.getPrefix(), ex);
-        }
-    }
-
-    private List<MultipartUpload> getAlreadyStartedMultipartUploads() throws DestinationOperationException {
-        ListMultipartUploadsRequest uploadsRequest = createListMultipartUploadsRequest();
-        MultipartUploadListing multipartUploadListing = listMultipartUploads(uploadsRequest);
-
-        Stream<MultipartUploadListing> stream = Stream.of(multipartUploadListing)
-                .flatMap(listing -> {
-                    try {
-                        return this.streamNextListing(listing);
-                    } catch (DestinationOperationException ex) {
-                        log.error("Failed to stream next listing " + listing.getUploadIdMarker(), ex);
-                        return null;
-                    }
-                }).filter(Objects::nonNull);
-
-        return stream.map(MultipartUploadListing::getMultipartUploads)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
-    }
-
-    private Stream<MultipartUploadListing> streamNextListing(MultipartUploadListing listing) throws DestinationOperationException {
-        if (!listing.isTruncated()) {
-            return Stream.of(listing);
-        }
-        MultipartUploadListing nextListing = getNextListing(listing);
-
-        Stream<MultipartUploadListing> head = Stream.of(listing);
-        Stream<MultipartUploadListing> tail = streamNextListing(nextListing);
-
-        return Stream.concat(head, tail);
-    }
-
-    private MultipartUploadListing getNextListing(MultipartUploadListing listing) throws DestinationOperationException {
-        ListMultipartUploadsRequest uploadsRequest = createListMultipartUploadsRequest();
-        uploadsRequest.setUploadIdMarker(listing.getNextUploadIdMarker());
-        uploadsRequest.setKeyMarker(listing.getNextKeyMarker());
-        return listMultipartUploads(uploadsRequest);
-    }
-
     private MultipartUpload findOrNull(String remotePath) throws DestinationOperationException {
-        List<MultipartUpload> uploads = getAlreadyStartedMultipartUploads();
+        MultipartUploadFinder finder = new MultipartUploadFinder(awsClient, bucket, prefix);
+        List<MultipartUpload> uploads = finder.getAlreadyStartedMultipartUploads();
         return uploads.stream()
                 .filter(upload -> upload.getKey().equals(getFullPath(remotePath)))
                 .findAny()

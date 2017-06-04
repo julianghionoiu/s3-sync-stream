@@ -32,6 +32,10 @@ public class AWSSecretProperties {
     public static AWSSecretProperties fromPlainTextFile(Path plainTextPropertyFile) {
         return new AWSSecretProperties(loadPrivateProperties(plainTextPropertyFile));
     }
+    
+    public static AWSSecretProperties fromProperties(Properties privateProperties) {
+        return new AWSSecretProperties(privateProperties);
+    }
 
     public AmazonS3 createClient() {
         String awsAccessKeyId = privateProperties.getProperty("aws_access_key_id");

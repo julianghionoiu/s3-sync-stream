@@ -6,7 +6,6 @@ import com.beust.jcommander.Parameters;
 import tdl.s3.credentials.AWSSecretProperties;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.RemoteSync;
-import tdl.s3.sync.RemoteSyncException;
 import tdl.s3.sync.Source;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
@@ -42,7 +41,7 @@ public class SyncFileApp {
         uploadSpeedFormatter.setMinimumFractionDigits(1);
     }
 
-    public static void main(String[] args) throws RemoteSyncException, DestinationOperationException {
+    public static void main(String[] args) throws DestinationOperationException {
         SyncFileApp app = new SyncFileApp();
         JCommander jCommander = new JCommander(app);
         jCommander.parse(args);
@@ -50,7 +49,7 @@ public class SyncFileApp {
         app.run();
     }
 
-    private void run() throws RemoteSyncException, DestinationOperationException {
+    private void run() throws DestinationOperationException {
         // Prepare
         Source source = buildSource();
         Destination destination = buildDestination();

@@ -1,25 +1,25 @@
 package tdl.s3;
 
+import org.apache.commons.io.FileUtils;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import tdl.s3.sync.Filters;
+import tdl.s3.sync.RemoteSync;
+import tdl.s3.sync.Source;
+import tdl.s3.sync.destination.PerformanceMeasureDestination;
+import tdl.s3.testframework.rules.LocalTestBucket;
+import tdl.s3.testframework.rules.TemporarySyncFolder;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Random;
-import org.apache.commons.io.FileUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import tdl.s3.testframework.rules.LocalTestBucket;
-import tdl.s3.sync.Filters;
-import tdl.s3.sync.RemoteSync;
-import tdl.s3.sync.RemoteSyncException;
-import tdl.s3.sync.Source;
 
-import static org.junit.Assert.*;
-import tdl.s3.testframework.rules.TemporarySyncFolder;
+import static org.junit.Assert.assertEquals;
 import static tdl.s3.testframework.rules.TemporarySyncFolder.ONE_MEGABYTE;
-import tdl.s3.sync.destination.PerformanceMeasureDestination;
 
 public class Upload_PerformanceTest {
 
@@ -45,7 +45,7 @@ public class Upload_PerformanceTest {
     }
 
     @Test
-    public void uploadAlreadyUploadedFiles() throws RemoteSyncException {
+    public void uploadAlreadyUploadedFiles() {
         //8 files inside
         Path path = Paths.get("src/test/resources/performance_test/already_uploaded/");
         testBucket.uploadFilesInsideDir(path);
@@ -59,7 +59,7 @@ public class Upload_PerformanceTest {
     }
     
     @Test
-    public void uploadPartialLargeMultipartFile() throws RemoteSyncException, IOException {
+    public void uploadPartialLargeMultipartFile() throws IOException {
         Path path = Paths.get("src/test/resources/performance_test/multipart_partial");
         File file = createRandomFile(path, PART_SIZE * 4);
         String fileName = file.getName();

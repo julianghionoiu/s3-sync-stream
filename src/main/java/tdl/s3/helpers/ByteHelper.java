@@ -7,9 +7,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public  class ByteHelper {
+public final class ByteHelper {
 
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;
+
+    private ByteHelper() {
+    }
 
     public static ByteArrayInputStream createInputStream(byte[] bytes) {
         return new ByteArrayInputStream(bytes, 0, bytes.length);

@@ -4,10 +4,16 @@ import org.junit.Test;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import static net.trajano.commons.testing.UtilityClassTestUtil.assertUtilityClassWellDefined;
 
 import static org.junit.Assert.*;
 
 public class FileHelperTest {
+    
+    @Test
+    public void shouldSatisfyContractForUtilityClass() throws Exception {
+        assertUtilityClassWellDefined(FileHelper.class);
+    }
  
     @Test
     public void getLockFilePath_returnsCorrect() throws Exception {
