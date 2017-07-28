@@ -3,17 +3,17 @@ package tdl.s3.sync.progress;
 import java.io.File;
 import java.util.Date;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class UploadStatsProgressListener implements ProgressListener {
-
 
     public static class FileUploadStat {
 
         private final double BYTE_PER_MILLISECOND_TO_MEGABYTES_PER_SECOND = 0.001;
 
         private long totalSize = 0;
-
-        private long uploadedSize = 0;
+        
+        private final AtomicLong uploadedSize = new AtomicLong(0);
 
         private long startTimestamp = 0;
 
@@ -27,11 +27,11 @@ public class UploadStatsProgressListener implements ProgressListener {
         }
 
         public long getUploadedSize() {
-            return uploadedSize;
+            return uploadedSize.get();
         }
 
         void incrementUploadedSize(long size) {
-            this.uploadedSize += size;
+            this.uploadedSize.getAndAdd(size);
         }
 
         public double getMBps() {
@@ -39,13 +39,13 @@ public class UploadStatsProgressListener implements ProgressListener {
             if (elapsedMilliseconds == 0) {
                 return 0;
             }
-            double bytesUploaded = (double) this.uploadedSize;
+            double bytesUploaded = (double) this.uploadedSize.get();
             double bytePerMillisecond = bytesUploaded / elapsedMilliseconds;
             return bytePerMillisecond * BYTE_PER_MILLISECOND_TO_MEGABYTES_PER_SECOND;
         }
 
         public double getUploadRatio() {
-            return (double) uploadedSize / (double) totalSize;
+            return (double) uploadedSize.get() / (double) totalSize;
         }
     }
 
