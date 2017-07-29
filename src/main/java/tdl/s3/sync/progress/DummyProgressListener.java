@@ -5,7 +5,7 @@ import java.io.File;
 public class DummyProgressListener implements ProgressListener {
 
     @Override
-    public void uploadFileStarted(File file, String uploadId) {
+    public void uploadFileStarted(File file, String uploadId, long uploadedByte) {
         //DO NOTHING
     }
 
