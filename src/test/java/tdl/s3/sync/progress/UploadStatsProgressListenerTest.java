@@ -25,13 +25,13 @@ public class UploadStatsProgressListenerTest {
 
     @Test
     public void isCurrentlyUploadingShouldReturnTrue() {
-        listener.uploadFileStarted(file, "upload");
+        listener.uploadFileStarted(file, "upload", 0);
         assertTrue(listener.isCurrentlyUploading());
     }
 
     @Test
     public void handleTimestampZeroFileUploadStat() throws InterruptedException {
-        listener.uploadFileStarted(file, "upload");
+        listener.uploadFileStarted(file, "upload", 0);
         UploadStatsProgressListener.FileUploadStat stat = listener.getCurrentStats().get();
         assertEquals(stat.getMBps(), 0.0, 0.1);
         Thread.sleep(100);
@@ -41,7 +41,7 @@ public class UploadStatsProgressListenerTest {
 
     @Test
     public void upload() {
-        listener.uploadFileStarted(file, "upload");
+        listener.uploadFileStarted(file, "upload", 0);
         UploadStatsProgressListener.FileUploadStat stat = listener.getCurrentStats().get();
         assertEquals(stat.getTotalSize(), 1000000);
         assertEquals(stat.getUploadedSize(), 0);

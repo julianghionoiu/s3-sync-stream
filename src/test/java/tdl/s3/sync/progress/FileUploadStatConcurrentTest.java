@@ -23,7 +23,7 @@ public class FileUploadStatConcurrentTest {
     @Test
     public void incrementUploadSizeInRaceCondition() throws InterruptedException {
         long total = 1000000 * 2;
-        UploadStatsProgressListener.FileUploadStat stat = new UploadStatsProgressListener.FileUploadStat(total);
+        UploadStatsProgressListener.FileUploadStat stat = new UploadStatsProgressListener.FileUploadStat(total, 0);
 
         Thread thread1 = new Thread(new CounterRunnable(stat));
         thread1.setName("add thread");

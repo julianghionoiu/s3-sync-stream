@@ -148,7 +148,7 @@ public class MultipartUploadFile {
     }
 
     public void notifyStart(ProgressListener listener) {
-        listener.uploadFileStarted(file, uploadId);
+        listener.uploadFileStarted(file, uploadId, uploadedSize);
     }
 
     public void notifyFinish(ProgressListener listener) {

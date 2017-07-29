@@ -13,13 +13,14 @@ public class UploadStatsProgressListener implements ProgressListener {
 
         private long totalSize = 0;
         
-        private final AtomicLong uploadedSize = new AtomicLong(0);
+        private final AtomicLong uploadedSize;
 
         private long startTimestamp = 0;
 
-        FileUploadStat(long totalSize) {
+        FileUploadStat(long totalSize, long uploadedByte) {
             this.totalSize = totalSize;
             this.startTimestamp = new Date().getTime();
+            this.uploadedSize = new AtomicLong(uploadedByte);
         }
 
         public long getTotalSize() {
@@ -52,8 +53,8 @@ public class UploadStatsProgressListener implements ProgressListener {
     private FileUploadStat fileUploadStat = null;
 
     @Override
-    public void uploadFileStarted(File file, String uploadId) {
-        fileUploadStat = new FileUploadStat(file.length());
+    public void uploadFileStarted(File file, String uploadId, long uploadedByte) {
+        fileUploadStat = new FileUploadStat(file.length(), uploadedByte);
     }
 
     @Override
