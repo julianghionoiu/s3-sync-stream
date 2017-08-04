@@ -1,5 +1,6 @@
 package tdl.s3.helpers;
 
+import java.io.File;
 import org.junit.Test;
 
 import java.nio.file.Path;
@@ -36,5 +37,21 @@ public class FileHelperTest {
         Path path = Paths.get("src", "test", "resources", "test_lock", "file2.txt");
         boolean exists = FileHelper.lockFileExists(path.toFile());
         assertFalse(exists);
+    }
+    
+    @Test
+    public void getRelativeFilePathToCwd()
+    {
+        Path path = Paths.get("src", "test", "resources", "test_lock", "file2.txt");
+        String expected = "src/test/resources/test_lock/file2.txt";
+        File relativeFile = path.toFile();
+        assertTrue(relativeFile.getPath().equals(expected));
+        assertEquals(FileHelper.getRelativeFilePathToCwd(relativeFile), expected);
+        
+        Path absolutePath = path.toAbsolutePath();
+        File absoluteFile = absolutePath.toFile();
+        assertFalse(absoluteFile.getPath().startsWith(expected));
+        assertTrue(absoluteFile.getPath().endsWith(expected));
+        assertEquals(FileHelper.getRelativeFilePathToCwd(absoluteFile), expected);
     }
 }
