@@ -1,6 +1,7 @@
 package tdl.s3.helpers;
 
 import java.io.File;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,6 +27,9 @@ public final class FileHelper {
     }
 
     public static String getRelativeFilePathToCwd(File file) {
-        return Paths.get(".").toUri().relativize(file.toURI()).getPath();
+        URI baseUri = Paths.get(".").toUri();
+        URI fileUri = file.toURI();
+        URI relativeUri = baseUri.relativize(fileUri);
+        return relativeUri.getPath();
     }
 }
