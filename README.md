@@ -184,3 +184,38 @@ sudo keytool -import -alias charles \
   -storepass changeit
 ```
 - Traffic should appear in Charles
+
+### Useful AWS commands
+
+List multipart uploads
+```
+aws s3api list-multipart-uploads --bucket tdl-official-videos \
+    > /tmp/uploads.aws
+cat /tmp/uploads.aws | jq '.Uploads[] | {init:.Initiated, key: .Key, id:.UploadId}'
+```
+
+Abort multipart upload
+```
+ aws s3api abort-multipart-upload --bucket tdl-official-videos \
+  --key CHK/frhh01/record-and-upload-20180609T172016.log \
+  --upload-id qro14BxOJj1MfcCWd5U67BWgQwsCrRsKn5UqtN7PKAN753HShMSZR9KN11ySkm_ftLJMQoVO._KGb1Irrl3NjnLDerlsrtPt.iYR2YWynhXb1tnPRX5CkVOPNvoyq6A7tO8cyCcHiON8W3WArgGuMQ--
+```
+
+List parts
+```
+aws s3api list-parts \
+  --bucket tdl-official-videos \
+  --key "CHK/eijf01/sourcecode_20180611T071715.srcs" \
+  --upload-id pDeAaCMyM9veZeS4t1sc7dZG9K58d3zVLPhoGFE_xc8I6jHatZ4EdLzpNZg2L6mHAe6s26AUiBFlqI0CDgwNCOG5b7am_iQjThOSgcoTu7fdGUQQa895yyPjxMxpu6wbADnf1JAEKVe6KQYSk.oC4Q-- \
+  > /tmp/part.tags.aws
+cat /tmp/part.tags.aws | jq '.Parts[] | {etag:.ETag, num:.PartNumber}'
+```
+
+Complete multipart
+```
+aws s3api complete-multipart-upload \
+  --bucket tdl-official-videos \
+  --key "CHK/sagp01/screencast_20180607T212124.mp4" \
+  --multipart-upload '{"Parts":[{"ETag":"bee8593bf7085ce82a12708ade4b70b5","PartNumber":1},{"ETag":"d58e97a1c8aa3ed54ed1274e6972b428","PartNumber":2},{"ETag":"7ca7bf9efdd01ab39664711a574f0b48","PartNumber":3}]}' \
+  --upload-id "jdB1Q.SRfhk0wdRalRHJNLvE8xEoiH5TiQPBrnG2_hkU1oc9wcQSQgM4FcEUmDxNuA2FGHUigd_0LwkovflgXupcQMXCuJ_xYML9ZtKlX4LS8PaXXxaNcA4WOexreZoZ.fZ_NxDHxqCbg15H6enZdg--"
+```
