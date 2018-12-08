@@ -1,6 +1,10 @@
 package tdl.s3.sync.destination;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +23,26 @@ public class S3BucketDestination implements Destination {
     private final String prefix;
 
     // ~~~~ Public methods
+
+    /**
+     * If this method fails, stop everything
+     */
+    public static void runSanityCheck() {
+        // Try to reach out to the S3
+        // If this fails, it means we do not have AWS S3
+        // It is better to fail fast
+        AmazonS3ClientBuilder.standard()
+                .withCredentials(new AWSCredentialsProvider() {
+                    @Override
+                    public AWSCredentials getCredentials() { return null; }
+
+                    @Override
+                    public void refresh() { }
+                })
+                .withRegion(Regions.EU_WEST_2)
+                .build().getBucketAcl("ping.s3.accelerate.io");
+    }
+
     @Override
     public void testUploadPermissions() throws DestinationOperationException {
         try {
@@ -30,7 +54,7 @@ public class S3BucketDestination implements Destination {
     }
 
     @Override
-    public List<String> filterUploadableFiles(List<String> paths) throws DestinationOperationException {
+    public List<String> filterUploadableFiles(List<String> paths) {
         Set<String> existingItems = listAllObjects().stream()
                 .map(S3ObjectSummary::getKey)
                 .collect(Collectors.toSet());
@@ -102,7 +126,7 @@ public class S3BucketDestination implements Destination {
     }
 
     @Override
-    public UploadPartRequest createUploadPartRequest(String remotePath) throws DestinationOperationException {
+    public UploadPartRequest createUploadPartRequest(String remotePath) {
         return new UploadPartRequest()
                 .withBucketName(bucket)
                 .withKey(getFullPath(remotePath));

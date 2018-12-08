@@ -42,6 +42,8 @@ public class SyncFileApp {
     }
 
     public static void main(String[] args) throws DestinationOperationException {
+        S3BucketDestination.runSanityCheck();
+
         SyncFileApp app = new SyncFileApp();
         JCommander jCommander = new JCommander(app);
         jCommander.parse(args);
