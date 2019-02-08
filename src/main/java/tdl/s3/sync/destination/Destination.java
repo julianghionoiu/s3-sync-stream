@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface Destination {
 
-    void testUploadPermissions() throws DestinationOperationException;
+    void startS3SyncSession() throws DestinationOperationException;
 
     List<String> filterUploadableFiles(List<String> paths) throws DestinationOperationException;
 
