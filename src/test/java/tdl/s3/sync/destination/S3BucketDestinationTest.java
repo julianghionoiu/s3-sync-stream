@@ -39,6 +39,12 @@ public class S3BucketDestinationTest {
     }
 
     @Test(expected = DestinationOperationException.class)
+    public void stopS3SyncSessionThrowsDestinationOperationException() throws DestinationOperationException {
+        doThrow(exception).when(awsClient).putObject(any(), any(), anyString());
+        destination.stopS3SyncSession();
+    }
+
+    @Test(expected = DestinationOperationException.class)
     public void initUploadingThrowsDestinationOperationException() throws DestinationOperationException {
         doThrow(exception).when(awsClient).initiateMultipartUpload(any());
         destination.initUploading("");

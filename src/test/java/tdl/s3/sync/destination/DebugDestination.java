@@ -24,6 +24,13 @@ public class DebugDestination implements Destination {
     }
 
     @Override
+    public void stopS3SyncSession() throws DestinationOperationException {
+        log.debug("stopS3SyncSession: START");
+        destination.stopS3SyncSession();
+        log.debug("stopS3SyncSession: FINISH");
+    }
+
+    @Override
     public String initUploading(String remotePath) throws DestinationOperationException {
         log.debug("initUploading: START");
         String result = destination.initUploading(remotePath);

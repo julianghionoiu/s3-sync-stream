@@ -30,6 +30,12 @@ public class PerformanceMeasureDestination implements Destination {
     }
 
     @Override
+    public void stopS3SyncSession() throws DestinationOperationException {
+        performanceScore += 2;
+        destination.stopS3SyncSession();
+    }
+
+    @Override
     public String initUploading(String remotePath) throws DestinationOperationException {
         performanceScore += 1;
         return destination.initUploading(remotePath);
