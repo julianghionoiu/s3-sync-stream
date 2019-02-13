@@ -33,9 +33,15 @@ public class S3BucketDestinationTest {
     }
 
     @Test(expected = DestinationOperationException.class)
-    public void testUploadPermissionsThrowsDestinationOperationException() throws DestinationOperationException {
+    public void startS3SyncSessionThrowsDestinationOperationException() throws DestinationOperationException {
         doThrow(exception).when(awsClient).putObject(any(), any(), anyString());
-        destination.testUploadPermissions();
+        destination.startS3SyncSession();
+    }
+
+    @Test(expected = DestinationOperationException.class)
+    public void stopS3SyncSessionThrowsDestinationOperationException() throws DestinationOperationException {
+        doThrow(exception).when(awsClient).putObject(any(), any(), anyString());
+        destination.stopS3SyncSession();
     }
 
     @Test(expected = DestinationOperationException.class)

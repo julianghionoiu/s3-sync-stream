@@ -219,3 +219,4 @@ aws s3api complete-multipart-upload \
   --multipart-upload '{"Parts":[{"ETag":"bee8593bf7085ce82a12708ade4b70b5","PartNumber":1},{"ETag":"d58e97a1c8aa3ed54ed1274e6972b428","PartNumber":2},{"ETag":"7ca7bf9efdd01ab39664711a574f0b48","PartNumber":3}]}' \
   --upload-id "jdB1Q.SRfhk0wdRalRHJNLvE8xEoiH5TiQPBrnG2_hkU1oc9wcQSQgM4FcEUmDxNuA2FGHUigd_0LwkovflgXupcQMXCuJ_xYML9ZtKlX4LS8PaXXxaNcA4WOexreZoZ.fZ_NxDHxqCbg15H6enZdg--"
 ```
+

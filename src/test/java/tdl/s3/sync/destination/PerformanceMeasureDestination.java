@@ -24,9 +24,15 @@ public class PerformanceMeasureDestination implements Destination {
     }
 
     @Override
-    public void testUploadPermissions() throws DestinationOperationException {
+    public void startS3SyncSession() throws DestinationOperationException {
         performanceScore += 2;
-        destination.testUploadPermissions();
+        destination.startS3SyncSession();
+    }
+
+    @Override
+    public void stopS3SyncSession() throws DestinationOperationException {
+        performanceScore += 2;
+        destination.stopS3SyncSession();
     }
 
     @Override

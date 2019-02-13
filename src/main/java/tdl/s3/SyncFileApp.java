@@ -58,7 +58,7 @@ public class SyncFileApp {
         RemoteSync sync = new RemoteSync(source, destination);
 
         // Check destination
-        destination.testUploadPermissions();
+        destination.startS3SyncSession();
 
         // Configure progress listener
         UploadStatsProgressListener uploadStatsProgressListener = new UploadStatsProgressListener();

@@ -44,10 +44,20 @@ public class S3BucketDestination implements Destination {
     }
 
     @Override
-    public void testUploadPermissions() throws DestinationOperationException {
+    public void startS3SyncSession() throws DestinationOperationException {
         try {
             // Upload a file to S3 to prove that the user if not expired and has write permissions to the bucket + prefix
             awsClient.putObject(bucket, prefix + "last_sync_start.txt", "timestamp: " + System.currentTimeMillis());
+        } catch (AmazonS3Exception ex) {
+            throw new DestinationOperationException(ex.getMessage(), ex);
+        }
+    }
+
+    @Override
+    public void stopS3SyncSession() throws DestinationOperationException {
+        try {
+            // Upload a file to S3 to prove that the user if not expired and has write permissions to the bucket + prefix
+            awsClient.putObject(bucket, prefix + "last_sync_stop.txt", "timestamp: " + System.currentTimeMillis());
         } catch (AmazonS3Exception ex) {
             throw new DestinationOperationException(ex.getMessage(), ex);
         }

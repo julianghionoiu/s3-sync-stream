@@ -17,10 +17,17 @@ public class DebugDestination implements Destination {
     }
 
     @Override
-    public void testUploadPermissions() throws DestinationOperationException {
-        log.debug("testUploadPermissions: START");
-        destination.testUploadPermissions();
-        log.debug("testUploadPermissions: FINISH");
+    public void startS3SyncSession() throws DestinationOperationException {
+        log.debug("startS3SyncSession: START");
+        destination.startS3SyncSession();
+        log.debug("startS3SyncSession: FINISH");
+    }
+
+    @Override
+    public void stopS3SyncSession() throws DestinationOperationException {
+        log.debug("stopS3SyncSession: START");
+        destination.stopS3SyncSession();
+        log.debug("stopS3SyncSession: FINISH");
     }
 
     @Override
