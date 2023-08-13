@@ -1,13 +1,15 @@
 package tdl.s3.upload;
 
+import org.junit.jupiter.api.Test;
+import tdl.s3.sync.destination.Destination;
+import tdl.s3.sync.destination.DestinationOperationException;
+
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import org.junit.Test;
+
 import static org.mockito.Mockito.*;
-import tdl.s3.sync.destination.Destination;
-import tdl.s3.sync.destination.DestinationOperationException;
 
 public class FileUploadingServiceTest {
 

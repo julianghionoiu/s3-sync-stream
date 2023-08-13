@@ -1,14 +1,17 @@
 package tdl.s3.sync;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.junit.Test;
+
 import static org.junit.Assert.*;
-import org.junit.Before;
 import static org.mockito.Mockito.mock;
 
 public class SourceTest {
@@ -17,7 +20,7 @@ public class SourceTest {
     private Path notEmptyDirPath;
     private Filters filters;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
 
         filters = Filters.getBuilder()
@@ -42,18 +45,20 @@ public class SourceTest {
                 .setRecursive(true)
                 .setFilters(filters)
                 .create();
-        assertEquals(source.getPath(), path);
-        assertEquals(source.isRecursive(), true);
-        assertNotNull(source.getFilters());
-        assertTrue(source.isValidPath());
+        Assertions.assertEquals(source.getPath(), path);
+        Assertions.assertTrue(source.isRecursive());
+        Assertions.assertNotNull(source.getFilters());
+        Assertions.assertTrue(source.isValidPath());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void createShouldThrowExceptionIfFilterNotSet() {
-        Path path = Paths.get("src");
-        Source source = Source.getBuilder(path)
-                .traverseDirectories(true)
-                .create();
+        Assertions.assertThrows(RuntimeException.class, () -> {
+            Path path = Paths.get("src");
+            Source source = Source.getBuilder(path)
+                    .traverseDirectories(true)
+                    .create();
+        });
     }
 
     @Test
@@ -63,7 +68,7 @@ public class SourceTest {
                 .setFilters(filters)
                 .create();
         List<String> pathList = source.getFilesToUpload();
-        assertTrue(pathList.isEmpty());
+        Assertions.assertTrue(pathList.isEmpty());
     }
 
     @Test
@@ -80,7 +85,7 @@ public class SourceTest {
         );
         Collections.sort(pathList);
         Collections.sort(expected);
-        assertEquals(pathList, expected);
+        Assertions.assertEquals(pathList, expected);
     }
 
     @Test
@@ -96,7 +101,7 @@ public class SourceTest {
         );
         Collections.sort(pathList);
         Collections.sort(expected);
-        assertEquals(pathList, expected);
+        Assertions.assertEquals(pathList, expected);
     }
 
     @Test
@@ -107,6 +112,6 @@ public class SourceTest {
                 .setFilters(filters)
                 .create();
         List<String> pathList = source.getFilesToUpload();
-        assertTrue(pathList.isEmpty());
+        Assertions.assertTrue(pathList.isEmpty());
     }
 }

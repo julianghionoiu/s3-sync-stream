@@ -1,9 +1,10 @@
 package tdl.s3;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.RemoteSync;
 import tdl.s3.sync.Source;
@@ -29,20 +30,28 @@ public class Upload_PerformanceTest {
 
     private Filters defaultFilters;
 
-    @Rule
-    public LocalTestBucket testBucket = new LocalTestBucket();
-    
-    @Rule
-    public TemporarySyncFolder targetSyncFolder = new TemporarySyncFolder();
+    public TemporarySyncFolder targetSyncFolder;
 
-    @Before
-    public void setUp() {
+    public LocalTestBucket testBucket;
+
+    @BeforeEach
+    void setUp() throws Throwable {
+        targetSyncFolder = new TemporarySyncFolder();
+        targetSyncFolder.beforeEach();
+        testBucket = new LocalTestBucket();
+        testBucket.beforeEach();
         destination = new PerformanceMeasureDestination(testBucket.asDestination());
         defaultFilters = Filters.getBuilder()
                 .include(Filters.endsWith("txt"))
                 .include(Filters.endsWith("bin"))
                 .create();
     }
+
+    @AfterEach
+    void tearDown() {
+        targetSyncFolder.afterEach();
+    }
+
 
     @Test
     public void uploadAlreadyUploadedFiles() {
@@ -55,7 +64,7 @@ public class Upload_PerformanceTest {
                 .create();
         RemoteSync sync = new RemoteSync(source, destination);
         sync.run();
-        assertEquals(destination.getPerformanceScore(), 1); //only call filterUploadable
+        Assertions.assertEquals(destination.getPerformanceScore(), 1); //only call filterUploadable
     }
     
     @Test
@@ -73,7 +82,7 @@ public class Upload_PerformanceTest {
         
         RemoteSync directoryFirstSync = new RemoteSync(directorySource, destination);
         directoryFirstSync.run();
-        assertEquals(destination.getPerformanceScore(), 4003);
+        Assertions.assertEquals(destination.getPerformanceScore(), 4003);
         
         targetSyncFolder.writeBytesToFile(fileName, PART_SIZE + ONE_MEGABYTE);
         targetSyncFolder.unlock(fileName);
@@ -82,7 +91,7 @@ public class Upload_PerformanceTest {
         directorySecondSync.run();
         
         //+ 1 canUpload + 1 initUpload + 2000 uploadMultipart + 1 commit
-        assertEquals(destination.getPerformanceScore(), 6006);
+        Assertions.assertEquals(destination.getPerformanceScore(), 6006);
         Files.delete(file.toPath());
     }
 

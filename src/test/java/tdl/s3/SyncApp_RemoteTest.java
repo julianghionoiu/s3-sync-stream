@@ -1,15 +1,22 @@
 package tdl.s3;
 
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import tdl.s3.testframework.rules.RemoteTestBucket;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import org.junit.Rule;
-import org.junit.Test;
-import tdl.s3.testframework.rules.RemoteTestBucket;
 
 public class SyncApp_RemoteTest {
 
-    @Rule
-    public RemoteTestBucket testBucket = new RemoteTestBucket();
+    public RemoteTestBucket testBucket;
+
+    @BeforeEach
+    void setUp() {
+        testBucket = new RemoteTestBucket();
+        testBucket.beforeEach();
+    }
 
     @Test
     public void shouldUploadAllNewFilesFromFolder() throws Exception {
@@ -19,8 +26,8 @@ public class SyncApp_RemoteTest {
         SyncFileApp.main(args);
 
         //state after sync
-        assertThat(testBucket.doesObjectExists("test_file_1.txt"), is(true));
-        assertThat(testBucket.doesObjectExists("test_file_2.txt"), is(true));
-        assertThat(testBucket.doesObjectExists("subdir/sub_test_file_1.txt"), is(true));
+        MatcherAssert.assertThat(testBucket.doesObjectExists("test_file_1.txt"), is(true));
+        MatcherAssert.assertThat(testBucket.doesObjectExists("test_file_2.txt"), is(true));
+        MatcherAssert.assertThat(testBucket.doesObjectExists("subdir/sub_test_file_1.txt"), is(true));
     }
 }

@@ -1,10 +1,12 @@
 package tdl.s3.credentials;
 
 import com.amazonaws.services.s3.AmazonS3;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
-import org.junit.Test;
 
 public class AWSSecretPropertiesTest {
 
@@ -20,9 +22,11 @@ public class AWSSecretPropertiesTest {
         AmazonS3 client = secretProperties.createClient();
     }
     
-    @Test(expected = RuntimeException.class)
+    @Test
     public void fromPlainTextShouldThrowRuntimeIfFileNotFound() {
-        Path path = Paths.get("src/some_random_file_that_doesnot_exist.properties");
-        AWSSecretProperties secretProperties = AWSSecretProperties.fromPlainTextFile(path);
+        Assertions.assertThrows(RuntimeException.class, () -> {
+            Path path = Paths.get("src/some_random_file_that_doesnot_exist.properties");
+            AWSSecretProperties secretProperties = AWSSecretProperties.fromPlainTextFile(path);
+        });
     }
 }

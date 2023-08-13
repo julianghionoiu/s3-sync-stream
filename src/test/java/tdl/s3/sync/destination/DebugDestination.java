@@ -3,12 +3,15 @@ package tdl.s3.sync.destination;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.PartListing;
 import com.amazonaws.services.s3.model.UploadPartRequest;
-import java.util.List;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 import tdl.s3.upload.MultipartUploadResult;
 
-@Slf4j
+import java.util.List;
+
+import static org.slf4j.LoggerFactory.getLogger;
+
 public class DebugDestination implements Destination {
+    private static final Logger log = getLogger(DebugDestination.class);
 
     private final Destination destination;
 

@@ -1,6 +1,11 @@
 package tdl.s3.upload;
 
 import com.amazonaws.services.s3.model.UploadPartRequest;
+import org.junit.Before;
+import org.junit.Test;
+import tdl.s3.sync.destination.Destination;
+import tdl.s3.sync.destination.DestinationOperationException;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -12,12 +17,9 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
 import static org.junit.Assert.assertEquals;
-import org.junit.Before;
-import org.junit.Test;
 import static org.mockito.Mockito.*;
-import tdl.s3.sync.destination.Destination;
-import tdl.s3.sync.destination.DestinationOperationException;
 
 public class MultipartUploadFileTest {
 
@@ -40,7 +42,7 @@ public class MultipartUploadFileTest {
 
     @Test(expected = IllegalStateException.class)
     public void validateUploadedFileSizeShouldThrowException() throws DestinationOperationException {
-        when(mockFile.length()).thenReturn(new Long(-1));
+        when(mockFile.length()).thenReturn(Long.valueOf(-1));
         MultipartUploadFile multipartUploadFile = new MultipartUploadFile(mockFile, mockRemotePath, mockDestination);
         multipartUploadFile.getFile();
         multipartUploadFile.getUploadId();

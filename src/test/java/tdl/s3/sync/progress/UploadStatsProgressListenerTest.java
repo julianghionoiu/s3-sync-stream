@@ -1,10 +1,13 @@
 package tdl.s3.sync.progress;
 
-import java.io.File;
-import org.junit.Test;
-import static org.junit.Assert.*;
 import org.junit.Before;
-import static org.mockito.Mockito.*;
+import org.junit.Test;
+
+import java.io.File;
+
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class UploadStatsProgressListenerTest {
 
@@ -15,7 +18,7 @@ public class UploadStatsProgressListenerTest {
     public void setUp() {
         listener = new UploadStatsProgressListener();
         file = mock(File.class);
-        when(file.length()).thenReturn(new Long(1000000));
+        when(file.length()).thenReturn(Long.valueOf(1000000));
     }
 
     @Test

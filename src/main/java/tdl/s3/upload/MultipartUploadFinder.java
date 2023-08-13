@@ -5,16 +5,19 @@ import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
 import com.amazonaws.services.s3.model.MultipartUpload;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
+import org.slf4j.Logger;
+import tdl.s3.sync.destination.DestinationOperationException;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import lombok.extern.slf4j.Slf4j;
-import tdl.s3.sync.destination.DestinationOperationException;
 
-@Slf4j
+import static org.slf4j.LoggerFactory.getLogger;
+
 public class MultipartUploadFinder {
+    private static final Logger log = getLogger(MultipartUploadFinder.class);
 
     private final AmazonS3 awsClient;
     private final String bucket;

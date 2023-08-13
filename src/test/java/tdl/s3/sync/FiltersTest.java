@@ -1,16 +1,21 @@
 package tdl.s3.sync;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class FiltersTest {
     
-    @Test(expected = RuntimeException.class)
+    @Test
     public void builderShouldThrowException() {
-        Filters filters = Filters.getBuilder().create();
+        Assertions.assertThrows(RuntimeException.class, () -> {
+            Filters.getBuilder().create();
+        });
     }
 
     @Test
@@ -20,10 +25,10 @@ public class FiltersTest {
         Filters filters = Filters.getBuilder()
                 .include((Path path) -> path.toString().endsWith(".txt"))
                 .create();
-        assertTrue(filters.accept(validPath));
-        assertFalse(filters.accept(invalidPath));
+        Assertions.assertTrue(filters.accept(validPath));
+        Assertions.assertFalse(filters.accept(invalidPath));
     }
-    
+
     public void exclude() {
         Path invalidPath1 = Paths.get("src/test/resources/test_filter/valid_file1.mp4");
         Path invalidPath2 = Paths.get("src/test/resources/test_filter/valid_file1.txt");
@@ -33,26 +38,26 @@ public class FiltersTest {
                 .include((Path path) -> path.getFileName().toString().startsWith("valid_"))
                 .create();
         
-        assertTrue(filters1.accept(invalidPath1));
-        assertTrue(filters1.accept(invalidPath2));
-        assertFalse(filters1.accept(invalidPath3));
+        Assertions.assertTrue(filters1.accept(invalidPath1));
+        Assertions.assertTrue(filters1.accept(invalidPath2));
+        Assertions.assertFalse(filters1.accept(invalidPath3));
         
         Filters filters2 = Filters.getBuilder()
                 .include((Path path) -> path.getFileName().toString().startsWith("valid_"))
                 .exclude((Path path) -> path.getFileName().toString().endsWith("txt"))
                 .create();
-        assertTrue(filters2.accept(invalidPath1));
-        assertFalse(filters2.accept(invalidPath2));
-        assertFalse(filters2.accept(invalidPath3));
+        Assertions.assertTrue(filters2.accept(invalidPath1));
+        Assertions.assertFalse(filters2.accept(invalidPath2));
+        Assertions.assertFalse(filters2.accept(invalidPath3));
         
         Filters filters3 = Filters.getBuilder()
                 .include((Path path) -> path.getFileName().toString().startsWith("valid_"))
                 .exclude((Path path) -> path.getFileName().toString().endsWith("txt"))
                 .exclude((Path path) -> path.getFileName().toString().endsWith("mp4"))
                 .create();
-        assertFalse(filters3.accept(invalidPath1));
-        assertFalse(filters3.accept(invalidPath2));
-        assertFalse(filters3.accept(invalidPath3));
+        Assertions.assertFalse(filters3.accept(invalidPath1));
+        Assertions.assertFalse(filters3.accept(invalidPath2));
+        Assertions.assertFalse(filters3.accept(invalidPath3));
     }
     
     @Test
@@ -63,9 +68,9 @@ public class FiltersTest {
         Filters filters = Filters.getBuilder()
                 .include(Filters.name("file1.txt"))
                 .create();
-        assertTrue(filters.accept(validPath));
-        assertFalse(filters.accept(invalidPath1));
-        assertFalse(filters.accept(invalidPath2));
+        Assertions.assertTrue(filters.accept(validPath));
+        Assertions.assertFalse(filters.accept(invalidPath1));
+        Assertions.assertFalse(filters.accept(invalidPath2));
     }
     
     @Test
@@ -76,9 +81,9 @@ public class FiltersTest {
         Filters filters = Filters.getBuilder()
                 .include(Filters.startsWith("validstart"))
                 .create();
-        assertTrue(filters.accept(validPath));
-        assertFalse(filters.accept(invalidPath1));
-        assertFalse(filters.accept(invalidPath2));
+        Assertions.assertTrue(filters.accept(validPath));
+        Assertions.assertFalse(filters.accept(invalidPath1));
+        Assertions.assertFalse(filters.accept(invalidPath2));
     }
     
     @Test
@@ -91,10 +96,10 @@ public class FiltersTest {
                 .include(Filters.endsWith("txt"))
                 .exclude(Filters.endsWith("mp4"))
                 .create();
-        assertTrue(filters.accept(invalidPath1));
-        assertFalse(filters.accept(invalidPath2));
-        assertTrue(filters.accept(invalidPath3));
-        assertFalse(filters.accept(invalidPath4));
+        Assertions.assertTrue(filters.accept(invalidPath1));
+        Assertions.assertFalse(filters.accept(invalidPath2));
+        Assertions.assertTrue(filters.accept(invalidPath3));
+        Assertions.assertFalse(filters.accept(invalidPath4));
     }
     
     @Test
@@ -106,15 +111,15 @@ public class FiltersTest {
                 .include(Filters.endsWith("txt"))
                 .create();
         
-        assertTrue(filters1.accept(validPath));
-        assertFalse(filters1.accept(invalidPath1));
-        assertTrue(filters1.accept(invalidPath2));
+        Assertions.assertTrue(filters1.accept(validPath));
+        Assertions.assertFalse(filters1.accept(invalidPath1));
+        Assertions.assertTrue(filters1.accept(invalidPath2));
         
         Filters filters2 = Filters.getBuilder()
                 .include(Filters.matches("^[0-9]{2}[a-z]{4}.txt$"))
                 .create();
-        assertTrue(filters2.accept(validPath));
-        assertFalse(filters2.accept(invalidPath1));
-        assertFalse(filters2.accept(invalidPath2));
+        Assertions.assertTrue(filters2.accept(validPath));
+        Assertions.assertFalse(filters2.accept(invalidPath1));
+        Assertions.assertFalse(filters2.accept(invalidPath2));
     }
 }

@@ -3,14 +3,12 @@ package tdl.s3.sync.destination;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.PartListing;
 import com.amazonaws.services.s3.model.UploadPartRequest;
-import lombok.extern.slf4j.Slf4j;
 import tdl.s3.upload.MultipartUploadResult;
 
 import java.util.List;
 
-@Slf4j
-public class PerformanceMeasureDestination implements Destination {
 
+public class PerformanceMeasureDestination implements Destination {
     private final Destination destination;
 
     private int performanceScore = 0;

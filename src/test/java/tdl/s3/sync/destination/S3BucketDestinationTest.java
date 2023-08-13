@@ -2,8 +2,10 @@ package tdl.s3.sync.destination;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
-import org.junit.Before;
-import org.junit.Test;
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,43 +19,49 @@ import static org.mockito.Mockito.*;
 
 public class S3BucketDestinationTest {
 
+    private static final String SOME_BUCKET = "some_bucket";
     private static final String PREFIX = "prefix/";
     private AmazonS3 awsClient;
     private AmazonS3Exception exception;
     private Destination destination;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    public void setUp() {
         awsClient = mock(AmazonS3.class);
         exception = mock(AmazonS3Exception.class);
-        destination = S3BucketDestination.builder()
-                .awsClient(awsClient)
-                .prefix(PREFIX)
-                .build();
+        destination = new S3BucketDestination(awsClient, SOME_BUCKET, PREFIX);
     }
 
-    @Test(expected = DestinationOperationException.class)
-    public void startS3SyncSessionThrowsDestinationOperationException() throws DestinationOperationException {
-        doThrow(exception).when(awsClient).putObject(any(), any(), anyString());
-        destination.startS3SyncSession();
+    @Test
+    public void startS3SyncSessionThrowsDestinationOperationException() {
+        Assertions.assertThrows(DestinationOperationException.class, () -> {
+            doThrow(exception).when(awsClient).putObject(any(), any(), anyString());
+            destination.startS3SyncSession();
+        });
     }
 
-    @Test(expected = DestinationOperationException.class)
-    public void stopS3SyncSessionThrowsDestinationOperationException() throws DestinationOperationException {
-        doThrow(exception).when(awsClient).putObject(any(), any(), anyString());
-        destination.stopS3SyncSession();
+    @Test
+    public void stopS3SyncSessionThrowsDestinationOperationException() {
+        Assertions.assertThrows(DestinationOperationException.class, () -> {
+            doThrow(exception).when(awsClient).putObject(any(), any(), anyString());
+            destination.stopS3SyncSession();
+        });
     }
 
-    @Test(expected = DestinationOperationException.class)
-    public void initUploadingThrowsDestinationOperationException() throws DestinationOperationException {
-        doThrow(exception).when(awsClient).initiateMultipartUpload(any());
-        destination.initUploading("");
+    @Test
+    public void initUploadingThrowsDestinationOperationException() {
+        Assertions.assertThrows(DestinationOperationException.class, () -> {
+            doThrow(exception).when(awsClient).initiateMultipartUpload(any());
+            destination.initUploading("");
+        });
     }
 
-    @Test(expected = DestinationOperationException.class)
+    @Test
     public void getAlreadyUploadedPartsThrowsDestinationOperationExceptionWhenListMultipartUploadsThrowsException() throws DestinationOperationException {
-        doThrow(exception).when(awsClient).listMultipartUploads(any());
-        destination.getAlreadyUploadedParts("");
+        Assertions.assertThrows(DestinationOperationException.class, () -> {
+            doThrow(exception).when(awsClient).listMultipartUploads(any());
+            destination.getAlreadyUploadedParts("");
+        });
     }
 
     @Test
@@ -64,7 +72,7 @@ public class S3BucketDestinationTest {
                 .thenReturn(listing)
                 .thenThrow(exception);
 
-        assertNull(destination.getAlreadyUploadedParts(""));
+        Assertions.assertNull(destination.getAlreadyUploadedParts(""));
     }
 
     @Test
@@ -75,27 +83,31 @@ public class S3BucketDestinationTest {
                 .thenReturn(listing)
                 .thenThrow(exception);
 
-        assertNull(destination.getAlreadyUploadedParts(""));
+        Assertions.assertNull(destination.getAlreadyUploadedParts(""));
     }
 
-    @Test(expected = DestinationOperationException.class)
+    @Test
     public void commitMultipartUploadThrowsDestinationOperationException() throws DestinationOperationException {
-        doThrow(exception).when(awsClient).completeMultipartUpload(any());
-        List<PartETag> eTags = Arrays.asList(mock(PartETag.class), mock(PartETag.class));
-        destination.commitMultipartUpload("", eTags, "");
+        Assertions.assertThrows(DestinationOperationException.class, () -> {
+            doThrow(exception).when(awsClient).completeMultipartUpload(any());
+            List<PartETag> eTags = Arrays.asList(mock(PartETag.class), mock(PartETag.class));
+            destination.commitMultipartUpload("", eTags, "");
+        });
     }
 
-    @Test(expected = DestinationOperationException.class)
+    @Test
     public void uploadMultiPartThrowsDestinationOperationException() throws DestinationOperationException {
-        UploadPartRequest request = mock(UploadPartRequest.class);
-        doThrow(exception).when(awsClient).uploadPart(any());
-        destination.uploadMultiPart(request);
+        Assertions.assertThrows(DestinationOperationException.class, () -> {
+            UploadPartRequest request = mock(UploadPartRequest.class);
+            doThrow(exception).when(awsClient).uploadPart(any());
+            destination.uploadMultiPart(request);
+        });
     }
 
     @Test
     public void createUploadPartRequest() throws DestinationOperationException {
         Object newObject = destination.createUploadPartRequest("");
-        assertThat(newObject, instanceOf(UploadPartRequest.class));
+        MatcherAssert.assertThat(newObject, instanceOf(UploadPartRequest.class));
     }
 
     @Test
@@ -128,7 +140,7 @@ public class S3BucketDestinationTest {
         );
         Collections.sort(result);
         Collections.sort(expected);
-        assertEquals(result, expected);
+        Assertions.assertEquals(result, expected);
     }
 
     @Test
@@ -171,7 +183,7 @@ public class S3BucketDestinationTest {
         );
         Collections.sort(result);
         Collections.sort(expected);
-        assertEquals(result, expected);
+        Assertions.assertEquals(result, expected);
     }
 
     @Test
@@ -237,6 +249,6 @@ public class S3BucketDestinationTest {
         );
         Collections.sort(result);
         Collections.sort(expected);
-        assertEquals(result, expected);
+        Assertions.assertEquals(result, expected);
     }
 }

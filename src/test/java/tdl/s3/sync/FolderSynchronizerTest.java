@@ -1,12 +1,14 @@
 package tdl.s3.sync;
 
-import java.io.File;
-import java.nio.file.Path;
-import org.junit.Test;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.Test;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
 import tdl.s3.upload.FileUploadingService;
+
+import java.io.File;
+import java.nio.file.Path;
+
+import static org.mockito.Mockito.*;
 
 public class FolderSynchronizerTest {
 

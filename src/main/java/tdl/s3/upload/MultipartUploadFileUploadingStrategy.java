@@ -1,21 +1,25 @@
 package tdl.s3.upload;
 
-import com.amazonaws.services.s3.model.*;
-
-import java.io.*;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.stream.Stream;
-import lombok.extern.slf4j.Slf4j;
+import com.amazonaws.services.s3.model.PartETag;
+import com.amazonaws.services.s3.model.UploadPartRequest;
+import org.slf4j.Logger;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
 import tdl.s3.sync.progress.DummyProgressListener;
 import tdl.s3.sync.progress.ProgressListener;
 
-@Slf4j
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.stream.Stream;
+
+import static org.slf4j.LoggerFactory.getLogger;
+
 public class MultipartUploadFileUploadingStrategy implements UploadingStrategy {
+    private static final Logger log = getLogger(MultipartUploadFileUploadingStrategy.class);
 
     private static final int DEFAULT_THREAD_COUNT = 4;
 

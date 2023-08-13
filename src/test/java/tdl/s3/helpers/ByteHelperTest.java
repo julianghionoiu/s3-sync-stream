@@ -1,19 +1,21 @@
 package tdl.s3.helpers;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import org.apache.commons.io.IOUtils;
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+
+import java.io.*;
 import java.nio.file.Paths;
 import java.util.Random;
-import org.apache.commons.io.IOUtils;
-import org.junit.Test;
+import java.util.concurrent.TimeUnit;
 
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.*;
 import static net.trajano.commons.testing.UtilityClassTestUtil.assertUtilityClassWellDefined;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 public class ByteHelperTest {
 
@@ -33,7 +35,7 @@ public class ByteHelperTest {
         byte[] bytes = createRandomBytes(100);
         ByteArrayInputStream stream = ByteHelper.createInputStream(bytes);
         for (int i = 0; i < 5; i++) {
-            assertThat(stream.read(), equalTo(Byte.toUnsignedInt(bytes[i])));
+            MatcherAssert.assertThat(stream.read(), equalTo(Byte.toUnsignedInt(bytes[i])));
         }
     }
 
@@ -42,7 +44,7 @@ public class ByteHelperTest {
         int size = 100;
         byte[] bytes = createRandomBytes(size);
         byte[] truncated = ByteHelper.truncate(bytes, size);
-        assertArrayEquals(truncated, bytes);
+        Assertions.assertArrayEquals(truncated, bytes);
     }
 
     @Test
@@ -50,7 +52,7 @@ public class ByteHelperTest {
         int size = 100;
         byte[] bytes = createRandomBytes(size);
         byte[] truncated = ByteHelper.truncate(bytes, size + 50);
-        assertArrayEquals(truncated, bytes);
+        Assertions.assertArrayEquals(truncated, bytes);
     }
 
     @Test
@@ -59,7 +61,7 @@ public class ByteHelperTest {
         byte[] bytes = createRandomBytes(size);
         int requestedSize = size - 50;
         byte[] truncated = ByteHelper.truncate(bytes, requestedSize);
-        assertEquals(truncated.length, requestedSize);
+        Assertions.assertEquals(truncated.length, requestedSize);
     }
 
     @Test
@@ -69,7 +71,7 @@ public class ByteHelperTest {
         String path = "src/test/resources/helpers/bytehelpertest/part2.bin";
         byte[] compareBytes = IOUtils.toByteArray(new FileInputStream(path));
         byte[] readBytes = ByteHelper.getNextPartFromInputStream(stream, 5242880, true);
-        assertThat(readBytes, equalTo(compareBytes));
+        MatcherAssert.assertThat(readBytes, equalTo(compareBytes));
     }
 
     @Test
@@ -80,8 +82,8 @@ public class ByteHelperTest {
         byte[] compareBytes = IOUtils.toByteArray(new FileInputStream(path));
         long remainingLength = largeFile.length() - 10485760;
         byte[] readBytes = ByteHelper.getNextPartFromInputStream(stream, 10485760, true);
-        assertEquals(readBytes.length, remainingLength);
-        assertThat(readBytes, equalTo(compareBytes));
+        Assertions.assertEquals(readBytes.length, remainingLength);
+        MatcherAssert.assertThat(readBytes, equalTo(compareBytes));
     }
 
     @Test
@@ -89,22 +91,27 @@ public class ByteHelperTest {
         byte[] bytes = createRandomBytes(100);
         ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
         ByteHelper.skipOffsetInInputStream(stream, 10);
-        assertThat(stream.read(), equalTo(Byte.toUnsignedInt(bytes[10])));
+        MatcherAssert.assertThat(stream.read(), equalTo(Byte.toUnsignedInt(bytes[10])));
     }
 
     //TODO Make this test pass
-    @Test(timeout = 100, expected = IOException.class)
-    public void skipOffsetInInputStreamThrowsIOExceptionIfNotEnoughBytesWhereSkipped() throws IOException {
-        byte[] bytes = createRandomBytes(2);
-        ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
-        ByteHelper.skipOffsetInInputStream(stream, 10);
+    @Test
+    @Timeout(value = 100, unit = TimeUnit.MILLISECONDS)
+    public void skipOffsetInInputStreamThrowsIOExceptionIfNotEnoughBytesWhereSkipped() {
+        Assertions.assertThrows(IOException.class, () -> {
+            byte[] bytes = createRandomBytes(2);
+            ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
+            ByteHelper.skipOffsetInInputStream(stream, 10);
+        });
     }
 
-    @Test(expected = IOException.class)
-    public void skipOffsetInInputStreamThrowsIOExceptionIfSkippedLongerThanOffset() throws IOException {
-        InputStream stream = mock(InputStream.class);
-        doReturn((long) 11).when(stream).skip((long) 10);
-        ByteHelper.skipOffsetInInputStream(stream, 10);
+    @Test
+    public void skipOffsetInInputStreamThrowsIOExceptionIfSkippedLongerThanOffset() {
+        Assertions.assertThrows(IOException.class, () -> {
+            InputStream stream = mock(InputStream.class);
+            doReturn((long) 11).when(stream).skip((long) 10);
+            ByteHelper.skipOffsetInInputStream(stream, 10);
+        });
     }
 
     @Test
@@ -115,11 +122,11 @@ public class ByteHelperTest {
             String path = "src/test/resources/helpers/bytehelpertest/part" + i + ".bin";
             InputStream stream = new FileInputStream(path);
             byte[] compareBytes = IOUtils.toByteArray(stream);
-            assertEquals(readBytes.length, compareBytes.length);
-            assertThat(readBytes, equalTo(compareBytes));
+            Assertions.assertEquals(readBytes.length, compareBytes.length);
+            MatcherAssert.assertThat(readBytes, equalTo(compareBytes));
         }
         //Last part won't get read
         byte[] readBytes = ByteHelper.readPart(3, largeFile);
-        assertEquals(readBytes.length, 0);
+        Assertions.assertEquals(readBytes.length, 0);
     }
 }

@@ -1,11 +1,12 @@
 package tdl.s3.upload;
 
-import java.io.File;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.progress.DummyProgressListener;
 import tdl.s3.sync.progress.ProgressListener;
+
+import java.io.File;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class FileUploadingService {
 

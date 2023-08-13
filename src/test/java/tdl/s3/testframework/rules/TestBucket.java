@@ -1,17 +1,11 @@
 package tdl.s3.testframework.rules;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
-import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
-import com.amazonaws.services.s3.model.ListPartsRequest;
-import com.amazonaws.services.s3.model.MultipartUpload;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PartSummary;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.UploadPartRequest;
+import com.amazonaws.services.s3.model.*;
+import tdl.s3.sync.destination.DebugDestination;
+import tdl.s3.sync.destination.Destination;
+import tdl.s3.sync.destination.S3BucketDestination;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.nio.file.Path;
@@ -21,13 +15,10 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
-import org.junit.rules.ExternalResource;
-import static tdl.s3.testframework.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
-import tdl.s3.sync.destination.DebugDestination;
-import tdl.s3.sync.destination.Destination;
-import tdl.s3.sync.destination.S3BucketDestination;
 
-abstract public class TestBucket extends ExternalResource {
+import static tdl.s3.testframework.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
+
+abstract public class TestBucket {
 
     AmazonS3 amazonS3;
     String bucketName;
@@ -35,17 +26,12 @@ abstract public class TestBucket extends ExternalResource {
 
     //~~~~ Getters
     public Destination asDestination() {
-        S3BucketDestination remoteDestination = S3BucketDestination.builder()
-                .awsClient(amazonS3)
-                .bucket(bucketName)
-                .prefix(uploadPrefix)
-                .build();
+        S3BucketDestination remoteDestination = new S3BucketDestination(amazonS3, bucketName, uploadPrefix);
         return new DebugDestination(remoteDestination);
     }
 
     //~~~~ Lifecycle management
-    @Override
-    protected void before() {
+    public void beforeEach(){
         abortAllMultipartUploads();
         removeAllObjects();
     }

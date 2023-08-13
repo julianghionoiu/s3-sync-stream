@@ -3,7 +3,6 @@ package tdl.s3.testframework.rules;
 import ch.qos.logback.core.encoder.ByteArrayUtil;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
-import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
@@ -19,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-public class TemporarySyncFolder extends ExternalResource {
+public class TemporarySyncFolder {
     public static final int PART_SIZE_IN_BYTES = 5 * 1024 * 1024;
     public static final int ONE_MEGABYTE = 1024 * 1024;
 
@@ -29,13 +28,11 @@ public class TemporarySyncFolder extends ExternalResource {
         this.temporaryFolder = new TemporaryFolder();
     }
 
-    @Override
-    protected void before() throws Throwable {
+    public void beforeEach() throws Throwable {
         temporaryFolder.create();
     }
 
-    @Override
-    protected void after() {
+    public void afterEach() {
         temporaryFolder.delete();
     }
 

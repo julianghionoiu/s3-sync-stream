@@ -3,20 +3,7 @@ package tdl.s3.upload;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.PartListing;
 import com.amazonaws.services.s3.model.UploadPartRequest;
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Stream;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 import tdl.s3.helpers.ByteHelper;
 import tdl.s3.helpers.ChecksumHelper;
 import tdl.s3.helpers.FileHelper;
@@ -24,8 +11,15 @@ import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
 import tdl.s3.sync.progress.ProgressListener;
 
-@Slf4j
+import java.io.*;
+import java.util.*;
+import java.util.stream.Stream;
+
+import static org.slf4j.LoggerFactory.getLogger;
+
 public class MultipartUploadFile {
+    private static final Logger log = getLogger(MultipartUploadFile.class);
+
 
     //Minimum part size is 5 MB
     private static final int MINIMUM_PART_SIZE = 5 * 1024 * 1024;

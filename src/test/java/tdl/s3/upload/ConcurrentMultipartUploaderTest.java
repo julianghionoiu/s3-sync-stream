@@ -2,31 +2,31 @@ package tdl.s3.upload;
 
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.beust.jcommander.internal.Lists;
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import tdl.s3.sync.destination.Destination;
+import tdl.s3.sync.destination.DestinationOperationException;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import static org.mockito.Matchers.*;
+
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
-import tdl.s3.sync.destination.Destination;
-import tdl.s3.sync.destination.DestinationOperationException;
 
 public class ConcurrentMultipartUploaderTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void constructorShouldThrowExceptionOnInvalidThreadCount() throws IllegalArgumentException {
-        Destination destination = mock(Destination.class);
-        ConcurrentMultipartUploader uploader = new ConcurrentMultipartUploader(destination, 0);
+        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            Destination destination = mock(Destination.class);
+            new ConcurrentMultipartUploader(destination, 0);
+        });
     }
 
     @Test
@@ -34,7 +34,7 @@ public class ConcurrentMultipartUploaderTest {
         Destination destination = mock(Destination.class);
         ConcurrentMultipartUploader uploader = new ConcurrentMultipartUploader(destination);
         ExecutorService executorService = uploader.getExecutorService();
-        assertNotNull(executorService);
+        Assertions.assertNotNull(executorService);
     }
 
     @Test
@@ -64,23 +64,24 @@ public class ConcurrentMultipartUploaderTest {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
-        assertEquals(streamResult.size(), 1);
+        Assertions.assertEquals(streamResult.size(), 1);
         uploader.shutdownAndAwaitTermination();
     }
 
     @Test
     public void executionShouldHandleInterruption() throws DestinationOperationException, InterruptedException, ExecutionException, TimeoutException {
-        expectedException.expect(DestinationOperationException.class);
-        expectedException.expectMessage("Cannot finish uploading");
-        ConcurrentMultipartUploader uploader = mock(ConcurrentMultipartUploader.class);
-        ExecutorService service = mock(ExecutorService.class);
-        when(service.awaitTermination(anyLong(), any()))
-                .thenThrow(mock(InterruptedException.class));
-        when(uploader.getExecutorService()).thenReturn(service);
+        DestinationOperationException destinationOperationException = Assertions.assertThrows(DestinationOperationException.class, () -> {
+            ConcurrentMultipartUploader uploader = mock(ConcurrentMultipartUploader.class);
+            ExecutorService service = mock(ExecutorService.class);
+            when(service.awaitTermination(anyLong(), any()))
+                    .thenThrow(mock(InterruptedException.class));
+            when(uploader.getExecutorService()).thenReturn(service);
 
-        doCallRealMethod().when(uploader)
-                .shutdownAndAwaitTermination();
+            doCallRealMethod().when(uploader)
+                    .shutdownAndAwaitTermination();
 
-        uploader.shutdownAndAwaitTermination();
+            uploader.shutdownAndAwaitTermination();
+        });
+        MatcherAssert.assertThat(destinationOperationException.getMessage(), containsString("Cannot finish uploading"));
     }
 }

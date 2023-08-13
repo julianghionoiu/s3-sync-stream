@@ -2,16 +2,22 @@ package tdl.s3.testframework;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import tdl.s3.testframework.rules.LocalTestBucket;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
 
 public class LocalS3Test {
 
-    @Rule
-    public LocalTestBucket testBucket = new LocalTestBucket();
+    public LocalTestBucket testBucket;
+
+    @BeforeEach
+    void setUp() {
+        testBucket = new LocalTestBucket();
+        testBucket.beforeEach();
+    }
 
     @Test
     public void can_use_minio_server_correctly() {
@@ -22,6 +28,6 @@ public class LocalS3Test {
         }
         client.putObject(testbucket, "file/name", "contents");
         ObjectMetadata data = client.getObjectMetadata(testbucket, "file/name");
-        assertNotNull(data.getETag());
+        Assertions.assertNotNull(data.getETag());
     }
 }

@@ -1,12 +1,13 @@
 package tdl.s3.helpers;
 
-import java.io.File;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import static net.trajano.commons.testing.UtilityClassTestUtil.assertUtilityClassWellDefined;
 
+import static net.trajano.commons.testing.UtilityClassTestUtil.assertUtilityClassWellDefined;
 import static org.junit.Assert.*;
 
 public class FileHelperTest {
@@ -45,13 +46,13 @@ public class FileHelperTest {
         Path path = Paths.get("src", "test", "resources", "test_lock", "file2.txt");
         String expected = "src/test/resources/test_lock/file2.txt";
         File relativeFile = path.toFile();
-        assertTrue(relativeFile.getPath().equals(expected));
-        assertEquals(FileHelper.getRelativeFilePathToCwd(relativeFile), expected);
+        Assertions.assertEquals(relativeFile.getPath(), expected);
+        Assertions.assertEquals(FileHelper.getRelativeFilePathToCwd(relativeFile), expected);
         
         Path absolutePath = path.toAbsolutePath();
         File absoluteFile = absolutePath.toFile();
-        assertFalse(absoluteFile.getPath().startsWith(expected));
-        assertTrue(absoluteFile.getPath().endsWith(expected));
-        assertEquals(FileHelper.getRelativeFilePathToCwd(absoluteFile), expected);
+        Assertions.assertFalse(absoluteFile.getPath().startsWith(expected));
+        Assertions.assertTrue(absoluteFile.getPath().endsWith(expected));
+        Assertions.assertEquals(FileHelper.getRelativeFilePathToCwd(absoluteFile), expected);
     }
 }

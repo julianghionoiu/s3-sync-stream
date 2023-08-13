@@ -1,7 +1,9 @@
 package tdl.s3.sync.progress;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import static org.junit.Assert.assertEquals;
-import org.junit.Test;
 
 public class FileUploadStatConcurrentTest {
 
@@ -36,7 +38,7 @@ public class FileUploadStatConcurrentTest {
         thread1.join();
         thread2.join();
 
-        assertEquals(stat.getUploadedSize(), total);
-        assertEquals((double) 1, stat.getUploadRatio(), 0.00001);
+        Assertions.assertEquals(stat.getUploadedSize(), total);
+        Assertions.assertEquals((double) 1, stat.getUploadRatio(), 0.00001);
     }
 }

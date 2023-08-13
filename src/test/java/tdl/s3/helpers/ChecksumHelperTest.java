@@ -1,15 +1,15 @@
 package tdl.s3.helpers;
 
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import static net.trajano.commons.testing.UtilityClassTestUtil.assertUtilityClassWellDefined;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class ChecksumHelperTest {
-
-    @Rule
-    public ExpectedException expectedEx = ExpectedException.none();
 
     @Test
     public void shouldSatisfyContractForUtilityClass() throws Exception {
@@ -18,16 +18,16 @@ public class ChecksumHelperTest {
 
     @Test
     public void handleNotFoundAlgorithmException() throws Exception {
-        expectedEx.expect(RuntimeException.class);
-        expectedEx.expectMessage("Can't send multipart upload.");
-
-        byte[] bytes = "Hello World!".getBytes();
-        ChecksumHelper.digest(bytes, "SOMETHING");
+        RuntimeException runtimeException = Assertions.assertThrows(RuntimeException.class, () -> {
+            byte[] bytes = "Hello World!".getBytes();
+            ChecksumHelper.digest(bytes, "SOMETHING");
+        });
+        MatcherAssert.assertThat(runtimeException.getMessage(), containsString("Can't send multipart upload."));
     }
 
     @Test
     public void digest() {
         byte[] bytes = "Hello World!".getBytes();
-        assertEquals(ChecksumHelper.digest(bytes, "MD5"), "7Qdih1MuhjZehB6Sv8UNjA==");
+        Assertions.assertEquals(ChecksumHelper.digest(bytes, "MD5"), "7Qdih1MuhjZehB6Sv8UNjA==");
     }
 }

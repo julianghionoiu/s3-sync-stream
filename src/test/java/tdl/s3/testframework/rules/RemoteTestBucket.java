@@ -1,8 +1,9 @@
 package tdl.s3.testframework.rules;
 
+import tdl.s3.credentials.AWSSecretProperties;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import tdl.s3.credentials.AWSSecretProperties;
 
 public class RemoteTestBucket extends TestBucket {
 

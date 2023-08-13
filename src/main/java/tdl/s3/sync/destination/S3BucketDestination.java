@@ -6,21 +6,22 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
-import lombok.Builder;
-import lombok.extern.slf4j.Slf4j;
+import tdl.s3.upload.MultipartUploadFinder;
 import tdl.s3.upload.MultipartUploadResult;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import tdl.s3.upload.MultipartUploadFinder;
 
-@Builder
-@Slf4j
 public class S3BucketDestination implements Destination {
-
     private final AmazonS3 awsClient;
     private final String bucket;
     private final String prefix;
+
+    public S3BucketDestination(AmazonS3 awsClient, String bucket, String prefix) {
+        this.awsClient = awsClient;
+        this.bucket = bucket;
+        this.prefix = prefix;
+    }
 
     // ~~~~ Public methods
 
@@ -42,6 +43,8 @@ public class S3BucketDestination implements Destination {
                 .withRegion(Regions.EU_WEST_2)
                 .build().getBucketAcl("ping.s3.accelerate.io");
     }
+
+
 
     @Override
     public void startS3SyncSession() throws DestinationOperationException {
@@ -141,8 +144,8 @@ public class S3BucketDestination implements Destination {
                 .withBucketName(bucket)
                 .withKey(getFullPath(remotePath));
     }
-
     // ~~~ MultiPart Helpers
+
     private void completeMultipartUpload(CompleteMultipartUploadRequest request) throws DestinationOperationException {
         try {
             awsClient.completeMultipartUpload(request);
@@ -159,8 +162,8 @@ public class S3BucketDestination implements Destination {
                 .findAny()
                 .orElse(null);
     }
-
     // ~~~ Part Helpers
+
     private PartListing getPartListing(String remotePath, String uploadId) {
         ListPartsRequest request = new ListPartsRequest(bucket, getFullPath(remotePath), uploadId);
         return listParts(request);
@@ -169,8 +172,8 @@ public class S3BucketDestination implements Destination {
     private PartListing listParts(ListPartsRequest request) {
         return awsClient.listParts(request);
     }
-
     // ~~~ Path helpers
+
     private String getFullPath(String path) {
         return prefix + path;
     }

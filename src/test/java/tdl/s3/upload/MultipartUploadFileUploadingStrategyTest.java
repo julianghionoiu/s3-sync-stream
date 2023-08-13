@@ -1,11 +1,15 @@
 package tdl.s3.upload;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import tdl.s3.sync.destination.DestinationOperationException;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import static org.junit.Assert.*;
-import org.junit.Test;
-import static org.mockito.Mockito.*;
-import tdl.s3.sync.destination.DestinationOperationException;
+
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class MultipartUploadFileUploadingStrategyTest {
 
@@ -13,7 +17,7 @@ public class MultipartUploadFileUploadingStrategyTest {
     public void getUploadingResultShouldReturnNullOnInterruptedException() throws DestinationOperationException, InterruptedException, ExecutionException {
         Future future = mock(Future.class);
         when(future.get()).thenThrow(new InterruptedException());
-        assertNull(MultipartUploadFileUploadingStrategy.getUploadingResult(future));
+        Assertions.assertNull(MultipartUploadFileUploadingStrategy.getUploadingResult(future));
     }
 
     @Test
@@ -22,7 +26,7 @@ public class MultipartUploadFileUploadingStrategyTest {
         ExecutionException ex = mock(ExecutionException.class);
         when(ex.getCause()).thenReturn(new DestinationOperationException(""));
         when(future.get()).thenThrow(ex);
-        assertNull(MultipartUploadFileUploadingStrategy.getUploadingResult(future));
+        Assertions.assertNull(MultipartUploadFileUploadingStrategy.getUploadingResult(future));
     }
     
     @Test
@@ -30,6 +34,6 @@ public class MultipartUploadFileUploadingStrategyTest {
         Future future = mock(Future.class);
         ExecutionException ex = mock(ExecutionException.class);
         when(future.get()).thenThrow(ex);
-        assertNull(MultipartUploadFileUploadingStrategy.getUploadingResult(future));
+        Assertions.assertNull(MultipartUploadFileUploadingStrategy.getUploadingResult(future));
     }
 }

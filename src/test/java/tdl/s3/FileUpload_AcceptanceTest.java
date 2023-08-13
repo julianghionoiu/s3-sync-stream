@@ -1,12 +1,14 @@
 package tdl.s3;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import org.junit.Rule;
-import org.junit.Test;
-import tdl.s3.testframework.rules.LocalTestBucket;
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import tdl.s3.sync.Filters;
 import tdl.s3.sync.RemoteSync;
 import tdl.s3.sync.Source;
+import tdl.s3.testframework.rules.LocalTestBucket;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,8 +20,13 @@ import static org.junit.Assert.assertTrue;
 
 public class FileUpload_AcceptanceTest {
 
-    @Rule
-    public LocalTestBucket testBucket = new LocalTestBucket();
+    public LocalTestBucket testBucket;
+
+    @BeforeEach
+    void setUp() {
+        testBucket = new LocalTestBucket();
+        testBucket.beforeEach();
+    }
 
     @Test
     public void should_not_upload_file_if_already_present() throws Exception {
@@ -42,7 +49,7 @@ public class FileUpload_AcceptanceTest {
         Instant actualLastModifiedDate = objectMetadata.getLastModified().toInstant();
 
         //Check that file is older than last uploading start
-        assertTrue(actualLastModifiedDate.isBefore(uploadingTime));
+        Assertions.assertTrue(actualLastModifiedDate.isBefore(uploadingTime));
     }
 
     @Test
@@ -56,7 +63,7 @@ public class FileUpload_AcceptanceTest {
         RemoteSync sync = new RemoteSync(source, testBucket.asDestination());
         sync.run();
 
-        assertThat(testBucket.doesObjectExists("sample_small_file_to_upload.txt"), is(true));
+        MatcherAssert.assertThat(testBucket.doesObjectExists("sample_small_file_to_upload.txt"), is(true));
     }
 
     @Test
@@ -70,7 +77,7 @@ public class FileUpload_AcceptanceTest {
         RemoteSync sync = new RemoteSync(source, testBucket.asDestination());
         sync.run();
 
-        assertThat(testBucket.doesObjectExists("large_file.bin"), is(true));
+        MatcherAssert.assertThat(testBucket.doesObjectExists("large_file.bin"), is(true));
     }
 
 }

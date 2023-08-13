@@ -1,13 +1,10 @@
 package tdl.s3.upload;
 
 import com.amazonaws.services.s3.model.UploadPartRequest;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
+
+import java.util.concurrent.*;
 
 public class ConcurrentMultipartUploader {
 

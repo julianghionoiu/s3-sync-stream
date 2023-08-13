@@ -98,10 +98,9 @@ public class SyncFileApp {
         Path path = Paths.get(configPath);
         AWSSecretProperties awsSecretProperties = AWSSecretProperties.fromPlainTextFile(path);
 
-        return S3BucketDestination.builder()
-                .awsClient(awsSecretProperties.createClient())
-                .bucket(awsSecretProperties.getS3Bucket())
-                .prefix(awsSecretProperties.getS3Prefix())
-                .build();
+        return new S3BucketDestination(
+                awsSecretProperties.createClient(),
+                awsSecretProperties.getS3Bucket(),
+                awsSecretProperties.getS3Prefix());
     }
 }

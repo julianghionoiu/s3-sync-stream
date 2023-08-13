@@ -1,15 +1,17 @@
 package tdl.s3.upload;
 
-import lombok.extern.slf4j.Slf4j;
-
-import java.io.File;
-import java.io.IOException;
+import org.slf4j.Logger;
 import tdl.s3.helpers.FileHelper;
 import tdl.s3.sync.destination.Destination;
 import tdl.s3.sync.destination.DestinationOperationException;
 
-@Slf4j
+import java.io.File;
+import java.io.IOException;
+
+import static org.slf4j.LoggerFactory.getLogger;
+
 public class FileUploaderImpl implements FileUploader {
+    private static final Logger log = getLogger(FileUploaderImpl.class);
 
     private static final int RETRY_TIMES_COUNT = 2;
 

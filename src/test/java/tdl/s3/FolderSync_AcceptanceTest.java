@@ -1,22 +1,28 @@
 package tdl.s3;
 
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import tdl.s3.sync.Filters;
+import tdl.s3.sync.RemoteSync;
+import tdl.s3.sync.Source;
+import tdl.s3.testframework.rules.LocalTestBucket;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.Rule;
-import org.junit.Test;
-import tdl.s3.testframework.rules.LocalTestBucket;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-import tdl.s3.sync.RemoteSync;
-import tdl.s3.sync.Filters;
-import tdl.s3.sync.Source;
-
 public class FolderSync_AcceptanceTest {
-    
-    @Rule
-    public LocalTestBucket testBucket = new LocalTestBucket();
+
+    public LocalTestBucket testBucket;
+
+    @BeforeEach
+    void setUp() {
+        testBucket = new LocalTestBucket();
+        testBucket.beforeEach();
+    }
 
     @Test
     public void should_upload_all_new_files_from_folder() throws Exception {
@@ -24,9 +30,9 @@ public class FolderSync_AcceptanceTest {
         Path filePath = Paths.get("src/test/resources/test_dir/test_file_1.txt");
         testBucket.upload("test_file_1.txt", filePath);
 
-        assertThat(testBucket.doesObjectExists("test_file_1.txt"), is(true));
-        assertThat(testBucket.doesObjectExists("test_file_2.txt"), is(false));
-        assertThat(testBucket.doesObjectExists("subdir/sub_test_file_1.txt"), is(false));
+        MatcherAssert.assertThat(testBucket.doesObjectExists("test_file_1.txt"), is(true));
+        MatcherAssert.assertThat(testBucket.doesObjectExists("test_file_2.txt"), is(false));
+        MatcherAssert.assertThat(testBucket.doesObjectExists("subdir/sub_test_file_1.txt"), is(false));
 
         //synchronize folder
         Path directoryPath = Paths.get("src/test/resources/test_dir");
@@ -40,9 +46,9 @@ public class FolderSync_AcceptanceTest {
         directorySync.run();
 
         //state after sync
-        assertThat(testBucket.doesObjectExists("test_file_1.txt"), is(true));
-        assertThat(testBucket.doesObjectExists("test_file_2.txt"), is(true));
-        assertThat(testBucket.doesObjectExists("subdir/sub_test_file_1.txt"), is(true));
+        MatcherAssert.assertThat(testBucket.doesObjectExists("test_file_1.txt"), is(true));
+        MatcherAssert.assertThat(testBucket.doesObjectExists("test_file_2.txt"), is(true));
+        MatcherAssert.assertThat(testBucket.doesObjectExists("subdir/sub_test_file_1.txt"), is(true));
     }
 
 }
