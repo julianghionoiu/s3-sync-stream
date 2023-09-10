@@ -156,16 +156,24 @@ If you want to build the SNAPSHOT version locally you can install to the local M
 ./gradlew -x test clean install
 ```
 
-### Release to jcenter and mavenCentral
+### Publish to Maven Central
 
-The CI server is configured to pushs release branches to Bintray.
-You trigger the process by running the `release` command locally. 
-
-The command will increment the release number and create and annotated tag:
+Publish to Maven Central Staging repo
 ```bash
-./gradlew release
-git push --tags
+./gradlew publish
 ```
+
+A Staging repository is created automatically:
+https://oss.sonatype.org/#stagingRepositories
+
+To promote to the Live repo, do the following:
+- "Close" the Staging repo, Sonatype Lift will scan the repo for vuln, check the email
+- "Refresh" the Staging repos
+- "Release" the repo
+- wait between 15 mins and up to 2 hours for the new version to appear in Central
+- first check the Web UI: https://oss.sonatype.org/#view-repositories;releases~browsestorage
+- then check: https://repo1.maven.org/maven2/ro/ghionoiu/dev-screen-record/
+
 
 ### Inspect traffic with Charles Proxy
 
