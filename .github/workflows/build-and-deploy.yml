@@ -21,6 +21,11 @@ jobs:
       - name: Test
         run: |
           ./gradlew clean build test -i
+      - uses: actions/upload-artifact@v3
+        if: success() || failure()        # run this step even if previous step failed
+        with:
+          name: test-results-html
+          path: ./build/reports/test/
       - name: Build Application JAR
         run: |
           ./gradlew shadowJar -x test
