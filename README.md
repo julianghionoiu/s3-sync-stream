@@ -123,22 +123,7 @@ The values are:
 
 ### Run tests
 
-Download and install Minio from https://www.minio.io/downloads/#minio-server
-
-Configure minio:
-```bash
-export MINIO_ACCESS_KEY=minio_access_key
-export MINIO_SECRET_KEY=minio_secret_key
-export MINIO_BROWSER=off
-```
-or set these values in `~/.minio/config.json`
-
-Start minio server:
-```bash
-mkdir -p /tmp/minio-backend; minio server /tmp/minio-backend
-```
-
-Alternatively, you can start Minio as a container
+Start Minio as a container
 ```
 docker run -d -p 9000:9000 \
     -e "MINIO_ACCESS_KEY=minio_access_key" \
@@ -147,6 +132,15 @@ docker run -d -p 9000:9000 \
     minio/minio:RELEASE.2017-05-05T01-14-51Z server /data
 ```
 
+Run the local tests
+```
+./gradlew test -i
+```
+
+Run remote tests
+```
+./gradlew remoteS3Tests -i
+```
 
 ### Build and run as command-line app
 ```bash

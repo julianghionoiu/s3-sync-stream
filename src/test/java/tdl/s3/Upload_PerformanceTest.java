@@ -82,7 +82,7 @@ public class Upload_PerformanceTest {
         
         RemoteSync directoryFirstSync = new RemoteSync(directorySource, destination);
         directoryFirstSync.run();
-        Assertions.assertEquals(destination.getPerformanceScore(), 4003);
+        Assertions.assertEquals(4003, destination.getPerformanceScore());
         
         targetSyncFolder.writeBytesToFile(fileName, PART_SIZE + ONE_MEGABYTE);
         targetSyncFolder.unlock(fileName);
@@ -91,7 +91,7 @@ public class Upload_PerformanceTest {
         directorySecondSync.run();
         
         //+ 1 canUpload + 1 initUpload + 2000 uploadMultipart + 1 commit
-        Assertions.assertEquals(destination.getPerformanceScore(), 6006);
+        Assertions.assertEquals(6006, destination.getPerformanceScore());
         Files.delete(file.toPath());
     }
 

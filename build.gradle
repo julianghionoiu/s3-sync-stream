@@ -44,15 +44,21 @@ dependencies {
 // ~~~~~ Test
 
 test {
-    useJUnitPlatform()
-    systemProperty("cucumber.junit-platform.naming-strategy", "long")
+    useJUnitPlatform {
+        excludeTags 'remote_s3_test'
+    }
     testLogging {
         events "passed", "skipped", "failed"
     }
-    systemProperty "http.proxyHost", System.getProperty('http.proxyHost')
-    systemProperty "http.proxyPort", System.getProperty('http.proxyPort')
-    systemProperty "https.proxyHost", System.getProperty('https.proxyHost')
-    systemProperty "https.proxyPort", System.getProperty('https.proxyPort')
+}
+
+tasks.register('remoteS3Tests', Test) {
+    useJUnitPlatform {
+        includeTags 'remote_s3_test'
+    }
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
 }
 
 // ~~~~~ Packaging

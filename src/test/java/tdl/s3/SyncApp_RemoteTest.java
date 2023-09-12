@@ -2,6 +2,7 @@ package tdl.s3;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import tdl.s3.testframework.rules.RemoteTestBucket;
 
@@ -19,6 +20,7 @@ public class SyncApp_RemoteTest {
     }
 
     @Test
+    @Tag("remote_s3_test")
     public void shouldUploadAllNewFilesFromFolder() throws Exception {
 
         //synchronize folder
