@@ -139,6 +139,7 @@ mkdir -p /tmp/minio-backend; minio server /tmp/minio-backend
 ```
 
 
+
 ### Build and run as command-line app
 ```bash
 ./gradlew shadowJar
