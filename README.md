@@ -138,6 +138,14 @@ Start minio server:
 mkdir -p /tmp/minio-backend; minio server /tmp/minio-backend
 ```
 
+Alternatively, you can start Minio as a container
+```
+docker run -d -p 9000:9000 \
+    -e "MINIO_ACCESS_KEY=minio_access_key" \
+    -e "MINIO_SECRET_KEY=minio_secret_key" \
+    -e "MINIO_BROWSER=off" \
+    minio/minio:RELEASE.2017-05-05T01-14-51Z server /data
+```
 
 
 ### Build and run as command-line app
