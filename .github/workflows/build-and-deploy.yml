@@ -20,8 +20,7 @@ jobs:
           docker run -d -p 9000:9000 --rm -e "MINIO_ACCESS_KEY=minio_access_key" -e "MINIO_SECRET_KEY=minio_secret_key" -e "MINIO_BROWSER=off" minio/minio:RELEASE.2017-05-05T01-14-51Z server /data
       - name: Test
         run: |
-           # ./gradlew clean build test -i
-           ./gradlew test --tests IncompleteFileUpload_AcceptanceTest.should_upload_incomplete_file
+           ./gradlew clean build test -i
       - name: Publish Test Report
         uses: actions/upload-artifact@v3
         if: success() || failure()        # run this step even if previous step failed
