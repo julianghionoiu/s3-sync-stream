@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
 import static tdl.s3.testframework.rules.TemporarySyncFolder.ONE_MEGABYTE;
 import static tdl.s3.testframework.rules.TemporarySyncFolder.PART_SIZE_IN_BYTES;
 

@@ -132,6 +132,16 @@ docker run -d -p 9000:9000 --rm \
     minio/minio:RELEASE.2017-05-05T01-14-51Z server /data
 ```
 
+Minio can be accessed via the normal AWS client
+```
+export AWS_ACCESS_KEY_ID=minio_access_key
+export AWS_SECRET_ACCESS_KEY=minio_secret_key
+export AWS_DEFAULT_REGION=us-east-1
+
+aws --endpoint-url http://127.0.0.1:9000 s3api list-multipart-uploads --bucket localbucket
+aws --endpoint-url http://127.0.0.1:9000 s3 ls
+```
+
 Run the local tests
 ```
 ./gradlew test -i
