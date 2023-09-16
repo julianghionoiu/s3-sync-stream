@@ -169,34 +169,6 @@ If you want to build the SNAPSHOT version locally you can install to the local M
 ./gradlew -x test clean install
 ```
 
-### Publish to Maven Central
-
-Publish to Maven Central Staging repo
-```bash
-./gradlew publish
-```
-
-A Staging repository is created automatically:
-https://oss.sonatype.org/#stagingRepositories
-
-To promote to the Live repo, do the following:
-- "Close" the Staging repo, Sonatype Lift will scan the repo for vuln, check the email
-- "Refresh" the Staging repos
-- "Release" the repo
-- wait between 15 mins and up to 2 hours for the new version to appear in Central
-- first check the Web UI: https://oss.sonatype.org/#view-repositories;releases~browsestorage
-- then check: https://repo1.maven.org/maven2/ro/ghionoiu/dev-screen-record/
-
-### To build artifacts in Github
-
-Commit all changes then:
-```bash
-export RELEASE_TAG="v$(cat gradle.properties | cut -d= -f2)"
-git tag -a "${RELEASE_TAG}" -m "${RELEASE_TAG}"
-git push --tags
-git push
-```
-
 ### Inspect traffic with Charles Proxy
 
 - Install Charles Proxy: https://www.charlesproxy.com/
@@ -247,3 +219,30 @@ aws s3api complete-multipart-upload \
   --upload-id "jdB1Q.SRfhk0wdRalRHJNLvE8xEoiH5TiQPBrnG2_hkU1oc9wcQSQgM4FcEUmDxNuA2FGHUigd_0LwkovflgXupcQMXCuJ_xYML9ZtKlX4LS8PaXXxaNcA4WOexreZoZ.fZ_NxDHxqCbg15H6enZdg--"
 ```
 
+### Publish to Maven Central
+
+Publish to Maven Central Staging repo
+```bash
+./gradlew publish
+```
+
+A Staging repository is created automatically:
+https://oss.sonatype.org/#stagingRepositories
+
+To promote to the Live repo, do the following:
+- "Close" the Staging repo, Sonatype Lift will scan the repo for vuln, check the email
+- "Refresh" the Staging repos
+- "Release" the repo
+- wait between 15 mins and up to 2 hours for the new version to appear in Central
+- first check the Web UI: https://oss.sonatype.org/#view-repositories;releases~browsestorage
+- then check: https://repo1.maven.org/maven2/ro/ghionoiu/dev-screen-record/
+
+### To build artifacts in Github
+
+Commit all changes then:
+```bash
+export RELEASE_TAG="v$(cat gradle.properties | cut -d= -f2)"
+git tag -a "${RELEASE_TAG}" -m "${RELEASE_TAG}"
+git push --tags
+git push
+```
